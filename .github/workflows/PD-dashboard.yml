@@ -1,0 +1,132 @@
+name: physical-design-dashboard
+
+on:
+  workflow_run:
+    workflows:
+      - OR-design-flow
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build PD Dashboard
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Restore PD dashboard history from gh-pages-cva6-PD-dashboard-data
+        run: |
+          mkdir -p /tmp/PD-data
+          if git ls-remote --heads origin gh-pages-cva6-PD-dashboard-data | grep -q gh-pages-cva6-PD-dashboard-data; then
+            git fetch origin gh-pages-cva6-PD-dashboard-data --depth=1
+            git checkout origin/gh-pages-cva6-PD-dashboard-data -- data/ 2>/dev/null && \
+              cp -r data/* /tmp/PD-data/ 2>/dev/null || \
+              echo "No existing data on gh-pages-cva6-PD-dashboard-data, starting fresh"
+          else
+            echo "gh-pages-cva6-PD-dashboard-data branch does not exist yet, starting fresh"
+          fi
+
+      - name: Collect PD dashboard CI data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 .github/scripts/dashboard_physical-design/extract_PD_metrics.py \
+            --repo "${{ github.repository }}" \
+            --data-dir /tmp/PD-data \
+            --fetch-count 20
+
+      - name: Install Jinja2
+        run: pip install jinja2
+
+      # - name: Generate PD dashboard HTML
+      #   run: |
+      #     python3 .github/scripts/dashboard_physical-design/generate_PD_dashboard.py \
+      #       --data-dir /tmp/PD-data \
+      #       --output-dir /tmp/PD-dash-site \
+      #       --repo "${{ github.repository }}"
+
+      # - name: Prepare Pages artifact
+      #   run: |
+      #     cp -r /tmp/PD-data /tmp/PD-dash-site/data
+
+      # - name: Upload Pages artifact
+      #   uses: actions/upload-pages-artifact@v3
+      #   with:
+      #     path: /tmp/PD-dash-site
+
+      # - name: Upload preview artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: cva6-PD-dashboard-site
+      #     path: /tmp/PD-dash-site
+      #     retention-days: 14
+
+      - name: Upload data for persistence job
+        uses: actions/upload-artifact@v4
+        with:
+          name: cva6-PD-dashboard-data
+          path: /tmp/PD-data/
+          retention-days: 7
+
+  # deploy:
+  #   name: Deploy to Pages
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   environment:
+  #     name: github-pages
+  #     url: ${{ steps.deployment.outputs.page_url }}
+  #   steps:
+  #     - name: Deploy to GitHub Pages
+  #       id: deployment
+  #       uses: actions/deploy-pages@v4
+
+  persist-PD-data:
+    name: Persist PD Dashboard Data
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare gh-pages-cva6-PD-dashboard-data branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin gh-pages-cva6-PD-dashboard-data >/dev/null 2>&1; then
+            git fetch origin gh-pages-cva6-PD-dashboard-data --depth=1
+            git checkout -B gh-pages-cva6-PD-dashboard-data origin/gh-pages-cva6-PD-dashboard-data
+          else
+            git checkout --orphan gh-pages-cva6-PD-dashboard-data
+            git rm -rf . >/dev/null 2>&1 || true
+            find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+            echo "# CVA6 PD Dashboard Data" > README.md
+            git add README.md
+            git commit -m "Initialize gh-pages-cva6-PD-dashboard-data branch"
+          fi
+
+      - name: Download updated PD data
+        uses: actions/download-artifact@v4
+        with:
+          name: cva6-PD-dashboard-data
+          path: data/
+
+      - name: Commit and push PD data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --cached --quiet; then
+            echo "No data changes to commit"
+          else
+            git commit -m "Update cva6 PD dashboard data [skip ci]"
+            git push origin HEAD:gh-pages-cva6-PD-dashboard-data
+          fi

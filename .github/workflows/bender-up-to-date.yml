@@ -6,7 +6,8 @@
 
 name: bender-up-to-date
 
-on: [ push, pull_request, workflow_dispatch ]
+# on: [ push, pull_request, workflow_dispatch ]
+on: [pull_request, workflow_dispatch ]
 
 jobs:
   bender-up-to-date:

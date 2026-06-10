@@ -78,14 +78,14 @@ def load_workflow_data(data_dir: Path) -> dict:
         
         try:
             with open(path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+                data = json.load(f, parse_float=lambda x : round(float(x),3))
                 if not isinstance(data, list):
                     raise ValueError(
                         f"Expected JSON array (list of runs) in {path.name}, "
                         f"but got {type(data).__name__}"
                     )
                 result[wf["key"]] = data
-                print(f"✓ Loaded {len(data)} runs from {path.name}")
+                print(f"Loaded {len(data)} runs from {path.name}")
         except json.JSONDecodeError as e:
             raise json.JSONDecodeError(
                 f"Invalid JSON in {path.resolve()}: {e.msg} at line {e.lineno}, col {e.colno}",
@@ -106,10 +106,10 @@ class FlowMetrics(TypedDict):
     Each list contains values aligned across TREND_COUNT runs,
     indexed chronologically (oldest to newest).
     """
-    fmax_mhz: list[float]
-    stdcell_kgate: list[float]
-    worst_setup_slack_ps: list[float]
-    timing_met: list[bool]
+    fmax_mhz: list
+    stdcell_kgate: list
+    worst_setup_slack_ps: list
+    timing_met: list
 
 class ChartData(TypedDict):
     """Aggregated trend data for a single workflow.
@@ -143,6 +143,14 @@ def build_chart_data(all_data: dict) -> dict[str, ChartData]:
             "timing_met": []
         })
 
+        # Collect all unique flow keys (first pass)
+        all_flow_keys = set()
+        for run in trend_runs:
+            for flow in run.get("flows", []):
+                flow_key = f"{flow['arch']}_{flow['config']}"
+                all_flow_keys.add(flow_key)
+
+        # Process each run (second pass)
         for run in trend_runs:
             # Accumulate run-level metrics (pass rate, duration)
             labels.append(str(run.get("run_number", "")))
@@ -153,15 +161,27 @@ def build_chart_data(all_data: dict) -> dict[str, ChartData]:
             dur_min = round(run.get("duration_seconds", 0) / 60, 1)
             durations.append(dur_min)
 
-             # Accumulate per-flow PD metrics.
+            # Build O(1) lookup dict for flows in this run
+            flow_dict = {}
             for flow in run.get("flows", []):
-                flow_key = f"{flow['arch']}/{flow['config']}"
-                metrics = flow.get("metrics", {})
-                
-                series[flow_key]["fmax_mhz"].append(metrics.get("fmax_mhz", 0))
-                series[flow_key]["stdcell_kgate"].append(metrics.get("stdcell_kgate", 0))
-                series[flow_key]["worst_setup_slack_ps"].append(metrics.get("worst_setup_slack_ps", 0))
-                series[flow_key]["timing_met"].append(metrics.get("timing_met", False))
+                flow_key = f"{flow['arch']}_{flow['config']}"
+                flow_dict[flow_key] = flow.get("metrics", {})
+
+            # For each flow_key, append metric or None
+            for flow_key in all_flow_keys:
+                if flow_key in flow_dict:
+                    metrics = flow_dict[flow_key]
+                    series[flow_key]["fmax_mhz"].append(metrics.get("fmax_mhz", 0))
+                    series[flow_key]["stdcell_kgate"].append(metrics.get("stdcell_kgate", 0))
+                    series[flow_key]["worst_setup_slack_ps"].append(metrics.get("worst_setup_slack_ps", 0))
+                    series[flow_key]["timing_met"].append(metrics.get("timing_met", False))
+                else:
+                    # Flow absent from this run: fill with None
+                    series[flow_key]["fmax_mhz"].append(None)
+                    series[flow_key]["stdcell_kgate"].append(None)
+                    series[flow_key]["worst_setup_slack_ps"].append(None)
+                    series[flow_key]["timing_met"].append(None)
+
 
         chart_data[key] = {
             "labels": labels,
@@ -293,7 +313,7 @@ def main():
     html = template.render(**context)
 
     # Write output
-    output_file = output_dir / "index.html"
+    output_file = output_dir / "PD_dashboard.html"
     with open(output_file, "w") as f:
         f.write(html)
 

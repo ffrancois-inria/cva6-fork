@@ -56,6 +56,7 @@ jobs:
 
       - name: Prepare Pages artifact
         run: |
+          cp .github/scripts/landing_page/index.html /tmp/PD-dash-site
           cp -r /tmp/PD-data /tmp/PD-dash-site/data
 
       - name: Upload Pages artifact

@@ -28,16 +28,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Restore tier dashboard history from gh-pages-cva6-tier-dashboard-data
+      - name: Restore tier dashboard history from gh-pages-cva6-dashboard-data
         run: |
           mkdir -p /tmp/tier-data
-          if git ls-remote --heads origin gh-pages-cva6-tier-dashboard-data | grep -q gh-pages-cva6-tier-dashboard-data; then
-            git fetch origin gh-pages-cva6-tier-dashboard-data --depth=1
-            git checkout origin/gh-pages-cva6-tier-dashboard-data -- data/ 2>/dev/null && \
-              cp -r data/* /tmp/tier-data/ 2>/dev/null || \
-              echo "No existing data on gh-pages-cva6-tier-dashboard-data, starting fresh"
+          if git ls-remote --heads origin gh-pages-cva6-dashboard-data | grep -q gh-pages-cva6-dashboard-data; then
+            git fetch origin gh-pages-cva6-dashboard-data --depth=1
+            git checkout origin/gh-pages-cva6-dashboard-data -- data/tier/ 2>/dev/null && \
+              cp -r data/tier/* /tmp/tier-data/ 2>/dev/null || \
+              echo "No existing tier data on gh-pages-cva6-dashboard-data, starting fresh"
           else
-            echo "gh-pages-cva6-tier-dashboard-data branch does not exist yet, starting fresh"
+            echo "gh-pages-cva6-dashboard-data branch does not exist yet, starting fresh"
           fi
 
       - name: Collect tier dashboard CI data
@@ -102,36 +102,36 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Prepare gh-pages-cva6-tier-dashboard-data branch
+      - name: Prepare gh-pages-cva6-dashboard-data branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git ls-remote --exit-code --heads origin gh-pages-cva6-tier-dashboard-data >/dev/null 2>&1; then
-            git fetch origin gh-pages-cva6-tier-dashboard-data --depth=1
-            git checkout -B gh-pages-cva6-tier-dashboard-data origin/gh-pages-cva6-tier-dashboard-data
+          if git ls-remote --exit-code --heads origin gh-pages-cva6-dashboard-data >/dev/null 2>&1; then
+            git fetch origin gh-pages-cva6-dashboard-data --depth=1
+            git checkout -B gh-pages-cva6-dashboard-data origin/gh-pages-cva6-dashboard-data
           else
-            git checkout --orphan gh-pages-cva6-tier-dashboard-data
+            git checkout --orphan gh-pages-cva6-dashboard-data
             git rm -rf . >/dev/null 2>&1 || true
             find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
             echo "# CVA6 Tier Dashboard Data" > README.md
             git add README.md
-            git commit -m "Initialize gh-pages-cva6-tier-dashboard-data branch"
+            git commit -m "Initialize gh-pages-cva6-dashboard-data branch"
           fi
 
       - name: Download updated tier data
         uses: actions/download-artifact@v4
         with:
           name: cva6-tier-dashboard-data
-          path: data/
+          path: data/tier/
 
       - name: Commit and push tier data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/
+          git add data/tier/
           if git diff --cached --quiet; then
             echo "No data changes to commit"
           else
             git commit -m "Update cva6 tier dashboard data [skip ci]"
-            git push origin HEAD:gh-pages-cva6-tier-dashboard-data
+            git push origin HEAD:gh-pages-cva6-dashboard-data
           fi

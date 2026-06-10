@@ -23,16 +23,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Restore PD dashboard history from gh-pages-cva6-PD-dashboard-data
+      - name: Restore PD dashboard history from gh-pages-cva6-dashboard-data
         run: |
           mkdir -p /tmp/PD-data
-          if git ls-remote --heads origin gh-pages-cva6-PD-dashboard-data | grep -q gh-pages-cva6-PD-dashboard-data; then
-            git fetch origin gh-pages-cva6-PD-dashboard-data --depth=1
-            git checkout origin/gh-pages-cva6-PD-dashboard-data -- data/ 2>/dev/null && \
-              cp -r data/* /tmp/PD-data/ 2>/dev/null || \
-              echo "No existing data on gh-pages-cva6-PD-dashboard-data, starting fresh"
+          if git ls-remote --heads origin gh-pages-cva6-dashboard-data | grep -q gh-pages-cva6-dashboard-data; then
+            git fetch origin gh-pages-cva6-dashboard-data --depth=1
+            git checkout origin/gh-pages-cva6-dashboard-data -- data/PD/ 2>/dev/null && \
+              cp -r data/PD/* /tmp/PD-data/ 2>/dev/null || \
+              echo "No existing PD flow data on gh-pages-cva6-dashboard-data, starting fresh"
           else
-            echo "gh-pages-cva6-PD-dashboard-data branch does not exist yet, starting fresh"
+            echo "gh-pages-cva6-dashboard-data branch does not exist yet, starting fresh"
           fi
 
       - name: Collect PD dashboard CI data
@@ -98,36 +98,36 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Prepare gh-pages-cva6-PD-dashboard-data branch
+      - name: Prepare gh-pages-cva6-dashboard-data branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git ls-remote --exit-code --heads origin gh-pages-cva6-PD-dashboard-data >/dev/null 2>&1; then
-            git fetch origin gh-pages-cva6-PD-dashboard-data --depth=1
-            git checkout -B gh-pages-cva6-PD-dashboard-data origin/gh-pages-cva6-PD-dashboard-data
+          if git ls-remote --exit-code --heads origin gh-pages-cva6-dashboard-data >/dev/null 2>&1; then
+            git fetch origin gh-pages-cva6-dashboard-data --depth=1
+            git checkout -B gh-pages-cva6-dashboard-data origin/gh-pages-cva6-dashboard-data
           else
-            git checkout --orphan gh-pages-cva6-PD-dashboard-data
+            git checkout --orphan gh-pages-cva6-dashboard-data
             git rm -rf . >/dev/null 2>&1 || true
             find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
             echo "# CVA6 PD Dashboard Data" > README.md
             git add README.md
-            git commit -m "Initialize gh-pages-cva6-PD-dashboard-data branch"
+            git commit -m "Initialize gh-pages-cva6-dashboard-data branch"
           fi
 
       - name: Download updated PD data
         uses: actions/download-artifact@v4
         with:
           name: cva6-PD-dashboard-data
-          path: data/
+          path: data/PD
 
       - name: Commit and push PD data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/
+          git add data/PD/
           if git diff --cached --quiet; then
             echo "No data changes to commit"
           else
             git commit -m "Update cva6 PD dashboard data [skip ci]"
-            git push origin HEAD:gh-pages-cva6-PD-dashboard-data
+            git push origin HEAD:gh-pages-cva6-dashboard-data
           fi

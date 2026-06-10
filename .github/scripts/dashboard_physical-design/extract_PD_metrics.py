@@ -17,7 +17,7 @@ workflow_run on OR-design-flow.yml:
 
 Artifact layout expected from OR-design-flow.yml:
 
-    Artifact name:  PD-grt-{design}-{variant}
+    Artifact name:  PD-grt-{arch}-{config}
     Contents:       5_1_grt.json
 
 The script downloads all PD-grt-* artifacts for each run using
@@ -167,9 +167,9 @@ def download_run_artifacts(repo: str, run_id: int, dest_dir: Path) -> list:
     Each artifact lands at dest_dir/{artifact_name}/5_1_grt.json.
 
     Artifact naming convention (set by OR-design-flow.yml):
-        PD-grt-{design}-{variant}
+        PD-grt-{arch}-{config}
 
-    Returns a list of (design, variant, grt_json_path) tuples.
+    Returns a list of (arch, config, grt_json_path) tuples.
     """
     result = subprocess.run(
         [
@@ -196,17 +196,17 @@ def download_run_artifacts(repo: str, run_id: int, dest_dir: Path) -> list:
         if not artifact_name.startswith(PD_ARTIFACT_PREFIX):
             continue
 
-        # Parse design and variant from artifact name.
+        # Parse arch and config from artifact name.
         # rsplit on "-" (last occurrence) so design names containing "-" are preserved.
         suffix  = artifact_name[len(PD_ARTIFACT_PREFIX):]  # "L1MetadataArray-base"
         parts   = suffix.rsplit("-", 1)
-        design  = parts[0] if len(parts) >= 1 else suffix
-        variant = parts[1] if len(parts) >= 2 else "base"
+        arch  = parts[0] if len(parts) >= 1 else suffix
+        config = parts[1] if len(parts) >= 2 else "base"
 
         grt_path = artifact_dir / GRT_JSON_FILENAME
         if grt_path.exists():
-            found.append((design, variant, grt_path))
-            print(f"  Downloaded: {artifact_name} -> {design}/{variant}")
+            found.append((arch, config, grt_path))
+            print(f"  Downloaded: {artifact_name} -> {arch}/{config}")
         else:
             print(
                 f"  WARNING: {GRT_JSON_FILENAME} not found in artifact {artifact_name}",
@@ -227,8 +227,8 @@ def process_ci_run(repo: str, run: dict, nand2_area: float) -> dict:
     with tempfile.TemporaryDirectory() as tmp:
         grt_list = download_run_artifacts(repo, run_id, Path(tmp))
 
-        jobs = []
-        for design, variant, grt_path in grt_list:
+        flows = []
+        for arch, config, grt_path in grt_list:
             try:
                 with open(grt_path) as f:
                     data = json.load(f)
@@ -236,26 +236,26 @@ def process_ci_run(repo: str, run: dict, nand2_area: float) -> dict:
                 conclusion = "success"
                 timing_str = "timing met" if metrics["timing_met"] else "timing NOT met"
                 print(
-                    f"    [SUCCESS] {design}/{variant}  "
+                    f"    [SUCCESS] {arch}/{config}  "
                     f"fmax={metrics['fmax_mhz']:.1f} MHz  "
                     f"stdcell={metrics['stdcell_area_um2']:.3f} µm²  "
                     f"({metrics['stdcell_kgate']:.2f} Kgate)  [{timing_str}]"
                 )
             except (json.JSONDecodeError, KeyError, IOError) as exc:
-                print(f"    [FAILURE] {design}/{variant}: {exc}", file=sys.stderr)
+                print(f"    [FAILURE] {arch}/{config}: {exc}", file=sys.stderr)
                 metrics    = {}
                 conclusion = "failure"
 
-            jobs.append({
-                "design":           design,
-                "variant":          variant,
+            flows.append({
+                "arch":             arch,
+                "config":           config,
                 "conclusion":       conclusion,
                 "html_url":         run.get("html_url", ""),
-                "duration_seconds": 0,  # per-job timing not available from artifacts
+                "duration_seconds": 0,  # per-flow timing not available from artifacts
                 "metrics":          metrics,
             })
 
-    passed_jobs = sum(1 for j in jobs if j["conclusion"] == "success")
+    passed_flows = sum(1 for j in flows if j["conclusion"] == "success")
     run_dur     = duration_seconds(
         run.get("run_started_at", run.get("created_at", "")),
         run.get("updated_at", ""),
@@ -270,10 +270,10 @@ def process_ci_run(repo: str, run: dict, nand2_area: float) -> dict:
         "head_sha":         run.get("head_sha", "")[:8],
         "created_at":       run.get("created_at", ""),
         "duration_seconds": run_dur,
-        "total_jobs":       len(jobs),
-        "passed_jobs":      passed_jobs,
-        "failed_jobs":      len(jobs) - passed_jobs,
-        "jobs":             jobs,
+        "total_flows":       len(flows),
+        "passed_flows":      passed_flows,
+        "failed_flows":      len(flows) - passed_flows,
+        "flows":             flows,
     }
 
 
@@ -340,9 +340,9 @@ def main() -> None:
         processed = process_ci_run(args.repo, run, args.nand2_area)
         new_runs.append(processed)
         print(
-            f"    -> {processed['total_jobs']} jobs: "
-            f"{processed['passed_jobs']} passed, "
-            f"{processed['failed_jobs']} failed"
+            f"    -> {processed['total_flows']} flows: "
+            f"{processed['passed_flows']} passed, "
+            f"{processed['failed_flows']} failed"
         )
 
     merged = merge_runs(existing, new_runs)

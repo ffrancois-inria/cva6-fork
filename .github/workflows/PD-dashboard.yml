@@ -47,28 +47,28 @@ jobs:
       - name: Install Jinja2
         run: pip install jinja2
 
-      # - name: Generate PD dashboard HTML
-      #   run: |
-      #     python3 .github/scripts/dashboard_physical-design/generate_PD_dashboard.py \
-      #       --data-dir /tmp/PD-data \
-      #       --output-dir /tmp/PD-dash-site \
-      #       --repo "${{ github.repository }}"
+      - name: Generate PD dashboard HTML
+        run: |
+          python3 .github/scripts/dashboard_physical-design/generate_PD_dashboard.py \
+            --data-dir /tmp/PD-data \
+            --output-dir /tmp/PD-dash-site \
+            --repo "${{ github.repository }}"
 
-      # - name: Prepare Pages artifact
-      #   run: |
-      #     cp -r /tmp/PD-data /tmp/PD-dash-site/data
+      - name: Prepare Pages artifact
+        run: |
+          cp -r /tmp/PD-data /tmp/PD-dash-site/data
 
-      # - name: Upload Pages artifact
-      #   uses: actions/upload-pages-artifact@v3
-      #   with:
-      #     path: /tmp/PD-dash-site
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: /tmp/PD-dash-site
 
-      # - name: Upload preview artifact
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: cva6-PD-dashboard-site
-      #     path: /tmp/PD-dash-site
-      #     retention-days: 14
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cva6-PD-dashboard-site
+          path: /tmp/PD-dash-site
+          retention-days: 14
 
       - name: Upload data for persistence job
         uses: actions/upload-artifact@v4
@@ -77,17 +77,17 @@ jobs:
           path: /tmp/PD-data/
           retention-days: 7
 
-  # deploy:
-  #   name: Deploy to Pages
-  #   needs: build
-  #   runs-on: ubuntu-latest
-  #   environment:
-  #     name: github-pages
-  #     url: ${{ steps.deployment.outputs.page_url }}
-  #   steps:
-  #     - name: Deploy to GitHub Pages
-  #       id: deployment
-  #       uses: actions/deploy-pages@v4
+  deploy:
+    name: Deploy to Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
   persist-PD-data:
     name: Persist PD Dashboard Data

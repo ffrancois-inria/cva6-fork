@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenHW CVA6 Design Flow CI Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --pass-color: #198754;
+      --fail-color: #dc3545;
+      --skip-color: #6c757d;
+      --na-color: #e9ecef;
+    }
+    body { background: #f5f6fa; }
+
+    /* Navbar - light background so logo is visible */
+    .top-navbar { background: #fff; border-bottom: 1px solid #dee2e6; }
+    .navbar-brand { font-weight: 700; letter-spacing: -0.5px; display: flex; align-items: center; color: #212529; }
+    .navbar-brand img { height: 32px; margin-right: 12px; }
+
+    .status-card { border-left: 4px solid; transition: transform 0.15s; }
+    .status-card:hover { transform: translateY(-2px); }
+    .status-card.pass { border-left-color: var(--pass-color); }
+    .status-card.fail { border-left-color: var(--fail-color); }
+    .status-card.unknown { border-left-color: var(--skip-color); }
+    .badge-pass { background-color: var(--pass-color); }
+    .badge-fail { background-color: var(--fail-color); }
+    .badge-skip { background-color: var(--skip-color); }
+
+    /* Test Matrix */
+    .matrix-table th.suite-header {
+      font-size: 0.72rem; writing-mode: vertical-lr; text-align: left;
+      padding: 8px 4px; white-space: nowrap;
+    }
+    .matrix-table td.matrix-td {
+      text-align: center; vertical-align: middle;
+      min-width: 42px; height: 42px; padding: 2px;
+    }
+    .matrix-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; border-radius: 6px;
+      font-size: 0.85rem; font-weight: 600;
+      text-decoration: none; color: inherit;
+    }
+    .matrix-icon.pass { background: #d1e7dd; color: #0a3622; }
+    .matrix-icon.fail { background: #f8d7da; color: #58151c; }
+    .matrix-icon.na   { background: var(--na-color); color: #adb5bd; }
+    .matrix-icon:hover { opacity: 0.8; }
+    a.matrix-icon:hover { text-decoration: none; }
+
+    /* Workflow selector */
+    .wf-selector .btn { font-size: 0.82rem; padding: 0.3rem 0.9rem; }
+    .wf-selector .btn-check:checked + .btn-outline-primary {
+      background-color: #0d6efd; color: #fff;
+    }
+
+    /* Trend charts */
+    .chart-container { position: relative; height: 260px; }
+
+    /* Run history */
+    .flow-table { font-size: 0.85rem; }
+    .flow-table td, .flow-table th { padding: 0.35rem 0.5rem; }
+
+    @media (max-width: 768px) {
+      .matrix-table th.suite-header { font-size: 0.6rem; }
+      .matrix-icon { width: 26px; height: 26px; font-size: 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- Section 1: Navbar - white background -->
+<!-- ============================================================ -->
+<nav class="navbar navbar-expand-lg top-navbar shadow-sm">
+  <div class="container-fluid">
+    <span class="navbar-brand">
+      <img src="https://openhwfoundation.org/images/openhw-landscape.png"
+           alt="OpenHW Group" height="32"
+           onerror="this.onerror=null; this.src='https://avatars.githubusercontent.com/u/51096416?s=64&v=4';">
+      CVA6 Design Flow CI Dashboard
+    </span>
+    <div class="navbar-nav ms-auto">
+      <a class="nav-link" href="tier_dashboard.html">📊 Tier Dashboard</a>
+      <a class="nav-link active" href="PD_dashboard.html">⚡PD Dashboard</a>
+    </div>
+    <span class="navbar-text text-muted" style="font-size:0.85rem">
+      Generated: 2026-06-11 12:09 UTC
+    </span>
+  </div>
+</nav>
+
+<div class="container-fluid px-3 px-lg-4 py-4">
+
+<!-- ============================================================ -->
+<!-- Section 2: Overview Cards -->
+<!-- ============================================================ -->
+<section class="mb-4">
+  <h5 class="text-muted mb-3">Latest Run Status</h5>
+  <div class="row g-3">
+    
+    <div class="col-md-4">
+      <div class="card status-card shadow-sm pass">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="card-title mb-0">OR-design-flow.yml</h6>
+            
+              <span class="badge badge-pass">PASS</span>
+            
+          </div>
+          <!-- 
+            <div style="font-size:0.9rem">
+              <div>
+                <strong>Fmax (MHz):</strong> 2674.38
+                &middot; <strong>Area (Kgate):</strong> 0.324
+                &middot; <strong>Worst slack (ps):</strong> -174.057
+              </div>
+            </div>
+           -->
+          <div class="text-muted" style="font-size:0.8rem">
+            <!-- <div> — </div> -->
+            <div>
+              <strong>Branch:</strong> ffrancois-inria_ORflow-dashboard
+              &middot; <code>d5e1ca4b</code>
+            </div>
+            <div>
+              <strong>Flows:</strong>
+              <span class="text-success">1 passed</span>
+              
+              (1 total)
+            </div>
+            <div>
+              <strong>Duration:</strong> 0m 9s
+              &middot; <strong>Run:</strong> #7
+            </div>
+            <div>
+              <strong>Created at:</strong> 2026-06-09 12:20 UTC
+            </div>
+          </div>
+          <div class="mt-2">
+            <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/27205672859" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">
+              View on GitHub &rarr;
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- Section 4: Trend Charts -->
+<!-- ============================================================ -->
+<section class="mb-4">
+  <h5 class="text-muted mb-3">PD Metrics Trends (Last 20 Runs)</h5>
+  
+  
+  <div class="row g-3 mb-3">
+    <!-- Card 1: fmax -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm">
+        <div class="card-header py-2" style="font-size:0.85rem">
+          OR-design-flow.yml - fmax (MHz)
+        </div>
+        <div class="card-body p-2">
+          <div class="chart-container">
+            <canvas id="chart-pd-fmax"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: area -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm">
+        <div class="card-header py-2" style="font-size:0.85rem">
+          OR-design-flow.yml - Area (Kgate)
+        </div>
+        <div class="card-body p-2">
+          <div class="chart-container">
+            <canvas id="chart-pd-area"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: worst slack -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm">
+        <div class="card-header py-2" style="font-size:0.85rem">
+          OR-design-flow.yml - Worst Slack (ps)
+        </div>
+        <div class="card-body p-2">
+          <div class="chart-container">
+            <canvas id="chart-pd-worstslack"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+</section>
+
+<!-- ============================================================ -->
+<!-- Section 5: Run History Accordions -->
+<!-- ============================================================ -->
+<section class="mb-4">
+  <h5 class="text-muted mb-3">Run History</h5>
+  <div class="accordion" id="historyAccordion">
+    
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button " type="button"
+                data-bs-toggle="collapse" data-bs-target="#collapse-pd">
+          OR-design-flow.yml
+          <span class="badge bg-secondary ms-2">7 runs</span>
+        </button>
+      </h2>
+      <div id="collapse-pd" class="accordion-collapse collapse show"
+           data-bs-parent="#historyAccordion">
+        <div class="accordion-body p-2">
+          
+          <div class="accordion" id="runsAccordion-pd">
+            
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#run-pd-27205672859"
+                        style="font-size:0.85rem">
+                  
+                    <span class="badge badge-pass me-2">PASS</span>
+                  
+                  #7
+                  &middot; ffrancois-inria_ORflow-dashboard
+                  &middot; <code>d5e1ca4b</code>
+                  &middot; 0m 9s
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-06-09 12:20 UTC</span>
+                </button>
+              </h2>
+              <div id="run-pd-27205672859" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-pd">
+                <div class="accordion-body p-2">
+                  <div class="mb-2" style="font-size:0.8rem">
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/27205672859" target="_blank" rel="noopener">View on GitHub</a>
+                    &middot; Event: 
+                    &middot; Flows: 1/1 passed
+                  </div>
+                  
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover flow-table mb-0">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Arch</th>
+                          <th>Config</th>
+                          <th>fmax (MHz)</th>
+                          <th>Area (Kgate)</th>
+                          <th>Worst Slack (ps)</th>
+                          <th>Status</th>
+                          <th>Duration</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        
+                        <tr>
+                          <td>L1METADATAARRAY</td>
+                          <td><code>base</code></td>
+                          <td>2674.38</td>
+                          <td>0.324</td>
+                          <td>-174.057</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>N/A</td>
+                        </tr>
+                        
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                </div>
+              </div>
+            </div>
+            
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#run-pd-27205324408"
+                        style="font-size:0.85rem">
+                  
+                    <span class="badge badge-pass me-2">PASS</span>
+                  
+                  #6
+                  &middot; ffrancois-inria_ORflow-dashboard
+                  &middot; <code>e9e7edee</code>
+                  &middot; 0m 11s
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-06-09 12:13 UTC</span>
+                </button>
+              </h2>
+              <div id="run-pd-27205324408" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-pd">
+                <div class="accordion-body p-2">
+                  <div class="mb-2" style="font-size:0.8rem">
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/27205324408" target="_blank" rel="noopener">View on GitHub</a>
+                    &middot; Event: 
+                    &middot; Flows: 1/1 passed
+                  </div>
+                  
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover flow-table mb-0">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Arch</th>
+                          <th>Config</th>
+                          <th>fmax (MHz)</th>
+                          <th>Area (Kgate)</th>
+                          <th>Worst Slack (ps)</th>
+                          <th>Status</th>
+                          <th>Duration</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        
+                        <tr>
+                          <td>L1METADATAARRAY</td>
+                          <td><code>base</code></td>
+                          <td>2674.38</td>
+                          <td>0.324</td>
+                          <td>-174.057</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>N/A</td>
+                        </tr>
+                        
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                </div>
+              </div>
+            </div>
+            
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#run-pd-27198344988"
+                        style="font-size:0.85rem">
+                  
+                    <span class="badge badge-pass me-2">PASS</span>
+                  
+                  #5
+                  &middot; ffrancois-inria_ORflow-dashboard
+                  &middot; <code>e702ff26</code>
+                  &middot; 0m 13s
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-06-09 09:55 UTC</span>
+                </button>
+              </h2>
+              <div id="run-pd-27198344988" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-pd">
+                <div class="accordion-body p-2">
+                  <div class="mb-2" style="font-size:0.8rem">
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/27198344988" target="_blank" rel="noopener">View on GitHub</a>
+                    &middot; Event: 
+                    &middot; Flows: 1/1 passed
+                  </div>
+                  
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover flow-table mb-0">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Arch</th>
+                          <th>Config</th>
+                          <th>fmax (MHz)</th>
+                          <th>Area (Kgate)</th>
+                          <th>Worst Slack (ps)</th>
+                          <th>Status</th>
+                          <th>Duration</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        
+                        <tr>
+                          <td>L1METADATAARRAY</td>
+                          <td><code>base</code></td>
+                          <td>2674.38</td>
+                          <td>0.324</td>
+                          <td>-174.057</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>N/A</td>
+                        </tr>
+                        
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                </div>
+              </div>
+            </div>
+            
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#run-pd-27197808386"
+                        style="font-size:0.85rem">
+                  
+                    <span class="badge badge-pass me-2">PASS</span>
+                  
+                  #4
+                  &middot; ffrancois-inria_ORflow-dashboard
+                  &middot; <code>05753a55</code>
+                  &middot; 0m 12s
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-06-09 09:45 UTC</span>
+                </button>
+              </h2>
+              <div id="run-pd-27197808386" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-pd">
+                <div class="accordion-body p-2">
+                  <div class="mb-2" style="font-size:0.8rem">
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/27197808386" target="_blank" rel="noopener">View on GitHub</a>
+                    &middot; Event: 
+                    &middot; Flows: 1/1 passed
+                  </div>
+                  
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover flow-table mb-0">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Arch</th>
+                          <th>Config</th>
+                          <th>fmax (MHz)</th>
+                          <th>Area (Kgate)</th>
+                          <th>Worst Slack (ps)</th>
+                          <th>Status</th>
+                          <th>Duration</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        
+                        <tr>
+                          <td>L1METADATAARRAY</td>
+                          <td><code>base</code></td>
+                          <td>2674.38</td>
+                          <td>0.324</td>
+                          <td>-174.057</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>N/A</td>
+                        </tr>
+                        
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                </div>
+              </div>
+            </div>
+            
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#run-pd-26830393177"
+                        style="font-size:0.85rem">
+                  
+                    <span class="badge badge-pass me-2">PASS</span>
+                  
+                  #3
+                  &middot; ffrancois-inria_ORflow-dashboard
+                  &middot; <code>1dc86ab4</code>
+                  &middot; 0m 16s
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-06-02 15:33 UTC</span>
+                </button>
+              </h2>
+              <div id="run-pd-26830393177" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-pd">
+                <div class="accordion-body p-2">
+                  <div class="mb-2" style="font-size:0.8rem">
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/26830393177" target="_blank" rel="noopener">View on GitHub</a>
+                    &middot; Event: 
+                    &middot; Flows: 1/1 passed
+                  </div>
+                  
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover flow-table mb-0">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Arch</th>
+                          <th>Config</th>
+                          <th>fmax (MHz)</th>
+                          <th>Area (Kgate)</th>
+                          <th>Worst Slack (ps)</th>
+                          <th>Status</th>
+                          <th>Duration</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        
+                        <tr>
+                          <td>L1METADATAARRAY</td>
+                          <td><code>base</code></td>
+                          <td>2674.38</td>
+                          <td>0.324</td>
+                          <td>-174.057</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>N/A</td>
+                        </tr>
+                        
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                </div>
+              </div>
+            </div>
+            
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#run-pd-26825245460"
+                        style="font-size:0.85rem">
+                  
+                    <span class="badge badge-pass me-2">PASS</span>
+                  
+                  #2
+                  &middot; ffrancois-inria_ORflow-dashboard
+                  &middot; <code>1dc86ab4</code>
+                  &middot; 0m 13s
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-06-02 14:08 UTC</span>
+                </button>
+              </h2>
+              <div id="run-pd-26825245460" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-pd">
+                <div class="accordion-body p-2">
+                  <div class="mb-2" style="font-size:0.8rem">
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/26825245460" target="_blank" rel="noopener">View on GitHub</a>
+                    &middot; Event: 
+                    &middot; Flows: 1/1 passed
+                  </div>
+                  
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover flow-table mb-0">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Arch</th>
+                          <th>Config</th>
+                          <th>fmax (MHz)</th>
+                          <th>Area (Kgate)</th>
+                          <th>Worst Slack (ps)</th>
+                          <th>Status</th>
+                          <th>Duration</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        
+                        <tr>
+                          <td>L1METADATAARRAY</td>
+                          <td><code>base</code></td>
+                          <td>2674.38</td>
+                          <td>0.324</td>
+                          <td>-174.057</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>N/A</td>
+                        </tr>
+                        
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                </div>
+              </div>
+            </div>
+            
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#run-pd-26820889030"
+                        style="font-size:0.85rem">
+                  
+                    <span class="badge badge-pass me-2">PASS</span>
+                  
+                  #1
+                  &middot; ffrancois-inria_ORflow-dashboard
+                  &middot; <code>bdbdf42a</code>
+                  &middot; 0m 11s
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-06-02 12:51 UTC</span>
+                </button>
+              </h2>
+              <div id="run-pd-26820889030" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-pd">
+                <div class="accordion-body p-2">
+                  <div class="mb-2" style="font-size:0.8rem">
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/26820889030" target="_blank" rel="noopener">View on GitHub</a>
+                    &middot; Event: 
+                    &middot; Flows: 1/1 passed
+                  </div>
+                  
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover flow-table mb-0">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Arch</th>
+                          <th>Config</th>
+                          <th>fmax (MHz)</th>
+                          <th>Area (Kgate)</th>
+                          <th>Worst Slack (ps)</th>
+                          <th>Status</th>
+                          <th>Duration</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        
+                        <tr>
+                          <td>L1METADATAARRAY</td>
+                          <td><code>base</code></td>
+                          <td>2674.38</td>
+                          <td>0.324</td>
+                          <td>-174.057</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>N/A</td>
+                        </tr>
+                        
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                </div>
+              </div>
+            </div>
+            
+          </div>
+          
+        </div>
+      </div>
+    </div>
+    
+  </div>
+</section>
+
+</div><!-- /container -->
+
+<!-- ============================================================ -->
+<!-- Section 6: Footer -->
+<!-- ============================================================ -->
+<footer class="bg-dark text-light py-3 mt-4">
+  <div class="container-fluid px-4">
+    <div class="row">
+      <div class="col-md-6">
+        <small class="text-light opacity-75">
+          &copy; 2026 <a href="https://www.openhwgroup.org/" class="text-light" target="_blank" rel="noopener">OpenHW Group</a>
+          &middot; CVA6 Design Flow CI Dashboard
+        </small>
+      </div>
+      <div class="col-md-6 text-md-end">
+        <small class="text-light opacity-75">
+          Generated: 2026-06-11 12:09 UTC
+          &middot; <a href="https://github.com/ffrancois-inria/cva6-fork" class="text-light" target="_blank" rel="noopener">Source</a>
+        </small>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+
+// ============================================================
+// Chart.js Trend Charts
+// ============================================================
+const chartData = {"pd": {"labels": ["1", "2", "3", "4", "5", "6", "7"], "series": {"L1MetadataArray_base": {"fmax_mhz": [2674.38, 2674.38, 2674.38, 2674.38, 2674.38, 2674.38, 2674.38], "stdcell_kgate": [0.324, 0.324, 0.324, 0.324, 0.324, 0.324, 0.324], "worst_setup_slack_ps": [-174.057, -174.057, -174.057, -174.057, -174.057, -174.057, -174.057], "timing_met": [false, false, false, false, false, false, false]}}, "pass_rates": [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0], "durations": [0.2, 0.2, 0.3, 0.2, 0.2, 0.2, 0.1]}};
+
+Object.keys(chartData).forEach(key => {
+  const wf = chartData[key];
+  const ctx_fmax = document.getElementById('chart-' + key + '-fmax');
+  const ctx_area = document.getElementById('chart-' + key + '-area');
+  const ctx_ws = document.getElementById('chart-' + key + '-worstslack');
+  if (!ctx_fmax || !wf.labels.length) return;
+
+const colors = ['#198754', '#0d6efd', '#dc3545', '#fd7e14', '#6f42c1', '#20c997', '#e83e8c'];
+
+  new Chart(ctx_fmax, {
+    type: 'line',
+    data: {
+      labels: wf.labels,
+      datasets: Object.keys(wf.series).sort().map((flow_key, index) => {
+        const color = colors[index % colors.length];
+        return {
+          label: flow_key,
+          data: wf.series[flow_key].fmax_mhz,
+          borderColor: color,
+          backgroundColor: color + '1a', // Transparency
+          fill: false,
+          tension: 0.3,
+          pointRadius: 3,
+          spanGaps: true,
+        };
+      })
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            title: function(items) { return 'Run #' + items[0].label; }
+          }
+        }
+      },
+      scales: {
+        y: {
+          type: 'linear', position: 'left',
+          // min: 0, max: 4000,
+          title: { display: true, text: 'fmax (MHz)', font: { size: 11 } },
+          ticks: { font: { size: 10 } }
+        },
+        x: {
+          ticks: { font: { size: 10 }, maxRotation: 45 }
+        }
+      }
+    }
+  });
+
+  new Chart(ctx_area, {
+    type: 'line',
+    data: {
+      labels: wf.labels,
+      datasets: Object.keys(wf.series).sort().map((flow_key, index) => {
+        const color = colors[index % colors.length];
+        return {
+          label: flow_key,
+          data: wf.series[flow_key].stdcell_kgate,
+          borderColor: color,
+          backgroundColor: color + '1a', // Transparency
+          fill: false,
+          tension: 0.3,
+          pointRadius: 3,
+          spanGaps: true,
+        };
+      })
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            title: function(items) { return 'Run #' + items[0].label; }
+          }
+        }
+      },
+      scales: {
+        y: {
+          type: 'linear', position: 'left',
+          // min: 0, max: 100,
+          title: { display: true, text: 'Area (Kgate)', font: { size: 11 } },
+          ticks: { font: { size: 10 } }
+        },
+        x: {
+          ticks: { font: { size: 10 }, maxRotation: 45 }
+        }
+      }
+    }
+  });
+
+  new Chart(ctx_ws, {
+    type: 'line',
+    data: {
+      labels: wf.labels,
+      datasets: Object.keys(wf.series).sort().map((flow_key, index) => {
+        const color = colors[index % colors.length];
+        return {
+          label: flow_key,
+          data: wf.series[flow_key].worst_setup_slack_ps,
+          borderColor: color,
+          backgroundColor: color + '1a', // Transparency
+          fill: false,
+          tension: 0.3,
+          pointRadius: 3,
+          spanGaps: true,
+        };
+      })
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            title: function(items) { return 'Run #' + items[0].label; }
+          }
+        }
+      },
+      scales: {
+        y: {
+          type: 'linear', position: 'left',
+          // min: 0, max: 100,
+          title: { display: true, text: 'Worst slack (ps)', font: { size: 11 } },
+          ticks: { font: { size: 10 } }
+        },
+        x: {
+          ticks: { font: { size: 10 }, maxRotation: 45 }
+        }
+      }
+    }
+  });
+
+});
+</script>
+</body>
+</html>

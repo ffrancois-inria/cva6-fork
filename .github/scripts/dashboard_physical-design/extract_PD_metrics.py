@@ -33,6 +33,7 @@ import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
+import shutil
 
 # Synthesis workflow file to track.
 PD_WORKFLOW = "OR-design-flow.yml"
@@ -116,6 +117,19 @@ def merge_runs(existing: list, new_runs: list) -> list:
     # Trim to MAX_HISTORY
     return merged[:MAX_HISTORY]
 
+def cleanup_old_raw_files(raw_dir: Path, kept_run_ids: set) -> None:
+    """Delete raw JSON files for runs no longer in the kept list."""
+    if not raw_dir.exists():
+        return
+    for run_dir in raw_dir.iterdir():
+        if run_dir.is_dir():
+            try:
+                run_id = int(run_dir.name)
+                if run_id not in kept_run_ids:
+                    shutil.rmtree(run_dir)
+                    print(f"Cleaned up old run data: {run_dir}")
+            except ValueError:
+                pass  # Skip non-numeric directories
 
 def duration_seconds(started_at: str, completed_at: str) -> int:
     """Calculate duration in seconds between two ISO timestamps."""
@@ -220,12 +234,19 @@ def download_run_artifacts(repo: str, run_id: int, dest_dir: Path) -> list:
 # CI run processing
 # ---------------------------------------------------------------------------
 
-def process_ci_run(repo: str, run: dict, nand2_area: float) -> dict:
+def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path) -> dict:
     """Fetch artifacts for a PD run, extract metrics, and build a run record."""
     run_id = run["id"]
 
     with tempfile.TemporaryDirectory() as tmp:
         grt_list = download_run_artifacts(repo, run_id, Path(tmp))
+
+        # Persist raw GRT JSONs before the tmpdir is deleted
+        run_raw_dir = raw_dir / str(run_id)
+        run_raw_dir.mkdir(parents=True, exist_ok=True)
+        for arch, config, grt_path in grt_list:
+            dest = run_raw_dir / f"{arch}_{config}.json"
+            shutil.copy2(grt_path, dest)
 
         flows = []
         for arch, config, grt_path in grt_list:
@@ -252,6 +273,7 @@ def process_ci_run(repo: str, run: dict, nand2_area: float) -> dict:
                 "conclusion":       conclusion,
                 "html_url":         run.get("html_url", ""),
                 "duration_seconds": 0,  # per-flow timing not available from artifacts
+                "raw_json_path": f"./PD-data/{str(run_id)}/{arch}_{config}.json",
                 "metrics":          metrics,
             })
 
@@ -298,8 +320,8 @@ def main() -> None:
     parser.add_argument(
         "--fetch-count",
         type=int,
-        default=10,
-        help="Number of recent physical design runs to fetch (default: 10)",
+        default=20,
+        help="Number of recent physical design runs to fetch (default: 20)",
     )
     parser.add_argument(
         "--workflow",
@@ -321,6 +343,9 @@ def main() -> None:
     data_dir = Path(args.data_dir)
     data_dir.mkdir(parents=True, exist_ok=True)
 
+    raw_dir = data_dir / "raw" # To store raw PD flow source files 
+    raw_dir.mkdir(parents=True, exist_ok=True)
+
     json_path = data_dir / "runs_PD.json"
     existing  = load_existing(json_path)
     print(f"Existing records: {len(existing)}")
@@ -337,7 +362,7 @@ def main() -> None:
             continue
 
         print(f"  Processing run #{run['run_number']} (id={run['id']})...")
-        processed = process_ci_run(args.repo, run, args.nand2_area)
+        processed = process_ci_run(args.repo, run, args.nand2_area, raw_dir)
         new_runs.append(processed)
         print(
             f"    -> {processed['total_flows']} flows: "
@@ -346,6 +371,11 @@ def main() -> None:
         )
 
     merged = merge_runs(existing, new_runs)
+
+    # Keep only raw files for runs we're actually storing
+    kept_run_ids = {run["id"] for run in merged}
+    cleanup_old_raw_files(raw_dir, kept_run_ids)
+
     with open(json_path, "w") as f:
         json.dump(merged, f, indent=2)
 

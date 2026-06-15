@@ -290,6 +290,7 @@
                           <th>Worst Slack (ps)</th>
                           <th>Status</th>
                           <th>Duration</th>
+                          <th>Download</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -310,6 +311,18 @@
                             {% endif %}
                           </td>
                           <td>{{ flow.duration_display }}</td>
+                          <td>
+                            {% if flow.raw_json_path %}
+                              <a href="{{ flow.raw_json_path }}" 
+                                class="btn btn-sm btn-outline-primary" 
+                                download="{{ flow.arch }}-{{ flow.config }}.json"
+                                title="Download raw JSON metrics">
+                                📥 JSON
+                              </a>
+                            {% else %}
+                              <span class="text-muted" style="font-size:0.75rem">N/A</span>
+                            {% endif %}
+                          </td>
                         </tr>
                         {% endfor %}
                       </tbody>

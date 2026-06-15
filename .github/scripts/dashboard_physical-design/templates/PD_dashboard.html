@@ -56,6 +56,26 @@
       background-color: #0d6efd; color: #fff;
     }
 
+    /* Navbar page switcher */
+    .navbar-pages-group {
+      display: flex; gap: 0; border: 2px solid #3976d2; border-radius: 8px;
+      background: #f0f8ff; overflow: hidden;
+    }
+    .navbar-pages-group .nav-link {
+      flex: 1; padding: 0.75rem 1.5rem; font-weight: 600; font-size: 1.05rem;
+      border: none; color: #212529; background: transparent;
+      transition: all 0.3s ease; text-decoration: none;
+      display: flex; align-items: center; justify-content: center;
+      letter-spacing: 0.3px;
+    }
+    .navbar-pages-group .nav-link:hover {
+      background: rgba(67, 142, 255, 0.179);
+    }
+    .navbar-pages-group .nav-link.active {
+      background: linear-gradient(135deg, #3976d2 0%, #2d5fa8 100%);
+      color: #fff; font-weight: 700; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    }
+
     /* Trend charts */
     .chart-container { position: relative; height: 260px; }
 
@@ -75,13 +95,17 @@
 <!-- Section 1: Navbar - white background -->
 <!-- ============================================================ -->
 <nav class="navbar navbar-expand-lg top-navbar shadow-sm">
-  <div class="container-fluid">
+  <div class="container-fluid d-flex align-items-center justify-content-between">
     <span class="navbar-brand">
       <img src="https://openhwfoundation.org/images/openhw-landscape.png"
            alt="OpenHW Group" height="32"
            onerror="this.onerror=null; this.src='https://avatars.githubusercontent.com/u/51096416?s=64&v=4';">
       CVA6 Design Flow CI Dashboard
     </span>
+    <div class="navbar-pages-group">
+      <a class="nav-link" href="tier_dashboard.html">📊 Tier Dashboard</a>
+      <a class="nav-link active" href="PD_dashboard.html">⚡ PD Dashboard</a>
+    </div>
     <span class="navbar-text text-muted" style="font-size:0.85rem">
       Generated: {{ generated_at }}
     </span>
@@ -110,7 +134,7 @@
               <span class="badge badge-skip">{{ wf.latest.conclusion|upper }}</span>
             {% endif %}
           </div>
-          {% if wf.latest.flows %}
+          <!-- {% if wf.latest.flows %}
             <div style="font-size:0.9rem">
               <div>
                 <strong>Fmax (MHz):</strong> {{ wf.latest.flows[0].metrics.fmax_mhz }}
@@ -118,9 +142,9 @@
                 &middot; <strong>Worst slack (ps):</strong> {{ wf.latest.flows[0].metrics.worst_setup_slack_ps }}
               </div>
             </div>
-          {% endif %}
+          {% endif %} -->
           <div class="text-muted" style="font-size:0.8rem">
-            <div> — </div>
+            <!-- <div> — </div> -->
             <div>
               <strong>Branch:</strong> {{ wf.latest.head_branch }}
               &middot; <code>{{ wf.latest.head_sha }}</code>
@@ -157,21 +181,53 @@
 <!-- Section 4: Trend Charts -->
 <!-- ============================================================ -->
 <section class="mb-4">
-  <h5 class="text-muted mb-3">Trends (Last {{ trend_count }} Runs)</h5>
-  <div class="row g-3">
-    {% for wf in workflows %}
+  <h5 class="text-muted mb-3">PD Metrics Trends (Last {{ trend_count }} Runs)</h5>
+  
+  {% for wf in workflows %}
+  <div class="row g-3 mb-3">
+    <!-- Card 1: fmax -->
     <div class="col-lg-4">
       <div class="card shadow-sm">
-        <div class="card-header py-2" style="font-size:0.85rem">{{ wf.display_name }}</div>
+        <div class="card-header py-2" style="font-size:0.85rem">
+          {{ wf.display_name }} - fmax (MHz)
+        </div>
         <div class="card-body p-2">
           <div class="chart-container">
-            <canvas id="chart-{{ wf.key }}"></canvas>
+            <canvas id="chart-{{ wf.key }}-fmax"></canvas>
           </div>
         </div>
       </div>
     </div>
-    {% endfor %}
+
+    <!-- Card 2: area -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm">
+        <div class="card-header py-2" style="font-size:0.85rem">
+          {{ wf.display_name }} - Area (Kgate)
+        </div>
+        <div class="card-body p-2">
+          <div class="chart-container">
+            <canvas id="chart-{{ wf.key }}-area"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: worst slack -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm">
+        <div class="card-header py-2" style="font-size:0.85rem">
+          {{ wf.display_name }} - Worst Slack (ps)
+        </div>
+        <div class="card-body p-2">
+          <div class="chart-container">
+            <canvas id="chart-{{ wf.key }}-worstslack"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+  {% endfor %}
 </section>
 
 <!-- ============================================================ -->
@@ -234,6 +290,7 @@
                           <th>Worst Slack (ps)</th>
                           <th>Status</th>
                           <th>Duration</th>
+                          <th>Download</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -254,6 +311,18 @@
                             {% endif %}
                           </td>
                           <td>{{ flow.duration_display }}</td>
+                          <td>
+                            {% if flow.raw_json_path %}
+                              <a href="{{ flow.raw_json_path }}" 
+                                class="btn btn-sm btn-outline-primary" 
+                                download="{{ flow.arch }}-{{ flow.config }}.json"
+                                title="Download raw JSON metrics">
+                                📥 JSON
+                              </a>
+                            {% else %}
+                              <span class="text-muted" style="font-size:0.75rem">N/A</span>
+                            {% endif %}
+                          </td>
                         </tr>
                         {% endfor %}
                       </tbody>
@@ -311,36 +380,30 @@ const chartData = {{ chart_data_json|safe }};
 
 Object.keys(chartData).forEach(key => {
   const wf = chartData[key];
-  const ctx = document.getElementById('chart-' + key);
-  if (!ctx || !wf.labels.length) return;
+  const ctx_fmax = document.getElementById('chart-' + key + '-fmax');
+  const ctx_area = document.getElementById('chart-' + key + '-area');
+  const ctx_ws = document.getElementById('chart-' + key + '-worstslack');
+  if (!ctx_fmax || !wf.labels.length) return;
 
-  new Chart(ctx, {
+const colors = ['#198754', '#0d6efd', '#dc3545', '#fd7e14', '#6f42c1', '#20c997', '#e83e8c'];
+
+  new Chart(ctx_fmax, {
     type: 'line',
     data: {
       labels: wf.labels,
-      datasets: [
-        {
-          label: 'Pass Rate (%)',
-          data: wf.pass_rates,
-          borderColor: '#198754',
-          backgroundColor: 'rgba(25, 135, 84, 0.1)',
-          fill: true,
-          tension: 0.3,
-          yAxisID: 'y',
-          pointRadius: 3,
-        },
-        {
-          label: 'Duration (min)',
-          data: wf.durations,
-          borderColor: '#0d6efd',
-          backgroundColor: 'rgba(13, 110, 253, 0.1)',
+      datasets: Object.keys(wf.series).sort().map((flow_key, index) => {
+        const color = colors[index % colors.length];
+        return {
+          label: flow_key,
+          data: wf.series[flow_key].fmax_mhz,
+          borderColor: color,
+          backgroundColor: color + '1a', // Transparency
           fill: false,
           tension: 0.3,
-          yAxisID: 'y1',
           pointRadius: 3,
-          borderDash: [5, 3],
-        }
-      ]
+          spanGaps: true,
+        };
+      })
     },
     options: {
       responsive: true,
@@ -357,16 +420,9 @@ Object.keys(chartData).forEach(key => {
       scales: {
         y: {
           type: 'linear', position: 'left',
-          min: 0, max: 100,
-          title: { display: true, text: 'Pass Rate (%)', font: { size: 11 } },
+          // min: 0, max: 4000,
+          title: { display: true, text: 'fmax (MHz)', font: { size: 11 } },
           ticks: { font: { size: 10 } }
-        },
-        y1: {
-          type: 'linear', position: 'right',
-          min: 0,
-          title: { display: true, text: 'Duration (min)', font: { size: 11 } },
-          ticks: { font: { size: 10 } },
-          grid: { drawOnChartArea: false }
         },
         x: {
           ticks: { font: { size: 10 }, maxRotation: 45 }
@@ -374,6 +430,95 @@ Object.keys(chartData).forEach(key => {
       }
     }
   });
+
+  new Chart(ctx_area, {
+    type: 'line',
+    data: {
+      labels: wf.labels,
+      datasets: Object.keys(wf.series).sort().map((flow_key, index) => {
+        const color = colors[index % colors.length];
+        return {
+          label: flow_key,
+          data: wf.series[flow_key].stdcell_kgate,
+          borderColor: color,
+          backgroundColor: color + '1a', // Transparency
+          fill: false,
+          tension: 0.3,
+          pointRadius: 3,
+          spanGaps: true,
+        };
+      })
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            title: function(items) { return 'Run #' + items[0].label; }
+          }
+        }
+      },
+      scales: {
+        y: {
+          type: 'linear', position: 'left',
+          // min: 0, max: 100,
+          title: { display: true, text: 'Area (Kgate)', font: { size: 11 } },
+          ticks: { font: { size: 10 } }
+        },
+        x: {
+          ticks: { font: { size: 10 }, maxRotation: 45 }
+        }
+      }
+    }
+  });
+
+  new Chart(ctx_ws, {
+    type: 'line',
+    data: {
+      labels: wf.labels,
+      datasets: Object.keys(wf.series).sort().map((flow_key, index) => {
+        const color = colors[index % colors.length];
+        return {
+          label: flow_key,
+          data: wf.series[flow_key].worst_setup_slack_ps,
+          borderColor: color,
+          backgroundColor: color + '1a', // Transparency
+          fill: false,
+          tension: 0.3,
+          pointRadius: 3,
+          spanGaps: true,
+        };
+      })
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            title: function(items) { return 'Run #' + items[0].label; }
+          }
+        }
+      },
+      scales: {
+        y: {
+          type: 'linear', position: 'left',
+          // min: 0, max: 100,
+          title: { display: true, text: 'Worst slack (ps)', font: { size: 11 } },
+          ticks: { font: { size: 10 } }
+        },
+        x: {
+          ticks: { font: { size: 10 }, maxRotation: 45 }
+        }
+      }
+    }
+  });
+
 });
 </script>
 </body>

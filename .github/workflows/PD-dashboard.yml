@@ -21,18 +21,21 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Restore PD dashboard history from gh-pages-cva6-PD-dashboard-data
+      - name: Restore PD dashboard history from gh-pages-cva6-dashboard-data
         run: |
-          mkdir -p /tmp/PD-data
-          if git ls-remote --heads origin gh-pages-cva6-PD-dashboard-data | grep -q gh-pages-cva6-PD-dashboard-data; then
-            git fetch origin gh-pages-cva6-PD-dashboard-data --depth=1
-            git checkout origin/gh-pages-cva6-PD-dashboard-data -- data/ 2>/dev/null && \
-              cp -r data/* /tmp/PD-data/ 2>/dev/null || \
-              echo "No existing data on gh-pages-cva6-PD-dashboard-data, starting fresh"
+          mkdir -p /tmp/PD-data /tmp/dash-site
+          if git ls-remote --heads origin gh-pages-cva6-dashboard-data | grep -q gh-pages-cva6-dashboard-data; then
+            git fetch origin gh-pages-cva6-dashboard-data --depth=1
+            git checkout origin/gh-pages-cva6-dashboard-data -- data/ 2>/dev/null && \
+              cp -r data/PD/* /tmp/PD-data/ 2>/dev/null || \
+              echo "No existing PD flow data on gh-pages-cva6-dashboard-data, starting fresh"
+            if [ -d data/dash-site ]; then
+              cp -r data/dash-site/* /tmp/dash-site/ 2>/dev/null || true
+            fi
           else
-            echo "gh-pages-cva6-PD-dashboard-data branch does not exist yet, starting fresh"
+            echo "gh-pages-cva6-dashboard-data branch does not exist yet, starting fresh"
           fi
 
       - name: Collect PD dashboard CI data
@@ -51,23 +54,28 @@ jobs:
         run: |
           python3 .github/scripts/dashboard_physical-design/generate_PD_dashboard.py \
             --data-dir /tmp/PD-data \
-            --output-dir /tmp/PD-dash-site \
+            --output-dir /tmp/dash-site \
             --repo "${{ github.repository }}"
 
       - name: Prepare Pages artifact
         run: |
-          cp -r /tmp/PD-data /tmp/PD-dash-site/data
+          if [ ! -f /tmp/dash-site/tier_dashboard.html ]; then
+            echo '<h1>Tier Dashboard not yet generated. Check back after tier tests complete.</h1>' \
+            > /tmp/dash-site/tier_dashboard.html
+          fi
+          cp .github/scripts/landing_page/index.html /tmp/dash-site/index.html
+          cp -r /tmp/PD-data /tmp/dash-site/PD-data
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: /tmp/PD-dash-site
+          path: /tmp/dash-site
 
       - name: Upload preview artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cva6-PD-dashboard-site
-          path: /tmp/PD-dash-site
+          name: cva6-dashboard-site
+          path: /tmp/dash-site
           retention-days: 14
 
       - name: Upload data for persistence job
@@ -95,29 +103,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Prepare gh-pages-cva6-PD-dashboard-data branch
+      - name: Prepare gh-pages-cva6-dashboard-data branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git ls-remote --exit-code --heads origin gh-pages-cva6-PD-dashboard-data >/dev/null 2>&1; then
-            git fetch origin gh-pages-cva6-PD-dashboard-data --depth=1
-            git checkout -B gh-pages-cva6-PD-dashboard-data origin/gh-pages-cva6-PD-dashboard-data
+          if git ls-remote --exit-code --heads origin gh-pages-cva6-dashboard-data >/dev/null 2>&1; then
+            git fetch origin gh-pages-cva6-dashboard-data --depth=1
+            git checkout -B gh-pages-cva6-dashboard-data origin/gh-pages-cva6-dashboard-data
           else
-            git checkout --orphan gh-pages-cva6-PD-dashboard-data
+            git checkout --orphan gh-pages-cva6-dashboard-data
             git rm -rf . >/dev/null 2>&1 || true
             find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
             echo "# CVA6 PD Dashboard Data" > README.md
             git add README.md
-            git commit -m "Initialize gh-pages-cva6-PD-dashboard-data branch"
+            git commit -m "Initialize gh-pages-cva6-dashboard-data branch"
           fi
+
+      - name: Download updated dash-site data
+        uses: actions/download-artifact@v4
+        with:
+          name: cva6-dashboard-site
+          path: data/dash-site
 
       - name: Download updated PD data
         uses: actions/download-artifact@v4
         with:
           name: cva6-PD-dashboard-data
-          path: data/
+          path: data/PD
 
       - name: Commit and push PD data
         run: |
@@ -128,5 +142,5 @@ jobs:
             echo "No data changes to commit"
           else
             git commit -m "Update cva6 PD dashboard data [skip ci]"
-            git push origin HEAD:gh-pages-cva6-PD-dashboard-data
+            git push origin HEAD:gh-pages-cva6-dashboard-data
           fi

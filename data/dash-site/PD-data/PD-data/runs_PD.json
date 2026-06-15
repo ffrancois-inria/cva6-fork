@@ -1,5 +1,39 @@
 [
   {
+    "id": 27557964902,
+    "run_number": 8,
+    "conclusion": "success",
+    "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964902",
+    "head_branch": "ffrancois-inria_ORflow-dashboard",
+    "head_sha": "faef14b5",
+    "created_at": "2026-06-15T15:41:24Z",
+    "duration_seconds": 15,
+    "total_flows": 1,
+    "passed_flows": 1,
+    "failed_flows": 0,
+    "flows": [
+      {
+        "arch": "L1MetadataArray",
+        "config": "base",
+        "conclusion": "success",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964902",
+        "duration_seconds": 0,
+        "raw_json_path": "./PD-data/27557964902/L1MetadataArray_base.json",
+        "metrics": {
+          "stdcell_area_um2": 28.2852,
+          "macro_area_um2": 272.588,
+          "total_instance_area_um2": 300.873,
+          "core_area_um2": 1045.17,
+          "die_area_um2": 1400,
+          "stdcell_kgate": 0.3236,
+          "fmax_mhz": 2674.38,
+          "worst_setup_slack_ps": -174.057,
+          "timing_met": false
+        }
+      }
+    ]
+  },
+  {
     "id": 27205672859,
     "run_number": 7,
     "conclusion": "success",

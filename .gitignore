@@ -65,3 +65,5 @@ bazel-cva6-fork
 bazel-out
 bazel-testlogs
 PR 3053
+user.bazelrc
+tmp/

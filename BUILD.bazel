@@ -1,5 +1,32 @@
 load("@bazel-orfs//:openroad.bzl", "orfs_flow")
 
+TARGET_CFGS = {
+    "cv32a65x": {
+        "hpdcache_sram_1rw": {
+            "name": "hpdcache_sram_1rw\\$cva6.gen_cache_hpd.i_cache_subsystem.i_dcache.i_hpdcache.hpdcache_ctrl_i.hpdcache_memctrl_i.gen_dir_sram[0].dir_sram.ram_i",
+            "rows": 64,
+            "width": 28,
+        },
+        "hpdcache_sram_wbyteenable_1rw": {
+            "name": "hpdcache_sram_wbyteenable_1rw\\$cva6.gen_cache_hpd.i_cache_subsystem.i_dcache.i_hpdcache.hpdcache_ctrl_i.hpdcache_memctrl_i.gen_data_sram_row[0].gen_data_sram_col[0].gen_data_sram_wbyteenable.data_sram.ram_i",
+            "rows": 128,
+            "width": 64,
+        },
+    },
+}
+
+SRAMS = {
+    # Used behavioral model to mock sram macros
+    "hpdcache_sram_1rw": "bazel/hpdcache_sram_1rw.sv",
+    "hpdcache_sram_wbyteenable_1rw": "bazel/hpdcache_sram_wbyteenable_1rw.sv",
+}
+
+filegroup(
+    name = "sram_io_constraints",
+    srcs = ["bazel/io-sram.tcl"],
+    data = ["bazel/util.tcl"],
+)
+
 filegroup(
     name = "rtl",
     srcs = glob([
@@ -9,7 +36,7 @@ filegroup(
         # Packages (order matters for slang)
         "core/cvfpu/src/fpnew_pkg.sv",
         "core/include/config_pkg.sv",
-        "core/include/cv32a65x_config_pkg.sv",  # Specific config file
+        "core/include/{TARGET_CFG}_config_pkg.sv".format(TARGET_CFG = TARGET_CFGS.keys()[0]),  # Specific config file
         "core/include/riscv_pkg.sv",
         "core/include/ariane_pkg.sv",
         "vendor/pulp-platform/axi/src/axi_pkg.sv",
@@ -155,8 +182,11 @@ filegroup(
         "core/cva6_mmu/cva6_tlb.sv",
         "core/cva6_mmu/cva6_shared_tlb.sv",
         # HPDCache SRAM blackboxes (for SYNTH_MOCK_LARGE_MEMORIES)
-        "core/cache_subsystem/hpdcache/rtl/src/common/macros/blackbox/hpdcache_sram_1rw.sv",
-        "core/cache_subsystem/hpdcache/rtl/src/common/macros/blackbox/hpdcache_sram_wbyteenable_1rw.sv",
+        # "core/cache_subsystem/hpdcache/rtl/src/common/macros/blackbox/hpdcache_sram_1rw.sv",
+        # "core/cache_subsystem/hpdcache/rtl/src/common/macros/blackbox/hpdcache_sram_wbyteenable_1rw.sv",
+        # HPDCache SRAM behavioral models:
+        # "core/cache_subsystem/hpdcache/rtl/src/common/macros/behav/hpdcache_sram_1rw.sv",
+        # "core/cache_subsystem/hpdcache/rtl/src/common/macros/behav/hpdcache_sram_wbyteenable_1rw.sv",
         # HPD Cache
         "core/cache_subsystem/hpdcache/rtl/src/utils/hpdcache_mem_req_read_arbiter.sv",
         "core/cache_subsystem/hpdcache/rtl/src/utils/hpdcache_mem_req_write_arbiter.sv",
@@ -198,24 +228,56 @@ filegroup(
         "core/cache_subsystem/hpdcache/rtl/src/hpdcache_victim_sel.sv",
         "core/cache_subsystem/hpdcache/rtl/src/hpdcache_wbuf.sv",
         "core/cache_subsystem/hpdcache/rtl/src/hpdcache_flush.sv",
-    ]
-)
+    ] 
+    + SRAMS.values(),
+) 
+
+# MACROS TARGETS
+[orfs_flow(
+    name = "{TARGET_CFG}_{name}".format(
+        name = name,
+        TARGET_CFG = TARGET_CFG,
+    ),
+    abstract_stage = "place",
+    arguments = {
+        "SYNTH_HIERARCHICAL": "1",
+        "SYNTH_MINIMUM_KEEP_SIZE": "0",
+        "SYNTH_MEMORY_MAX_BITS": "8192",
+        "CORE_UTILIZATION": "70",
+        "CORE_MARGIN": "2",
+    },
+    # Reduce size of the .lef area compared to SRAM implemented
+    # as flip-flops
+    mock_area = 0.2,
+    sources = {
+        "SDC_FILE": [":bazel/constraints-sram.sdc"],
+        "IO_CONSTRAINTS": [":sram_io_constraints"],
+    },
+    top = name + "_impl",
+    verilog_files = ["bazel/{name}_impl.sv".format(name = name)],
+) for TARGET_CFG, srams in TARGET_CFGS.items() for name, config in srams.items()]
 
 
+# MAIN TARGET 
 orfs_flow(
     name = "cv32a65x",
     top = "cva6",                    # top-level Verilog module name
     verilog_files = [":rtl"],        # filegroup
-    macros = [],                     # empty for now (mock memories)
+    macros = [
+        "cv32a65x_hpdcache_sram_1rw_generate_abstract",
+        "cv32a65x_hpdcache_sram_wbyteenable_1rw_generate_abstract"
+        ],
     sources = {
         "SDC_FILE": [":bazel/constraints.sdc"],
+        "PDN_TCL": ["bazel/pdn.tcl"],  # Custom PDN ignoring mock macros
     },
     arguments = {
         # Synthesis 
         "SYNTH_HIERARCHICAL": "1",             # preserves the module hierarchy
         "ABC_CLOCK_PERIOD_IN_PS": "2000",      # 500 MHz for Yosys ABC
-        "SYNTH_MINIMUM_KEEP_SIZE": "0",        # no flatten small modules
-        "SYNTH_MEMORY_MAX_BITS": "1024",
+        "SYNTH_MINIMUM_KEEP_SIZE": "0",        # no modules flattening
+        # "SYNTH_MEMORY_MAX_BITS": "1024",
+        "SYNTH_MEMORY_MAX_BITS": "8192",
         "SYNTH_HDL_FRONTEND": "slang",         # Modern SV compiler 
         "VERILOG_DEFINES": "-D HPDCACHE_ASSERT_OFF",  # Disables HPDcache asserts 
         "VERILOG_INCLUDE_DIRS": " ".join([     # slang include paths 
@@ -227,7 +289,7 @@ orfs_flow(
             "common/local/util",
         ]),
 
-        "SYNTH_MOCK_LARGE_MEMORIES": "1",      # SRAM auto mockup
+        # "SYNTH_MOCK_LARGE_MEMORIES": "1",      # SRAM auto mockup
 
         # Floorplan
         "CORE_UTILIZATION": "70",             # 70% core area
@@ -244,7 +306,7 @@ orfs_flow(
         # Speed
         "FILL_CELLS": "",
         "TAPCELL_TCL": "",
-        "SKIP_REPORT_METRICS": "1",
+        # "SKIP_REPORT_METRICS": "1",
         "SKIP_CTS_REPAIR_TIMING": "1",
         "SKIP_INCREMENTAL_REPAIR": "1",
         "GND_NETS_VOLTAGES": "",

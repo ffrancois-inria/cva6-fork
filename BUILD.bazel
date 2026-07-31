@@ -13,12 +13,30 @@ TARGET_CFGS = {
             "width": 64,
         },
     },
-}
-
-SRAMS = {
-    # Used behavioral model to mock sram macros
-    "hpdcache_sram_1rw": "bazel/hpdcache_sram_1rw.sv",
-    "hpdcache_sram_wbyteenable_1rw": "bazel/hpdcache_sram_wbyteenable_1rw.sv",
+    "cv64a6_imafdc_sv39_hpdcache": {
+        "hpdcache_sram_1rw": {
+            "name": "hpdcache_sram_1rw$cva6.gen_cache_hpd.i_cache_subsystem.i_dcache.i_hpdcache.hpdcache_ctrl_i.hpdcache_memctrl_i.gen_dir_sram[0].dir_sram.gen_sram.i_sram",
+            "rows": 256,
+            "width": 48,
+        },
+        "hpdcache_sram_wbyteenable_1rw": {
+            "name": "hpdcache_sram_wbyteenable_1rw$cva6.gen_cache_hpd.i_cache_subsystem.i_dcache.i_hpdcache.hpdcache_ctrl_i.hpdcache_memctrl_i.gen_data_sram_row[0].gen_data_sram_col[0].data_sram.gen_sram.ram_i",
+            "rows": 512,
+            "width": 128,
+        },
+    },
+    "cv64a6_imafdc_sv39_hpdcache_wb": {
+        "hpdcache_sram_1rw": {
+            "name": "hpdcache_sram_1rw$cva6.gen_cache_hpd.i_cache_subsystem.i_dcache.i_hpdcache.hpdcache_ctrl_i.hpdcache_memctrl_i.gen_dir_sram[0].dir_sram.gen_sram.i_sram",
+            "rows": 256,
+            "width": 48,
+        },
+        "hpdcache_sram_wbyteenable_1rw": {
+            "name": "hpdcache_sram_wbyteenable_1rw$cva6.gen_cache_hpd.i_cache_subsystem.i_dcache.i_hpdcache.hpdcache_ctrl_i.hpdcache_memctrl_i.gen_data_sram_row[0].gen_data_sram_col[0].data_sram.gen_sram.ram_i",
+            "rows": 512,
+            "width": 128,
+        },
+    },
 }
 
 filegroup(
@@ -27,16 +45,102 @@ filegroup(
     data = ["bazel/util.tcl"],
 )
 
-filegroup(
-    name = "rtl",
-    srcs = glob([
+# MACROS TARGETS
+[orfs_flow(
+    name = "{TARGET_CFG}_{name}".format(
+        name = name,
+        TARGET_CFG = TARGET_CFG,
+    ),
+    # cts stage to avoid massive clock skew transfering to top-level 
+    # if running <= floorplan stage at top-level, then limiting to "place" for macros is enough and shorter
+    abstract_stage = "cts",  
+    arguments = {
+        "SYNTH_HIERARCHICAL": "1",
+        "SYNTH_MINIMUM_KEEP_SIZE": "0",
+        "SYNTH_MEMORY_MAX_BITS": "65536",
+        "CORE_UTILIZATION": "70",
+        "CORE_MARGIN": "2",
+    },
+    # mock_area = 0.2  # Reduce size of the .lef area compared to SRAM implemented as flip-flops
+    sources = {
+        "SDC_FILE": [":bazel/constraints-sram.sdc"],
+        "IO_CONSTRAINTS": [":sram_io_constraints"],
+    },
+    top = name + "_impl",
+    verilog_files = ["bazel/srams/{TARGET_CFG}_{name}_impl.sv".format(
+        name = name,
+        TARGET_CFG = TARGET_CFG,
+    )],
+) for TARGET_CFG, srams in TARGET_CFGS.items() for name, config in srams.items()]
+
+
+# MAIN TARGETS
+[orfs_flow(
+    name = TARGET_CFG,
+    top = "cva6",           # top-level Verilog module name
+    macros = ["{TARGET_CFG}_{name}_generate_abstract".format(
+        name = name,
+        TARGET_CFG = TARGET_CFG,
+    ) for name in srams.keys()],
+    # macros = [],
+    sources = {
+        "SDC_FILE": [":bazel/constraints.sdc"],
+        "PDN_TCL": ["bazel/pdn.tcl"],  # Custom PDN ignoring mock macros
+    },
+    arguments = {
+        # Synthesis 
+        "SYNTH_HIERARCHICAL": "1",             # preserves the module hierarchy
+        "ABC_CLOCK_PERIOD_IN_PS": "2000",      # 500 MHz for Yosys ABC
+        "SYNTH_MINIMUM_KEEP_SIZE": "0",        # no modules flattening
+        "SYNTH_MEMORY_MAX_BITS": "65536",
+        "SYNTH_HDL_FRONTEND": "slang",         # Modern SV compiler 
+        "VERILOG_DEFINES": "-D HPDCACHE_ASSERT_OFF",  # Disables HPDcache asserts 
+        "VERILOG_INCLUDE_DIRS": " ".join([     # slang include paths 
+            "core/include",
+            "core/cache_subsystem/hpdcache/rtl/include",
+            "vendor/pulp-platform/common_cells/include",
+            "vendor/pulp-platform/common_cells/src",
+            "vendor/pulp-platform/axi/include",
+            "common/local/util",
+        ]),
+
+        # "SYNTH_MOCK_LARGE_MEMORIES": "1",      # SRAM auto mockup
+
+        # Floorplan
+        "CORE_UTILIZATION": "70",             # 70% core area
+        "CORE_MARGIN": "2",                   # 2µm margin
+        "MACRO_PLACE_HALO": "3 3",            # 3µm around macros 
+
+        # Placement
+        "PLACE_DENSITY": "0.73",
+
+        # CTS
+        "ASAP7_USE_VT": "RVT LVT SLVT",      # uses the three ASAP7 cell families
+        "CTS_LIB_NAME": "asap7sc7p5t_INVBUF_SLVT_FF_nldm_211120",  # inverter library for CTS
+        
+        # Speed
+        "FILL_CELLS": "",
+        "TAPCELL_TCL": "",
+        # "SKIP_REPORT_METRICS": "1",
+        "SKIP_CTS_REPAIR_TIMING": "1",
+        "SKIP_INCREMENTAL_REPAIR": "1",
+        "GND_NETS_VOLTAGES": "",
+        "PWR_NETS_VOLTAGES": "",
+        "GPL_ROUTABILITY_DRIVEN": "0",
+        "GPL_TIMING_DRIVEN": "0",
+        "SETUP_SLACK_MARGIN": "-10000",
+        "TNS_END_PERCENT": "0",
+        "SKIP_LAST_GASP": "1",
+    },
+
+    verilog_files = glob([
         "core/**/*.svh",
         "vendor/**/*.svh",
     ]) + [  # Excerpt from Flist.cva6_synth
         # Packages (order matters for slang)
         "core/cvfpu/src/fpnew_pkg.sv",
         "core/include/config_pkg.sv",
-        "core/include/{TARGET_CFG}_config_pkg.sv".format(TARGET_CFG = TARGET_CFGS.keys()[0]),  # Specific config file
+        "core/include/{TARGET_CFG}_config_pkg.sv".format(TARGET_CFG = TARGET_CFG),  # Specific config file
         "core/include/riscv_pkg.sv",
         "core/include/ariane_pkg.sv",
         "vendor/pulp-platform/axi/src/axi_pkg.sv",
@@ -72,6 +176,20 @@ filegroup(
         "core/cvfpu/src/fpu_div_sqrt_mvp/hdl/norm_div_sqrt_mvp.sv",
         "core/cvfpu/src/fpu_div_sqrt_mvp/hdl/nrbd_nrsc_mvp.sv",
         "core/cvfpu/src/fpu_div_sqrt_mvp/hdl/preprocess_mvp.sv",
+        # 64 bit FPGA support
+        "core/cvfpu/src/fpnew_divsqrt_th_64_multi.sv",
+        "core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_top.v",
+        "core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_scalar_dp.v",
+        "core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_ctrl.v",
+        "core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_double.v",
+        "core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/clk/rtl/gated_clk_cell.v",
+        "core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_prepare.v",
+        "core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_srt.v",
+        "core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_round.v",
+        "core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_pack.v",
+        "core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_ff1.v",
+        "core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_srt_radix16_with_sqrt.v",
+        "core/cvfpu/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_srt_radix16_bound_table.v",
         # CVXIF coprocessor
         "core/cvxif_compressed_if_driver.sv",
         "core/cvxif_issue_register_commit_if_driver.sv",
@@ -181,12 +299,6 @@ filegroup(
         "core/cva6_mmu/cva6_ptw.sv",
         "core/cva6_mmu/cva6_tlb.sv",
         "core/cva6_mmu/cva6_shared_tlb.sv",
-        # HPDCache SRAM blackboxes (for SYNTH_MOCK_LARGE_MEMORIES)
-        # "core/cache_subsystem/hpdcache/rtl/src/common/macros/blackbox/hpdcache_sram_1rw.sv",
-        # "core/cache_subsystem/hpdcache/rtl/src/common/macros/blackbox/hpdcache_sram_wbyteenable_1rw.sv",
-        # HPDCache SRAM behavioral models:
-        # "core/cache_subsystem/hpdcache/rtl/src/common/macros/behav/hpdcache_sram_1rw.sv",
-        # "core/cache_subsystem/hpdcache/rtl/src/common/macros/behav/hpdcache_sram_wbyteenable_1rw.sv",
         # HPD Cache
         "core/cache_subsystem/hpdcache/rtl/src/utils/hpdcache_mem_req_read_arbiter.sv",
         "core/cache_subsystem/hpdcache/rtl/src/utils/hpdcache_mem_req_write_arbiter.sv",
@@ -228,93 +340,8 @@ filegroup(
         "core/cache_subsystem/hpdcache/rtl/src/hpdcache_victim_sel.sv",
         "core/cache_subsystem/hpdcache/rtl/src/hpdcache_wbuf.sv",
         "core/cache_subsystem/hpdcache/rtl/src/hpdcache_flush.sv",
+        "core/cache_subsystem/hpdcache/rtl/src/hpdcache_cbuf.sv",
+        "core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_prio_bin_encoder.sv",
     ] 
-    + SRAMS.values(),
-) 
-
-# MACROS TARGETS
-[orfs_flow(
-    name = "{TARGET_CFG}_{name}".format(
-        name = name,
-        TARGET_CFG = TARGET_CFG,
-    ),
-    abstract_stage = "place",
-    arguments = {
-        "SYNTH_HIERARCHICAL": "1",
-        "SYNTH_MINIMUM_KEEP_SIZE": "0",
-        "SYNTH_MEMORY_MAX_BITS": "8192",
-        "CORE_UTILIZATION": "70",
-        "CORE_MARGIN": "2",
-    },
-    # Reduce size of the .lef area compared to SRAM implemented
-    # as flip-flops
-    mock_area = 0.2,
-    sources = {
-        "SDC_FILE": [":bazel/constraints-sram.sdc"],
-        "IO_CONSTRAINTS": [":sram_io_constraints"],
-    },
-    top = name + "_impl",
-    verilog_files = ["bazel/{name}_impl.sv".format(name = name)],
-) for TARGET_CFG, srams in TARGET_CFGS.items() for name, config in srams.items()]
-
-
-# MAIN TARGET 
-orfs_flow(
-    name = "cv32a65x",
-    top = "cva6",                    # top-level Verilog module name
-    verilog_files = [":rtl"],        # filegroup
-    macros = [
-        "cv32a65x_hpdcache_sram_1rw_generate_abstract",
-        "cv32a65x_hpdcache_sram_wbyteenable_1rw_generate_abstract"
-        ],
-    sources = {
-        "SDC_FILE": [":bazel/constraints.sdc"],
-        "PDN_TCL": ["bazel/pdn.tcl"],  # Custom PDN ignoring mock macros
-    },
-    arguments = {
-        # Synthesis 
-        "SYNTH_HIERARCHICAL": "1",             # preserves the module hierarchy
-        "ABC_CLOCK_PERIOD_IN_PS": "2000",      # 500 MHz for Yosys ABC
-        "SYNTH_MINIMUM_KEEP_SIZE": "0",        # no modules flattening
-        # "SYNTH_MEMORY_MAX_BITS": "1024",
-        "SYNTH_MEMORY_MAX_BITS": "8192",
-        "SYNTH_HDL_FRONTEND": "slang",         # Modern SV compiler 
-        "VERILOG_DEFINES": "-D HPDCACHE_ASSERT_OFF",  # Disables HPDcache asserts 
-        "VERILOG_INCLUDE_DIRS": " ".join([     # slang include paths 
-            "core/include",
-            "core/cache_subsystem/hpdcache/rtl/include",
-            "vendor/pulp-platform/common_cells/include",
-            "vendor/pulp-platform/common_cells/src",
-            "vendor/pulp-platform/axi/include",
-            "common/local/util",
-        ]),
-
-        # "SYNTH_MOCK_LARGE_MEMORIES": "1",      # SRAM auto mockup
-
-        # Floorplan
-        "CORE_UTILIZATION": "70",             # 70% core area
-        "CORE_MARGIN": "2",                   # 2µm margin
-        "MACRO_PLACE_HALO": "3 3",            # 3µm around macros 
-
-        # Placement
-        "PLACE_DENSITY": "0.73",
-
-        # CTS
-        "ASAP7_USE_VT": "RVT LVT SLVT",      # uses the three ASAP7 cell families (PR only, absent from the gallery)
-        "CTS_LIB_NAME": "asap7sc7p5t_INVBUF_SLVT_FF_nldm_211120",  # inverter library for CTS (PR only)
-        
-        # Speed
-        "FILL_CELLS": "",
-        "TAPCELL_TCL": "",
-        # "SKIP_REPORT_METRICS": "1",
-        "SKIP_CTS_REPAIR_TIMING": "1",
-        "SKIP_INCREMENTAL_REPAIR": "1",
-        "GND_NETS_VOLTAGES": "",
-        "PWR_NETS_VOLTAGES": "",
-        "GPL_ROUTABILITY_DRIVEN": "0",
-        "GPL_TIMING_DRIVEN": "0",
-        "SETUP_SLACK_MARGIN": "-10000",
-        "TNS_END_PERCENT": "0",
-        "SKIP_LAST_GASP": "1",
-    },
-)
+    + ["bazel/srams/{sram_name}.sv".format(sram_name = sram_name) for sram_name in srams.keys()]
+) for TARGET_CFG, srams in TARGET_CFGS.items()]

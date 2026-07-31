@@ -28,7 +28,7 @@ add_pdn_connect -grid {top} -layers {M5 M6}
 ####################################
 # grid for: CORE_macro_grid_1
 ####################################
-# COMMENTED OUT as we're using mock macros without internal geometry
+# COMMENTED OUT, otherwise build fails when using synthetised behav SRAMS
 # define_pdn_grid -name {CORE_macro_grid_1} -voltage_domains {CORE} -macro \
 #   -orient {R0 R180 MX MY} -halo {2.0 2.0 2.0 2.0} -default
 # add_pdn_connect -grid {CORE_macro_grid_1} -layers {M4 M5}

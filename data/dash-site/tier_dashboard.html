@@ -107,7 +107,7 @@
       <a class="nav-link" href="PD_dashboard.html">⚡ PD Dashboard</a>
     </div>
     <span class="navbar-text text-muted" style="font-size:0.85rem">
-      Generated: 2026-08-16 23:53 UTC
+      Generated: 2026-08-18 04:28 UTC
     </span>
   </div>
 </nav>
@@ -192,12 +192,12 @@
     </div>
     
     <div class="col-md-4">
-      <div class="card status-card shadow-sm pass">
+      <div class="card status-card shadow-sm unknown">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <h6 class="card-title mb-0">Tier 2</h6>
             
-              <span class="badge badge-pass">PASS</span>
+              <span class="badge badge-skip">CANCELLED</span>
             
           </div>
           <div class="text-muted" style="font-size:0.8rem">
@@ -207,18 +207,20 @@
             </div>
             <div>
               <strong>Jobs:</strong>
-              <span class="text-success">17 passed</span>
+              <span class="text-success">16 passed</span>
               
+              
+                / <span class="text-secondary">1 skipped</span>
               
               (17 total)
             </div>
             <div>
-              <strong>Duration:</strong> 1h 30m
-              &middot; <strong>Run:</strong> #83
+              <strong>Duration:</strong> 6h 1m
+              &middot; <strong>Run:</strong> #84
             </div>
           </div>
           <div class="mt-2">
-            <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/31976187420" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">
+            <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/32075986355" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">
               View on GitHub &rarr;
             </a>
           </div>
@@ -1412,6 +1414,255 @@
         <div class="accordion-body p-2">
           
           <div class="accordion" id="runsAccordion-tier2">
+            
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#run-tier2-32075986355"
+                        style="font-size:0.85rem">
+                  
+                    <span class="badge badge-skip me-2">CANCELLED</span>
+                  
+                  #84
+                  &middot; master
+                  &middot; <code>d379803f</code>
+                  &middot; 6h 1m
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-08-17 22:26 UTC</span>
+                </button>
+              </h2>
+              <div id="run-tier2-32075986355" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-tier2">
+                <div class="accordion-body p-2">
+                  <div class="mb-2" style="font-size:0.8rem">
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/32075986355" target="_blank" rel="noopener">View on GitHub</a>
+                    &middot; Event: schedule
+                    &middot; Jobs: 16/17 passed
+                  </div>
+                  
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover job-table mb-0">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Arch</th>
+                          <th>Config</th>
+                          <th>Test Suite</th>
+                          <th>Status</th>
+                          <th>Duration</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        
+                        <tr>
+                          <td>RV64</td>
+                          <td><code>cv64a6_imafdc_sv39_hpdcache_wb</code></td>
+                          <td>dv-riscv-tests-p</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>16m 53s</td>
+                        </tr>
+                        
+                        <tr>
+                          <td>RV64</td>
+                          <td><code>cv64a6_imafdc_sv39_hpdcache_wb</code></td>
+                          <td>dv-riscv-tests-v</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>1h 5m</td>
+                        </tr>
+                        
+                        <tr>
+                          <td>RV64</td>
+                          <td><code>cv64a6_imafdc_sv39_hpdcache_wb</code></td>
+                          <td>cv64a6_imafdc_tests</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>5m 54s</td>
+                        </tr>
+                        
+                        <tr>
+                          <td>RV32</td>
+                          <td><code>cv32a65x</code></td>
+                          <td>dv-csr-embedded-tests</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>4m 40s</td>
+                        </tr>
+                        
+                        <tr>
+                          <td>RV32</td>
+                          <td><code>cv32a65x</code></td>
+                          <td>smoke-tests-cv32a65x</td>
+                          <td>
+                            
+                              <span class="badge badge-skip">CANCELLED</span>
+                            
+                          </td>
+                          <td>6h 0m</td>
+                        </tr>
+                        
+                        <tr>
+                          <td>RV32</td>
+                          <td><code>cv32a65x</code></td>
+                          <td>dv-riscv-arch-test</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>32m 45s</td>
+                        </tr>
+                        
+                        <tr>
+                          <td>RV32</td>
+                          <td><code>cv32a60x</code></td>
+                          <td>dv-riscv-tests-p</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>11m 9s</td>
+                        </tr>
+                        
+                        <tr>
+                          <td>RV32</td>
+                          <td><code>cv32a65x</code></td>
+                          <td>cv32a6_tests</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>2m 59s</td>
+                        </tr>
+                        
+                        <tr>
+                          <td>RV32</td>
+                          <td><code>cv32a60x</code></td>
+                          <td>dv-riscv-compliance</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>32m 26s</td>
+                        </tr>
+                        
+                        <tr>
+                          <td>RV32</td>
+                          <td><code>cv32a65x</code></td>
+                          <td>dv-riscv-compliance</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>27m 34s</td>
+                        </tr>
+                        
+                        <tr>
+                          <td>RV32</td>
+                          <td><code>cv32a65x</code></td>
+                          <td>dv-riscv-tests-p</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>11m 3s</td>
+                        </tr>
+                        
+                        <tr>
+                          <td>RV64</td>
+                          <td><code>cv64a6_imafdc_sv39_hpdcache_wb</code></td>
+                          <td>dv-riscv-arch-test</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>48m 48s</td>
+                        </tr>
+                        
+                        <tr>
+                          <td>RV32</td>
+                          <td><code>cv32a65x</code></td>
+                          <td>coremark</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>6m 5s</td>
+                        </tr>
+                        
+                        <tr>
+                          <td>RV64</td>
+                          <td><code>cv64a6_imafdc_sv39_hpdcache_wb</code></td>
+                          <td>dv-riscv-compliance</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>32m 38s</td>
+                        </tr>
+                        
+                        <tr>
+                          <td>RV32</td>
+                          <td><code>cv32a65x</code></td>
+                          <td>hwconfig_tests</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>2m 8s</td>
+                        </tr>
+                        
+                        <tr>
+                          <td>RV32</td>
+                          <td><code>cv32a60x</code></td>
+                          <td>cv32a6_tests</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>3m 24s</td>
+                        </tr>
+                        
+                        <tr>
+                          <td>RV32</td>
+                          <td><code>cv32a60x</code></td>
+                          <td>dv-riscv-arch-test</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>25m 45s</td>
+                        </tr>
+                        
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                </div>
+              </div>
+            </div>
             
             <div class="accordion-item">
               <h2 class="accordion-header">
@@ -6144,255 +6395,6 @@
               </div>
             </div>
             
-            <div class="accordion-item">
-              <h2 class="accordion-header">
-                <button class="accordion-button collapsed py-2" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#run-tier2-30406622654"
-                        style="font-size:0.85rem">
-                  
-                    <span class="badge badge-pass me-2">PASS</span>
-                  
-                  #64
-                  &middot; master
-                  &middot; <code>d379803f</code>
-                  &middot; 1h 10m
-                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-07-28 23:01 UTC</span>
-                </button>
-              </h2>
-              <div id="run-tier2-30406622654" class="accordion-collapse collapse"
-                   data-bs-parent="#runsAccordion-tier2">
-                <div class="accordion-body p-2">
-                  <div class="mb-2" style="font-size:0.8rem">
-                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/30406622654" target="_blank" rel="noopener">View on GitHub</a>
-                    &middot; Event: schedule
-                    &middot; Jobs: 17/17 passed
-                  </div>
-                  
-                  <div class="table-responsive">
-                    <table class="table table-sm table-hover job-table mb-0">
-                      <thead class="table-light">
-                        <tr>
-                          <th>Arch</th>
-                          <th>Config</th>
-                          <th>Test Suite</th>
-                          <th>Status</th>
-                          <th>Duration</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        
-                        <tr>
-                          <td>RV64</td>
-                          <td><code>cv64a6_imafdc_sv39_hpdcache_wb</code></td>
-                          <td>dv-riscv-tests-p</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>26m 25s</td>
-                        </tr>
-                        
-                        <tr>
-                          <td>RV64</td>
-                          <td><code>cv64a6_imafdc_sv39_hpdcache_wb</code></td>
-                          <td>dv-riscv-tests-v</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>1h 8m</td>
-                        </tr>
-                        
-                        <tr>
-                          <td>RV64</td>
-                          <td><code>cv64a6_imafdc_sv39_hpdcache_wb</code></td>
-                          <td>dv-riscv-compliance</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>32m 27s</td>
-                        </tr>
-                        
-                        <tr>
-                          <td>RV64</td>
-                          <td><code>cv64a6_imafdc_sv39_hpdcache_wb</code></td>
-                          <td>dv-riscv-arch-test</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>44m 40s</td>
-                        </tr>
-                        
-                        <tr>
-                          <td>RV32</td>
-                          <td><code>cv32a65x</code></td>
-                          <td>dv-csr-embedded-tests</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>5m 0s</td>
-                        </tr>
-                        
-                        <tr>
-                          <td>RV32</td>
-                          <td><code>cv32a65x</code></td>
-                          <td>dv-riscv-arch-test</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>25m 32s</td>
-                        </tr>
-                        
-                        <tr>
-                          <td>RV64</td>
-                          <td><code>cv64a6_imafdc_sv39_hpdcache_wb</code></td>
-                          <td>cv64a6_imafdc_tests</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>5m 35s</td>
-                        </tr>
-                        
-                        <tr>
-                          <td>RV32</td>
-                          <td><code>cv32a60x</code></td>
-                          <td>dv-riscv-compliance</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>23m 27s</td>
-                        </tr>
-                        
-                        <tr>
-                          <td>RV32</td>
-                          <td><code>cv32a65x</code></td>
-                          <td>hwconfig_tests</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>2m 7s</td>
-                        </tr>
-                        
-                        <tr>
-                          <td>RV32</td>
-                          <td><code>cv32a65x</code></td>
-                          <td>dv-riscv-tests-p</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>12m 47s</td>
-                        </tr>
-                        
-                        <tr>
-                          <td>RV32</td>
-                          <td><code>cv32a65x</code></td>
-                          <td>smoke-tests-cv32a65x</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>2m 42s</td>
-                        </tr>
-                        
-                        <tr>
-                          <td>RV32</td>
-                          <td><code>cv32a65x</code></td>
-                          <td>cv32a6_tests</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>4m 10s</td>
-                        </tr>
-                        
-                        <tr>
-                          <td>RV32</td>
-                          <td><code>cv32a65x</code></td>
-                          <td>coremark</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>5m 56s</td>
-                        </tr>
-                        
-                        <tr>
-                          <td>RV32</td>
-                          <td><code>cv32a65x</code></td>
-                          <td>dv-riscv-compliance</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>24m 4s</td>
-                        </tr>
-                        
-                        <tr>
-                          <td>RV32</td>
-                          <td><code>cv32a60x</code></td>
-                          <td>dv-riscv-arch-test</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>22m 54s</td>
-                        </tr>
-                        
-                        <tr>
-                          <td>RV32</td>
-                          <td><code>cv32a60x</code></td>
-                          <td>dv-riscv-tests-p</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>10m 32s</td>
-                        </tr>
-                        
-                        <tr>
-                          <td>RV32</td>
-                          <td><code>cv32a60x</code></td>
-                          <td>cv32a6_tests</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>3m 8s</td>
-                        </tr>
-                        
-                      </tbody>
-                    </table>
-                  </div>
-                  
-                </div>
-              </div>
-            </div>
-            
           </div>
           
         </div>
@@ -6418,7 +6420,7 @@
       </div>
       <div class="col-md-6 text-md-end">
         <small class="text-light opacity-75">
-          Generated: 2026-08-16 23:53 UTC
+          Generated: 2026-08-18 04:28 UTC
           &middot; <a href="https://github.com/ffrancois-inria/cva6-fork" class="text-light" target="_blank" rel="noopener">Source</a>
         </small>
       </div>
@@ -6431,7 +6433,7 @@
 // ============================================================
 // Matrix data (all workflows combined) - injected by Jinja2
 // ============================================================
-const matrixData   = {"cv32a65x": {"cv32a6_tests": {"ci": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964995/job/81462245909"}, "tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/31976187420/job/95236054826"}}, "dv-riscv-arch-test": {"ci": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964995/job/81462245969"}, "tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/31976187420/job/95236054886"}}, "smoke-tests-cv32a65x": {"tier1": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964093/job/81462277105"}, "tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/31976187420/job/95236054824"}}, "dv-csr-embedded-tests": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/31976187420/job/95236054833"}}, "dv-riscv-tests-p": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/31976187420/job/95236054834"}}, "dv-riscv-compliance": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/31976187420/job/95236054852"}}, "coremark": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/31976187420/job/95236054925"}}, "hwconfig_tests": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/31976187420/job/95236054930"}}}, "cv64a6_imafdc_sv39": {"cv64a6_imafdc_tests": {"ci": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964995/job/81462245940"}}}, "cv64a6_imafdc_sv39_hpdcache": {"cv64a6_imafdc_tests": {"ci": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964995/job/81462245944"}}, "dv-riscv-arch-test": {"ci": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964995/job/81462246076"}}}, "cv64a6_imafdc_sv39_wb": {"cv64a6_imafdc_tests": {"ci": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964995/job/81462245970"}}}, "cv64a6_imafdc_sv39_hpdcache_wb": {"cv64a6_imafdc_tests": {"ci": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964995/job/81462245991"}, "tier1": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964093/job/81462277482"}, "tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/31976187420/job/95236054798"}}, "dv-riscv-arch-test": {"ci": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964995/job/81462245995"}, "tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/31976187420/job/95236054780"}}, "dv-riscv-tests-v": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/31976187420/job/95236054757"}}, "dv-riscv-compliance": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/31976187420/job/95236054763"}}, "dv-riscv-tests-p": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/31976187420/job/95236054768"}}}, "cv32a60x": {"cv32a6_tests": {"tier1": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964093/job/81462277091"}, "tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/31976187420/job/95236054836"}}, "dv-riscv-arch-test": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/31976187420/job/95236054864"}}, "dv-riscv-compliance": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/31976187420/job/95236054872"}}, "dv-riscv-tests-p": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/31976187420/job/95236054977"}}}};
+const matrixData   = {"cv32a65x": {"cv32a6_tests": {"ci": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964995/job/81462245909"}, "tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/32075986355/job/95529565880"}}, "dv-riscv-arch-test": {"ci": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964995/job/81462245969"}, "tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/32075986355/job/95529565870"}}, "smoke-tests-cv32a65x": {"tier1": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964093/job/81462277105"}, "tier2": {"conclusion": "cancelled", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/32075986355/job/95529565863"}}, "dv-csr-embedded-tests": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/32075986355/job/95529565859"}}, "dv-riscv-compliance": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/32075986355/job/95529565889"}}, "dv-riscv-tests-p": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/32075986355/job/95529565896"}}, "coremark": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/32075986355/job/95529565917"}}, "hwconfig_tests": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/32075986355/job/95529565984"}}}, "cv64a6_imafdc_sv39": {"cv64a6_imafdc_tests": {"ci": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964995/job/81462245940"}}}, "cv64a6_imafdc_sv39_hpdcache": {"cv64a6_imafdc_tests": {"ci": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964995/job/81462245944"}}, "dv-riscv-arch-test": {"ci": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964995/job/81462246076"}}}, "cv64a6_imafdc_sv39_wb": {"cv64a6_imafdc_tests": {"ci": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964995/job/81462245970"}}}, "cv64a6_imafdc_sv39_hpdcache_wb": {"cv64a6_imafdc_tests": {"ci": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964995/job/81462245991"}, "tier1": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964093/job/81462277482"}, "tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/32075986355/job/95529565855"}}, "dv-riscv-arch-test": {"ci": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964995/job/81462245995"}, "tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/32075986355/job/95529565910"}}, "dv-riscv-tests-p": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/32075986355/job/95529565817"}}, "dv-riscv-tests-v": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/32075986355/job/95529565822"}}, "dv-riscv-compliance": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/32075986355/job/95529565930"}}}, "cv32a60x": {"cv32a6_tests": {"tier1": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964093/job/81462277091"}, "tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/32075986355/job/95529566005"}}, "dv-riscv-tests-p": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/32075986355/job/95529565875"}}, "dv-riscv-compliance": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/32075986355/job/95529565888"}}, "dv-riscv-arch-test": {"tier2": {"conclusion": "success", "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/32075986355/job/95529566013"}}}};
 const matrixConfigs = ["cv32a65x", "cv32a60x", "cv64a6_imafdc_sv39_hpdcache_wb", "cv64a6_imafdc_sv39_hpdcache", "cv64a6_imafdc_sv39_wb", "cv64a6_imafdc_sv39"];
 const matrixSuites  = ["smoke-tests-cv32a65x", "cv32a6_tests", "cv64a6_imafdc_tests", "dv-riscv-arch-test", "dv-riscv-tests-p", "dv-riscv-tests-v", "dv-riscv-compliance", "coremark", "dv-csr-embedded-tests", "hwconfig_tests"];
 
@@ -6510,7 +6512,7 @@ renderMatrix('tier2');
 // ============================================================
 // Chart.js Trend Charts
 // ============================================================
-const chartData = {"ci": {"labels": ["1", "2", "3", "4", "5"], "pass_rates": [100.0, 100.0, 100.0, 100.0, 100.0], "durations": [90.3, 54.9, 61.6, 48.8, 56.3]}, "tier1": {"labels": ["1", "2", "3", "4"], "pass_rates": [100.0, 100.0, 100.0, 100.0], "durations": [6.0, 7.7, 7.2, 8.1]}, "tier2": {"labels": ["64", "65", "66", "67", "68", "69", "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "80", "81", "82", "83"], "pass_rates": [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 94.1, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0], "durations": [70.1, 87.2, 55.8, 67.4, 66.8, 70.2, 91.3, 64.4, 56.6, 88.7, 361.5, 69.8, 65.4, 65.3, 69.8, 66.8, 75.2, 86.5, 66.2, 90.3]}};
+const chartData = {"ci": {"labels": ["1", "2", "3", "4", "5"], "pass_rates": [100.0, 100.0, 100.0, 100.0, 100.0], "durations": [90.3, 54.9, 61.6, 48.8, 56.3]}, "tier1": {"labels": ["1", "2", "3", "4"], "pass_rates": [100.0, 100.0, 100.0, 100.0], "durations": [6.0, 7.7, 7.2, 8.1]}, "tier2": {"labels": ["65", "66", "67", "68", "69", "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "80", "81", "82", "83", "84"], "pass_rates": [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 94.1, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 94.1], "durations": [87.2, 55.8, 67.4, 66.8, 70.2, 91.3, 64.4, 56.6, 88.7, 361.5, 69.8, 65.4, 65.3, 69.8, 66.8, 75.2, 86.5, 66.2, 90.3, 361.9]}};
 
 Object.keys(chartData).forEach(key => {
   const wf = chartData[key];

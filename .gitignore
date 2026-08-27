@@ -57,3 +57,13 @@ Bender.lock
 /verif/sim/encaps.traces
 /verif/sim/iti.traces
 /verif/sim/verilator.fst.hier
+
+# bazel-orfs ignores
+bazel-bin
+bazel-cva6
+bazel-cva6-fork
+bazel-out
+bazel-testlogs
+MODULE.bazel.lock
+user.bazelrc
+tmp/

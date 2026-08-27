@@ -1,0 +1,67 @@
+name: OR-flow-grt
+
+on:
+  schedule:
+    - cron: '0 2 * * 0'  # Weekly on Sunday at 02:00 UTC
+  workflow_dispatch:
+
+jobs:
+  design-flow:
+    name: ${{ matrix.config }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: false  # keep other configs running even if one fails
+      matrix:
+        config:
+          - cv32a65x
+          - cv64a6_imafdc_sv39_hpdcache
+          - cv64a6_imafdc_sv39_hpdcache_wb
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Bazelisk
+        run: |
+          curl -fsSL \
+            https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 \
+            -o /usr/local/bin/bazel
+          chmod +x /usr/local/bin/bazel
+
+      - name: Restore Bazel disk cache
+        id: cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/bazel-disk-cache
+          key: bazel-orfs-${{ runner.os }}-${{ matrix.config }}-${{ hashFiles('MODULE.bazel', 'BUILD.bazel', 'bazel/**') }}
+          # each level widens the match: same config → any config
+          restore-keys: |
+            bazel-orfs-${{ runner.os }}-${{ matrix.config }}-
+            bazel-orfs-${{ runner.os }}-
+
+      - name: Run full flow to global routing
+        # explicit disk cache (not the output base); GC limit set to 2 GB in .bazelrc
+        run: |
+          bazel build \
+            --disk_cache="$HOME/.cache/bazel-disk-cache" \
+            //:${{ matrix.config }}_grt
+
+      - name: Save Bazel disk cache
+        uses: actions/cache/save@v4
+        # if always() preserves partial cache even when the build fails
+        if: always()
+        with:
+          path: ~/.cache/bazel-disk-cache
+          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+
+      - name: Upload metrics artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PD-grt-${{ matrix.config }}
+          path: bazel-bin/logs/asap7/cva6/base/5_1_grt.json
+          if-no-files-found: warn  # the job result already reflects build success/failure

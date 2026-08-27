@@ -58,8 +58,8 @@
 name: openhw-cva6-ci-tier2
 
 on:
-  schedule:
-    - cron: "0 22 * * *" # 22:00 UTC
+  # schedule:
+  #   - cron: "0 22 * * *" # 22:00 UTC
   workflow_dispatch:
 
 concurrency:

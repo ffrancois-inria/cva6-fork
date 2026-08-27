@@ -17,9 +17,24 @@ from typing import TypedDict
 
 from jinja2 import Environment, FileSystemLoader
 
-# Workflow display info (order matters for UI)
-PD_WORKFLOW = [
-    {"key": "pd", "display_name": "OR-design-flow.yml", "file": "runs_PD.json"}
+# Workflows to load and display (order matters for UI).
+# chart_metrics: metric keys to extract from each flow's metrics dict.
+# type: passed to template to select which charts to render.
+WORKFLOWS = [
+    {
+        "key":           "flp",
+        "type":          "Floorplan",
+        "display_name":  "OR-flow-floorplan",
+        "file":          "runs_PD_flp.json",
+        "chart_metrics": ["fmax_mhz", "stdcell_kgate", "worst_setup_slack_ps", "timing_met"],
+    },
+    {
+        "key":           "grt",
+        "type":          "GRT",
+        "display_name":  "OR-flow-grt",
+        "file":          "runs_PD_grt.json",
+        "chart_metrics": ["fmax_mhz", "stdcell_kgate", "worst_setup_slack_ps", "timing_met"],
+    },
 ]
 
 TREND_COUNT = 20
@@ -51,34 +66,38 @@ def format_datetime(iso_str: str) -> str:
 
 def load_workflow_data(data_dir: Path) -> dict:
     """Load all workflow JSON data files.
-    
+
+    Missing files are treated as empty runs (logs a warning) so the dashboard
+    can be generated even when only one workflow has executed so far.
+
     Raises:
-        FileNotFoundError: If the data directory doesn't exist or required files are missing.
+        FileNotFoundError: If the data directory itself doesn't exist.
         json.JSONDecodeError: If a JSON file is malformed.
     """
     result = {}
-    
+
     # Check if data directory exists
     if not data_dir.exists():
         raise FileNotFoundError(
             f"Data directory not found: {data_dir.resolve()}\n"
             f"  Create it or use --data-dir to specify the correct path."
         )
-    
-    for wf in PD_WORKFLOW:
+
+    for wf in WORKFLOWS:
         path = data_dir / wf["file"]
-        
+
         if not path.exists():
-            raise FileNotFoundError(
-                f"Workflow data file not found: {path.resolve()}\n"
-                f"  Expected file: {wf['file']}\n"
-                f"  In directory: {data_dir.resolve()}\n"
-                f"  Check the file path and permissions."
+            print(
+                f"WARNING: {wf['file']} not found in {data_dir.resolve()} — "
+                f"treating {wf['display_name']} as having no runs yet.",
+                file=__import__('sys').stderr,
             )
-        
+            result[wf["key"]] = []
+            continue
+
         try:
             with open(path, 'r', encoding='utf-8') as f:
-                data = json.load(f, parse_float=lambda x : round(float(x),3))
+                data = json.load(f, parse_float=lambda x: round(float(x), 2))
                 if not isinstance(data, list):
                     raise ValueError(
                         f"Expected JSON array (list of runs) in {path.name}, "
@@ -97,35 +116,17 @@ def load_workflow_data(data_dir: Path) -> dict:
                 f"Cannot read {path.resolve()}: {e.strerror}\n"
                 f"  Check file permissions and ensure the file is readable."
             )
-    
+
     return result
 
 
-class FlowMetrics(TypedDict):
-    """Per-flow metrics time series for charting.
-    Each list contains values aligned across TREND_COUNT runs,
-    indexed chronologically (oldest to newest).
-    """
-    fmax_mhz: list
-    stdcell_kgate: list
-    worst_setup_slack_ps: list
-    timing_met: list
-
-class ChartData(TypedDict):
-    """Aggregated trend data for a single workflow.
-    Ready for Chart.js consumption: labels and series are parallel arrays.
-    """
-    labels: list[str]
-    series: dict[str, FlowMetrics]
-    pass_rates: list[float]
-    durations: list[float]
-
-def build_chart_data(all_data: dict) -> dict[str, ChartData]:
+def build_chart_data(all_data: dict) -> dict:
     """Build Chart.js data for trend charts."""
-    chart_data: dict[str, ChartData] = {}
+    chart_data = {}
     
-    for wf in PD_WORKFLOW:
-        key = wf["key"]
+    for wf in WORKFLOWS:
+        key          = wf["key"]
+        chart_metrics = wf["chart_metrics"]
         runs = all_data.get(key, [])
 
         # Take last TREND_COUNT runs, reversed for chronological order
@@ -136,12 +137,7 @@ def build_chart_data(all_data: dict) -> dict[str, ChartData]:
         durations = []
 
         # Use defaultdict to avoid pre-initializing all possible flow keys.
-        series: dict[str, FlowMetrics] = defaultdict(lambda: {
-            "fmax_mhz": [],
-            "stdcell_kgate": [],
-            "worst_setup_slack_ps": [],
-            "timing_met": []
-        })
+        series = defaultdict(lambda: {m: [] for m in chart_metrics})
 
         # Collect all unique flow keys (first pass)
         all_flow_keys = set()
@@ -171,16 +167,12 @@ def build_chart_data(all_data: dict) -> dict[str, ChartData]:
             for flow_key in all_flow_keys:
                 if flow_key in flow_dict:
                     metrics = flow_dict[flow_key]
-                    series[flow_key]["fmax_mhz"].append(metrics.get("fmax_mhz", 0))
-                    series[flow_key]["stdcell_kgate"].append(metrics.get("stdcell_kgate", 0))
-                    series[flow_key]["worst_setup_slack_ps"].append(metrics.get("worst_setup_slack_ps", 0))
-                    series[flow_key]["timing_met"].append(metrics.get("timing_met", False))
+                    for m in chart_metrics:
+                        series[flow_key][m].append(metrics.get(m))
                 else:
                     # Flow absent from this run: fill with None
-                    series[flow_key]["fmax_mhz"].append(None)
-                    series[flow_key]["stdcell_kgate"].append(None)
-                    series[flow_key]["worst_setup_slack_ps"].append(None)
-                    series[flow_key]["timing_met"].append(None)
+                    for m in chart_metrics:
+                        series[flow_key][m].append(None)
 
 
         chart_data[key] = {
@@ -202,10 +194,21 @@ def enrich_run(run: dict) -> dict:
     return run
 
 
+def _delta(current, previous) -> dict | None:
+    """Return signed delta info between two numeric metric values."""
+    if current is None or previous is None:
+        return None
+    try:
+        d = round(float(current) - float(previous), 2)
+        return {"value": d, "sign": "+" if d >= 0 else ""}
+    except (TypeError, ValueError):
+        return None
+
+
 def build_workflows_context(all_data: dict) -> list:
     """Build the workflows list for the template context."""
     workflows = []
-    for wf in PD_WORKFLOW:
+    for wf in WORKFLOWS:
         key = wf["key"]
         runs = all_data.get(key, [])
 
@@ -231,11 +234,29 @@ def build_workflows_context(all_data: dict) -> list:
                 "created_at_display": "N/A"
             }
 
+        # Compute per-flow metric deltas vs previous run
+        flow_deltas = {}
+        if len(runs) >= 2:
+            prev_flows = {f"{f['arch']}_{f['config']}": f.get("metrics", {})
+                         for f in runs[1].get("flows", [])}
+            for flow in latest.get("flows", []):
+                fk = f"{flow['arch']}_{flow['config']}"
+                prev = prev_flows.get(fk)
+                if prev:
+                    m = flow.get("metrics", {})
+                    flow_deltas[fk] = {
+                        "fmax_mhz": _delta(m.get("fmax_mhz"), prev.get("fmax_mhz")),
+                        "stdcell_kgate": _delta(m.get("stdcell_kgate"), prev.get("stdcell_kgate")),
+                        "worst_setup_slack_ps": _delta(m.get("worst_setup_slack_ps"), prev.get("worst_setup_slack_ps")),
+                    }
+
         workflows.append(
             {
                 "key": key,
+                "type": wf["type"],
                 "display_name": wf["display_name"],
                 "latest": latest,
+                "flow_deltas": flow_deltas,
                 "runs": runs,
             }
         )
@@ -289,9 +310,9 @@ def main():
     workflows = build_workflows_context(all_data)
     chart_data = build_chart_data(all_data)
 
-    default_matrix_wf = "pd"
-    if not all_data.get("pd"):
-        for wf in PD_WORKFLOW:
+    default_matrix_wf = "flp"
+    if not all_data.get("flp"):
+        for wf in WORKFLOWS:
             if all_data.get(wf["key"]):
                 default_matrix_wf = wf["key"]
                 break

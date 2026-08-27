@@ -64,6 +64,6 @@ bazel-cva6
 bazel-cva6-fork
 bazel-out
 bazel-testlogs
-PR 3053
+MODULE.bazel.lock
 user.bazelrc
 tmp/

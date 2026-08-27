@@ -3,7 +3,8 @@ name: physical-design-dashboard
 on:
   workflow_run:
     workflows:
-      - OR-design-flow
+      - OR-flow-floorplan
+      - OR-flow-grt
     types:
       - completed
   workflow_dispatch:
@@ -38,13 +39,28 @@ jobs:
             echo "gh-pages-cva6-dashboard-data branch does not exist yet, starting fresh"
           fi
 
-      - name: Collect PD dashboard CI data
+      - name: Collect PD Floorplan CI data
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 .github/scripts/dashboard_physical-design/extract_PD_metrics.py \
-            --repo "${{ github.repository }}" \
+            --artifact-prefix PD-flp- \
+            --workflow OR-flow-floorplan.yml \
             --data-dir /tmp/PD-data \
+            --output-file runs_PD_flp.json \
+            --repo "${{ github.repository }}" \
+            --fetch-count 20
+
+      - name: Collect PD GRT CI data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 .github/scripts/dashboard_physical-design/extract_PD_metrics.py \
+            --artifact-prefix PD-grt- \
+            --workflow OR-flow-grt.yml \
+            --data-dir /tmp/PD-data \
+            --output-file runs_PD_grt.json \
+            --repo "${{ github.repository }}" \
             --fetch-count 20
 
       - name: Install Jinja2

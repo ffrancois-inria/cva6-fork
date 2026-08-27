@@ -3,24 +3,30 @@
 # SPDX-License-Identifier: Apache-2.0
 """Collect OpenROAD design flow PPA metrics for the CVA6 dashboard.
 
-Fetches completed runs of the OpenRoad design flow workflow from the GitHub API,
-downloads the GRT JSON artifacts, and extracts PPA metrics.
+Fetches completed runs of the OpenRoad design flow workflows from the GitHub API,
+downloads the JSON artifacts, and extracts PPA metrics.
 Requires `gh` CLI authenticated (pre-installed on GHA runners).
 
 Intended for use in PD-dashboard.yml, triggered via
-workflow_run on OR-design-flow.yml:
+workflow_run on OR-flow-floorplan.yml & OR-flow-grt.yml.
 
-    python3 extract_PD_metrics.py \\
-        --repo openhwgroup/cva6 \\
-        --data-dir /tmp/synth-data \\
-        --fetch-count 20
+E.g. for OR-flow-floorplan.yml:
 
-Artifact layout expected from OR-design-flow.yml:
+    python3 extract_PD_metrics.py \
+        --artifact-prefix PD-flp- --workflow OR-flow-floorplan.yml \
+        --output-file runs_PD_flp.json --data-dir /tmp/PD-data
+
+Artifact layout expected from OR-flow-flp.yml:
+
+    Artifact name:  PD-flp-{arch}-{config}
+    Contents:       2_1_floorplan.json
+
+Artifact layout expected from OR-flow-grt.yml:
 
     Artifact name:  PD-grt-{arch}-{config}
     Contents:       5_1_grt.json
 
-The script downloads all PD-grt-* artifacts for each run using
+The script downloads all artifacts for each run using
 `gh run download` (which handles authentication and zip extraction),
 then processes the extracted JSON files.
 """
@@ -35,15 +41,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 import shutil
 
-# Synthesis workflow file to track.
-PD_WORKFLOW = "OR-design-flow.yml"
-
-# GRT JSON produced at the end of the global-route stage.
-GRT_JSON_FILENAME = "5_1_grt.json"
-
-# Artifact name prefix uploaded by OR-design-flow.yml.
-PD_ARTIFACT_PREFIX = "PD-grt-"
-
 # Reference cell area for Kgate calculation (µm²).
 # A "gate equivalent" = area of a 2-input NAND cell.
 # ASAP7 RVT NAND2x1: 0.0874 µm².
@@ -52,12 +49,18 @@ ASAP7_NAND2_AREA_UM2 = 0.0874
 
 MAX_HISTORY = 50
 
+# Maps artifact prefix to the metrics JSON filename produced inside each artifact.
+METRICS_FILENAME = {
+    "PD-flp-": "2_1_floorplan.json",
+    "PD-grt-": "5_1_grt.json",
+}
+
 
 # ---------------------------------------------------------------------------
 # Metric extraction
 # ---------------------------------------------------------------------------
 
-def extract_metrics(data: dict, nand2_area: float) -> dict:
+def extract_grt_metrics(data: dict, nand2_area: float) -> dict:
     """Extract PPA metrics from a GRT-stage JSON report."""
     def get(key):
         v = data.get(key)
@@ -83,6 +86,37 @@ def extract_metrics(data: dict, nand2_area: float) -> dict:
         "fmax_mhz":            round(fmax_hz / 1e6, 2),
         "worst_setup_slack_ps": round(worst_slack_ps, 3),
         "timing_met":          worst_slack_ps >= 0,
+    }
+
+
+def extract_flp_metrics(data: dict, nand2_area: float) -> dict:
+    """Extract PPA metrics from a floorplan-stage JSON report."""
+    def get(key):
+        v = data.get(key)
+        if v is None:
+            raise KeyError(f"Key not found in JSON: {key}")
+        return v
+
+    stdcell_area_um2 = get("floorplan__design__instance__area__stdcell")
+    macro_area_um2   = get("floorplan__design__instance__area__macros")
+    total_area_um2   = get("floorplan__design__instance__area")
+    die_area_um2     = get("floorplan__design__die__area")
+    core_area_um2    = get("floorplan__design__core__area")
+    utilization      = get("floorplan__design__instance__utilization")
+    fmax_hz          = get("floorplan__timing__fmax")
+    worst_slack_ps   = get("floorplan__timing__setup__ws")
+
+    return {
+        "stdcell_area_um2":        round(stdcell_area_um2, 4),
+        "macro_area_um2":          round(macro_area_um2, 4),
+        "total_instance_area_um2": round(total_area_um2, 4),
+        "core_area_um2":           round(core_area_um2, 4),
+        "die_area_um2":            round(die_area_um2, 4),
+        "utilization":             round(utilization, 6),
+        "stdcell_kgate":           round(stdcell_area_um2 / nand2_area / 1000, 4),
+        "fmax_mhz":                round(fmax_hz / 1e6, 2),
+        "worst_setup_slack_ps":    round(worst_slack_ps, 3),
+        "timing_met":              worst_slack_ps >= 0,
     }
 
 
@@ -174,22 +208,20 @@ def fetch_runs(repo: str, workflow_file: str, count: int) -> list:
 # Artifact download
 # ---------------------------------------------------------------------------
 
-def download_run_artifacts(repo: str, run_id: int, dest_dir: Path) -> list:
-    """Download all PD-grt-* artifacts for a run into dest_dir.
+def download_run_artifacts(repo: str, run_id: int, dest_dir: Path, artifact_prefix: str) -> list:
+    """Download all artifacts matching artifact_prefix for a run into dest_dir.
 
     Uses `gh run download` which handles authentication and zip extraction.
-    Each artifact lands at dest_dir/{artifact_name}/5_1_grt.json.
+    Each artifact lands at dest_dir/{artifact_name}/{metrics_json}.
 
-    Artifact naming convention (set by OR-design-flow.yml):
-        PD-grt-{arch}-{config}
-
-    Returns a list of (arch, config, grt_json_path) tuples.
+    Returns a list of (arch, config, json_path) tuples.
     """
+    metrics_filename = METRICS_FILENAME[artifact_prefix]
     result = subprocess.run(
         [
             "gh", "run", "download", str(run_id),
             "--repo", repo,
-            "--pattern", f"{PD_ARTIFACT_PREFIX}*",
+            "--pattern", f"{artifact_prefix}*",
             "--dir", str(dest_dir),
         ],
         capture_output=True,
@@ -206,24 +238,24 @@ def download_run_artifacts(repo: str, run_id: int, dest_dir: Path) -> list:
     for artifact_dir in sorted(dest_dir.iterdir()):
         if not artifact_dir.is_dir():
             continue
-        artifact_name = artifact_dir.name  # e.g. "PD-grt-L1MetadataArray-base"
-        if not artifact_name.startswith(PD_ARTIFACT_PREFIX):
+        artifact_name = artifact_dir.name
+        if not artifact_name.startswith(artifact_prefix):
             continue
 
         # Parse arch and config from artifact name.
         # rsplit on "-" (last occurrence) so design names containing "-" are preserved.
-        suffix  = artifact_name[len(PD_ARTIFACT_PREFIX):]  # "L1MetadataArray-base"
+        suffix  = artifact_name[len(artifact_prefix):]
         parts   = suffix.rsplit("-", 1)
-        arch  = parts[0] if len(parts) >= 1 else suffix
-        config = parts[1] if len(parts) >= 2 else "base"
+        arch    = parts[0] if len(parts) >= 1 else suffix
+        config  = parts[1] if len(parts) >= 2 else "base"
 
-        grt_path = artifact_dir / GRT_JSON_FILENAME
-        if grt_path.exists():
-            found.append((arch, config, grt_path))
+        json_path = artifact_dir / metrics_filename
+        if json_path.exists():
+            found.append((arch, config, json_path))
             print(f"  Downloaded: {artifact_name} -> {arch}/{config}")
         else:
             print(
-                f"  WARNING: {GRT_JSON_FILENAME} not found in artifact {artifact_name}",
+                f"  WARNING: {metrics_filename} not found in artifact {artifact_name}",
                 file=sys.stderr,
             )
 
@@ -234,26 +266,27 @@ def download_run_artifacts(repo: str, run_id: int, dest_dir: Path) -> list:
 # CI run processing
 # ---------------------------------------------------------------------------
 
-def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path) -> dict:
+def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artifact_prefix: str) -> dict:
     """Fetch artifacts for a PD run, extract metrics, and build a run record."""
     run_id = run["id"]
+    extractor = extract_flp_metrics if artifact_prefix == "PD-flp-" else extract_grt_metrics
 
     with tempfile.TemporaryDirectory() as tmp:
-        grt_list = download_run_artifacts(repo, run_id, Path(tmp))
+        json_list = download_run_artifacts(repo, run_id, Path(tmp), artifact_prefix)
 
-        # Persist raw GRT JSONs before the tmpdir is deleted
+        # Persist raw JSONs before the tmpdir is deleted
         run_raw_dir = raw_dir / str(run_id)
         run_raw_dir.mkdir(parents=True, exist_ok=True)
-        for arch, config, grt_path in grt_list:
+        for arch, config, json_path in json_list:
             dest = run_raw_dir / f"{arch}_{config}.json"
-            shutil.copy2(grt_path, dest)
+            shutil.copy2(json_path, dest)
 
         flows = []
-        for arch, config, grt_path in grt_list:
+        for arch, config, json_path in json_list:
             try:
-                with open(grt_path) as f:
+                with open(json_path) as f:
                     data = json.load(f)
-                metrics    = extract_metrics(data, nand2_area)
+                metrics    = extractor(data, nand2_area)
                 conclusion = "success"
                 timing_str = "timing met" if metrics["timing_met"] else "timing NOT met"
                 print(
@@ -325,8 +358,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--workflow",
-        default=PD_WORKFLOW,
-        help=f"Synthesis workflow filename to track (default: {PD_WORKFLOW})",
+        default="OR-flow-floorplan.yml",
+        help="Workflow filename to track (default: OR-flow-floorplan.yml)",
     )
     parser.add_argument(
         "--nand2-area",
@@ -338,6 +371,17 @@ def main() -> None:
             f"(default: {ASAP7_NAND2_AREA_UM2} for ASAP7 RVT)"
         ),
     )
+    parser.add_argument(
+        "--artifact-prefix",
+        default="PD-flp-",
+        choices=list(METRICS_FILENAME),
+        help="Artifact name prefix to download (default: PD-flp-)",
+    )
+    parser.add_argument(
+        "--output-file",
+        default="runs_PD_flp.json",
+        help="Output JSON filename within --data-dir (default: runs_PD_flp.json)",
+    )
     args = parser.parse_args()
 
     data_dir = Path(args.data_dir)
@@ -346,7 +390,7 @@ def main() -> None:
     raw_dir = data_dir / "raw" # To store raw PD flow source files 
     raw_dir.mkdir(parents=True, exist_ok=True)
 
-    json_path = data_dir / "runs_PD.json"
+    json_path = data_dir / args.output_file
     existing  = load_existing(json_path)
     print(f"Existing records: {len(existing)}")
 
@@ -362,7 +406,7 @@ def main() -> None:
             continue
 
         print(f"  Processing run #{run['run_number']} (id={run['id']})...")
-        processed = process_ci_run(args.repo, run, args.nand2_area, raw_dir)
+        processed = process_ci_run(args.repo, run, args.nand2_area, raw_dir, args.artifact_prefix)
         new_runs.append(processed)
         print(
             f"    -> {processed['total_flows']} flows: "

@@ -121,11 +121,14 @@
   <h5 class="text-muted mb-3">Latest Run Status</h5>
   <div class="row g-3">
     {% for wf in workflows %}
-    <div class="col-md-4">
+    <div class="col-md-6">
       <div class="card status-card shadow-sm {{ 'pass' if wf.latest.conclusion == 'success' else ('fail' if wf.latest.conclusion == 'failure' else 'unknown') }}">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start mb-2">
-            <h6 class="card-title mb-0">{{ wf.display_name }}</h6>
+            <div>
+              <h6 class="card-title mb-0">{{ wf.display_name }}</h6>
+              <small class="text-muted">{{ 'Push-triggered · Floorplan' if wf.key == 'flp' else 'Weekly · Full route (GRT)' }}</small>
+            </div>
             {% if wf.latest.conclusion == 'success' %}
               <span class="badge badge-pass">PASS</span>
             {% elif wf.latest.conclusion == 'failure' %}
@@ -165,6 +168,67 @@
               <strong>Created at:</strong> {{ wf.latest.created_at_display }}
             </div>
           </div>
+          {% if wf.latest.flows %}
+          <div class="mt-3">
+            <div class="text-muted mb-1" style="font-size:0.87rem; font-weight:600; text-transform:uppercase; letter-spacing:0.03em">Latest run results</div>
+            <div class="table-responsive">
+              <table class="table table-sm mb-0" style="font-size:0.82rem">
+                <thead class="table-light">
+                  <tr>
+                    <th>Arch</th>
+                    <th>Config</th>
+                    <th>fmax (MHz)</th>
+                    <th>Area (Kgate)</th>
+                    <th>Worst Slack (ps)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for flow in wf.latest.flows %}
+                  {% set fk = flow.arch ~ '_' ~ flow.config %}
+                  {% set d = wf.flow_deltas.get(fk) %}
+                  <tr>
+                    <td>{{ flow.arch|upper }}</td>
+                    <td><code style="font-size:0.78rem">{{ flow.config }}</code></td>
+                    <td>
+                      {% if flow.metrics.fmax_mhz is not none %}
+                        {{ flow.metrics.fmax_mhz }}
+                        {% if d and d.fmax_mhz %}
+                          {% set dv = d.fmax_mhz %}
+                          <span style="color: {{ '#198754' if dv.value > 0 else ('#dc3545' if dv.value < 0 else '#6c757d') }}; font-size:0.78rem; font-weight:600">
+                            ({{ dv.sign }}{{ dv.value }})
+                          </span>
+                        {% endif %}
+                      {% else %}<span class="text-muted">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                      {% if flow.metrics.stdcell_kgate is not none %}
+                        {{ flow.metrics.stdcell_kgate }}
+                        {% if d and d.stdcell_kgate %}
+                          {% set dv = d.stdcell_kgate %}
+                          <span style="color: {{ '#dc3545' if dv.value > 0 else ('#198754' if dv.value < 0 else '#6c757d') }}; font-size:0.78rem; font-weight:600">
+                            ({{ dv.sign }}{{ dv.value }})
+                          </span>
+                        {% endif %}
+                      {% else %}<span class="text-muted">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                      {% if flow.metrics.worst_setup_slack_ps is not none %}
+                        {{ flow.metrics.worst_setup_slack_ps }}
+                        {% if d and d.worst_setup_slack_ps %}
+                          {% set dv = d.worst_setup_slack_ps %}
+                          <span style="color: {{ '#dc3545' if dv.value > 0 else ('#198754' if dv.value < 0 else '#6c757d') }}; font-size:0.78rem; font-weight:600">
+                            ({{ dv.sign }}{{ dv.value }})
+                          </span>
+                        {% endif %}
+                      {% else %}<span class="text-muted">N/A</span>{% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% endif %}
           <div class="mt-2">
             <a href="{{ wf.latest.html_url }}" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">
               View on GitHub &rarr;
@@ -180,16 +244,16 @@
 <!-- ============================================================ -->
 <!-- Section 4: Trend Charts -->
 <!-- ============================================================ -->
+{% for wf in workflows %}
 <section class="mb-4">
-  <h5 class="text-muted mb-3">PD Metrics Trends (Last {{ trend_count }} Runs)</h5>
-  
-  {% for wf in workflows %}
+  <h5 class="text-muted mb-3">{{ wf.type }} Metrics Trends (Last {{ trend_count }} Runs)</h5>
+
   <div class="row g-3 mb-3">
     <!-- Card 1: fmax -->
     <div class="col-lg-4">
       <div class="card shadow-sm">
         <div class="card-header py-2" style="font-size:0.85rem">
-          {{ wf.display_name }} - fmax (MHz)
+          {{ wf.display_name }}.yml - fmax (MHz)
         </div>
         <div class="card-body p-2">
           <div class="chart-container">
@@ -203,7 +267,7 @@
     <div class="col-lg-4">
       <div class="card shadow-sm">
         <div class="card-header py-2" style="font-size:0.85rem">
-          {{ wf.display_name }} - Area (Kgate)
+          {{ wf.display_name }}.yml - Area (Kgate)
         </div>
         <div class="card-body p-2">
           <div class="chart-container">
@@ -217,7 +281,7 @@
     <div class="col-lg-4">
       <div class="card shadow-sm">
         <div class="card-header py-2" style="font-size:0.85rem">
-          {{ wf.display_name }} - Worst Slack (ps)
+          {{ wf.display_name }}.yml - Worst Slack (ps)
         </div>
         <div class="card-body p-2">
           <div class="chart-container">

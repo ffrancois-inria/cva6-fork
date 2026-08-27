@@ -8,7 +8,7 @@ on:
 jobs:
   design-flow:
     name: ${{ matrix.config }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 360
 
     permissions:

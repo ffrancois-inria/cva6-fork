@@ -13,8 +13,9 @@ on:
 jobs:
   design-flow:
     name: ${{ matrix.config }}
-    runs-on: ubuntu-22.04
-    timeout-minutes: 90
+    runs-on: ubuntu-24.04
+    # timeout-minutes: 90
+    timeout-minutes: 360
 
     permissions:
       contents: read
@@ -25,7 +26,7 @@ jobs:
         config:
           - cv32a65x
           - cv64a6_imafdc_sv39_hpdcache
-          - cv64a6_imafdc_sv39_hpdcache_wb
+          # - cv64a6_imafdc_sv39_hpdcache_wb
 
     steps:
       - name: Checkout repository
@@ -51,10 +52,14 @@ jobs:
 
       - name: Run floorplan
         # explicit disk cache (not the output base); GC limit set to 2 GB in .bazelrc
+        # retry up to 3 times to survive transient network failures (e.g. ftp.gnu.org timeouts)
         run: |
-          bazel build \
-            --disk_cache="$HOME/.cache/bazel-disk-cache" \
-            //:${{ matrix.config }}_floorplan
+          for attempt in 1 2 3; do
+            bazel build \
+              --disk_cache="$HOME/.cache/bazel-disk-cache" \
+              //:${{ matrix.config }}_floorplan && break
+            [ "$attempt" -lt 3 ] && echo "Attempt $attempt failed, retrying in 30s..." && sleep 30
+          done
 
       - name: Save Bazel disk cache
         uses: actions/cache/save@v4

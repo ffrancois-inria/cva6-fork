@@ -15,7 +15,7 @@ jobs:
     name: ${{ matrix.config }}
     runs-on: ubuntu-24.04
     # timeout-minutes: 90
-    timeout-minutes: 360
+    timeout-minutes: 180
 
     permissions:
       contents: read
@@ -26,7 +26,7 @@ jobs:
         config:
           - cv32a65x
           - cv64a6_imafdc_sv39_hpdcache
-          # - cv64a6_imafdc_sv39_hpdcache_wb
+          - cv64a6_imafdc_sv39_hpdcache_wb
 
     steps:
       - name: Checkout repository
@@ -50,6 +50,17 @@ jobs:
             bazel-orfs-${{ runner.os }}-${{ matrix.config }}-
             bazel-orfs-${{ runner.os }}-
 
+      # shared across all matrix configs; keyed on MODULE.bazel (defines all external deps)
+      # repository cache persists all the downloaded tarballs and git archives
+      - name: Restore Bazel repository cache
+        id: repo-cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/bazel-repo-cache
+          key: bazel-orfs-${{ runner.os }}-repo-${{ hashFiles('MODULE.bazel') }}
+          restore-keys: |
+            bazel-orfs-${{ runner.os }}-repo-
+
       - name: Run floorplan
         # explicit disk cache (not the output base); GC limit set to 2 GB in .bazelrc
         # retry up to 3 times to survive transient network failures (e.g. ftp.gnu.org timeouts)
@@ -57,6 +68,7 @@ jobs:
           for attempt in 1 2 3; do
             bazel build \
               --disk_cache="$HOME/.cache/bazel-disk-cache" \
+              --repository_cache="$HOME/.cache/bazel-repo-cache" \
               //:${{ matrix.config }}_floorplan && break
             [ "$attempt" -lt 3 ] && echo "Attempt $attempt failed, retrying in 30s..." && sleep 30
           done
@@ -68,6 +80,13 @@ jobs:
         with:
           path: ~/.cache/bazel-disk-cache
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+
+      - name: Save Bazel repository cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: ~/.cache/bazel-repo-cache
+          key: ${{ steps.repo-cache-restore.outputs.cache-primary-key }}
 
       - name: Upload metrics artifact
         uses: actions/upload-artifact@v4

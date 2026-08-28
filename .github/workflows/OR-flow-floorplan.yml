@@ -31,6 +31,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Install Bazelisk
         run: |
@@ -50,8 +52,8 @@ jobs:
             bazel-orfs-${{ runner.os }}-${{ matrix.config }}-
             bazel-orfs-${{ runner.os }}-
 
-      # shared across all matrix configs; keyed on MODULE.bazel (defines all external deps)
       # repository cache persists all the downloaded tarballs and git archives
+      # shared across all matrix configs; keyed on MODULE.bazel (defines all external deps)
       - name: Restore Bazel repository cache
         id: repo-cache-restore
         uses: actions/cache/restore@v4
@@ -63,13 +65,13 @@ jobs:
 
       - name: Run floorplan
         # explicit disk cache (not the output base); GC limit set to 2 GB in .bazelrc
-        # retry up to 3 times to survive transient network failures (e.g. ftp.gnu.org timeouts)
+        # Using fast variant bazel target (macros abstract_stage = place)
         run: |
           for attempt in 1 2 3; do
             bazel build \
               --disk_cache="$HOME/.cache/bazel-disk-cache" \
               --repository_cache="$HOME/.cache/bazel-repo-cache" \
-              //:${{ matrix.config }}_floorplan && break
+              //:${{ matrix.config }}_fast_floorplan && break
             [ "$attempt" -lt 3 ] && echo "Attempt $attempt failed, retrying in 30s..." && sleep 30
           done
 

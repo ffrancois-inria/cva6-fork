@@ -107,7 +107,7 @@
       <a class="nav-link active" href="PD_dashboard.html">⚡ PD Dashboard</a>
     </div>
     <span class="navbar-text text-muted" style="font-size:0.85rem">
-      Generated: 2026-06-15 15:49 UTC
+      Generated: 2026-08-28 15:02 UTC
     </span>
   </div>
 </nav>
@@ -121,11 +121,14 @@
   <h5 class="text-muted mb-3">Latest Run Status</h5>
   <div class="row g-3">
     
-    <div class="col-md-4">
+    <div class="col-md-6">
       <div class="card status-card shadow-sm pass">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start mb-2">
-            <h6 class="card-title mb-0">OR-design-flow.yml</h6>
+            <div>
+              <h6 class="card-title mb-0">OR-flow-floorplan</h6>
+              <small class="text-muted">Push-triggered · Floorplan</small>
+            </div>
             
               <span class="badge badge-pass">PASS</span>
             
@@ -133,9 +136,9 @@
           <!-- 
             <div style="font-size:0.9rem">
               <div>
-                <strong>Fmax (MHz):</strong> 2674.38
-                &middot; <strong>Area (Kgate):</strong> 0.324
-                &middot; <strong>Worst slack (ps):</strong> -174.057
+                <strong>Fmax (MHz):</strong> 781.17
+                &middot; <strong>Area (Kgate):</strong> 182.12
+                &middot; <strong>Worst slack (ps):</strong> -1051.87
               </div>
             </div>
            -->
@@ -143,24 +146,163 @@
             <!-- <div> — </div> -->
             <div>
               <strong>Branch:</strong> ffrancois-inria_ORflow-dashboard
-              &middot; <code>faef14b5</code>
+              &middot; <code>ab051a8a</code>
             </div>
             <div>
               <strong>Flows:</strong>
-              <span class="text-success">1 passed</span>
+              <span class="text-success">3 passed</span>
               
-              (1 total)
+              (3 total)
             </div>
             <div>
-              <strong>Duration:</strong> 0m 15s
-              &middot; <strong>Run:</strong> #8
+              <strong>Duration:</strong> 1h 54m
+              &middot; <strong>Run:</strong> #12
             </div>
             <div>
-              <strong>Created at:</strong> 2026-06-15 15:41 UTC
+              <strong>Created at:</strong> 2026-08-28 13:07 UTC
             </div>
           </div>
+          
+          <div class="mt-3">
+            <div class="text-muted mb-1" style="font-size:0.87rem; font-weight:600; text-transform:uppercase; letter-spacing:0.03em">Latest run results</div>
+            <div class="table-responsive">
+              <table class="table table-sm mb-0" style="font-size:0.82rem">
+                <thead class="table-light">
+                  <tr>
+                    <th>Arch</th>
+                    <th>Config</th>
+                    <th>fmax (MHz)</th>
+                    <th>Area (Kgate)</th>
+                    <th>Worst Slack (ps)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  
+                  
+                  <tr>
+                    <td>CV32A65X</td>
+                    <td><code style="font-size:0.78rem">base</code></td>
+                    <td>
+                      
+                        781.17
+                        
+                      
+                    </td>
+                    <td>
+                      
+                        182.12
+                        
+                      
+                    </td>
+                    <td>
+                      
+                        -1051.87
+                        
+                      
+                    </td>
+                  </tr>
+                  
+                  
+                  
+                  <tr>
+                    <td>CV64A6_IMAFDC_SV39_HPDCACHE</td>
+                    <td><code style="font-size:0.78rem">base</code></td>
+                    <td>
+                      
+                        632.19
+                        
+                      
+                    </td>
+                    <td>
+                      
+                        525.95
+                        
+                      
+                    </td>
+                    <td>
+                      
+                        -1470.52
+                        
+                      
+                    </td>
+                  </tr>
+                  
+                  
+                  
+                  <tr>
+                    <td>CV64A6_IMAFDC_SV39_HPDCACHE_WB</td>
+                    <td><code style="font-size:0.78rem">base</code></td>
+                    <td>
+                      
+                        631.15
+                        
+                      
+                    </td>
+                    <td>
+                      
+                        526.65
+                        
+                      
+                    </td>
+                    <td>
+                      
+                        -1477.12
+                        
+                      
+                    </td>
+                  </tr>
+                  
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
           <div class="mt-2">
-            <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964902" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">
+            <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/33174021749" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">
+              View on GitHub &rarr;
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-6">
+      <div class="card status-card shadow-sm unknown">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <h6 class="card-title mb-0">OR-flow-grt</h6>
+              <small class="text-muted">Weekly · Full route (GRT)</small>
+            </div>
+            
+              <span class="badge badge-skip">UNKNOWN</span>
+            
+          </div>
+          <!--  -->
+          <div class="text-muted" style="font-size:0.8rem">
+            <!-- <div> — </div> -->
+            <div>
+              <strong>Branch:</strong> N/A
+              &middot; <code>N/A</code>
+            </div>
+            <div>
+              <strong>Flows:</strong>
+              <span class="text-success">0 passed</span>
+              
+              (0 total)
+            </div>
+            <div>
+              <strong>Duration:</strong> N/A
+              &middot; <strong>Run:</strong> #0
+            </div>
+            <div>
+              <strong>Created at:</strong> N/A
+            </div>
+          </div>
+          
+          <div class="mt-2">
+            <a href="#" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">
               View on GitHub &rarr;
             </a>
           </div>
@@ -174,20 +316,20 @@
 <!-- ============================================================ -->
 <!-- Section 4: Trend Charts -->
 <!-- ============================================================ -->
+
 <section class="mb-4">
-  <h5 class="text-muted mb-3">PD Metrics Trends (Last 20 Runs)</h5>
-  
-  
+  <h5 class="text-muted mb-3">Floorplan Metrics Trends (Last 20 Runs)</h5>
+
   <div class="row g-3 mb-3">
     <!-- Card 1: fmax -->
     <div class="col-lg-4">
       <div class="card shadow-sm">
         <div class="card-header py-2" style="font-size:0.85rem">
-          OR-design-flow.yml - fmax (MHz)
+          OR-flow-floorplan.yml - fmax (MHz)
         </div>
         <div class="card-body p-2">
           <div class="chart-container">
-            <canvas id="chart-pd-fmax"></canvas>
+            <canvas id="chart-flp-fmax"></canvas>
           </div>
         </div>
       </div>
@@ -197,11 +339,11 @@
     <div class="col-lg-4">
       <div class="card shadow-sm">
         <div class="card-header py-2" style="font-size:0.85rem">
-          OR-design-flow.yml - Area (Kgate)
+          OR-flow-floorplan.yml - Area (Kgate)
         </div>
         <div class="card-body p-2">
           <div class="chart-container">
-            <canvas id="chart-pd-area"></canvas>
+            <canvas id="chart-flp-area"></canvas>
           </div>
         </div>
       </div>
@@ -211,11 +353,58 @@
     <div class="col-lg-4">
       <div class="card shadow-sm">
         <div class="card-header py-2" style="font-size:0.85rem">
-          OR-design-flow.yml - Worst Slack (ps)
+          OR-flow-floorplan.yml - Worst Slack (ps)
         </div>
         <div class="card-body p-2">
           <div class="chart-container">
-            <canvas id="chart-pd-worstslack"></canvas>
+            <canvas id="chart-flp-worstslack"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+<section class="mb-4">
+  <h5 class="text-muted mb-3">GRT Metrics Trends (Last 20 Runs)</h5>
+
+  <div class="row g-3 mb-3">
+    <!-- Card 1: fmax -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm">
+        <div class="card-header py-2" style="font-size:0.85rem">
+          OR-flow-grt.yml - fmax (MHz)
+        </div>
+        <div class="card-body p-2">
+          <div class="chart-container">
+            <canvas id="chart-grt-fmax"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: area -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm">
+        <div class="card-header py-2" style="font-size:0.85rem">
+          OR-flow-grt.yml - Area (Kgate)
+        </div>
+        <div class="card-body p-2">
+          <div class="chart-container">
+            <canvas id="chart-grt-area"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: worst slack -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm">
+        <div class="card-header py-2" style="font-size:0.85rem">
+          OR-flow-grt.yml - Worst Slack (ps)
+        </div>
+        <div class="card-body p-2">
+          <div class="chart-container">
+            <canvas id="chart-grt-worstslack"></canvas>
           </div>
         </div>
       </div>
@@ -234,84 +423,252 @@
     <div class="accordion-item">
       <h2 class="accordion-header">
         <button class="accordion-button " type="button"
-                data-bs-toggle="collapse" data-bs-target="#collapse-pd">
-          OR-design-flow.yml
-          <span class="badge bg-secondary ms-2">8 runs</span>
+                data-bs-toggle="collapse" data-bs-target="#collapse-flp">
+          OR-flow-floorplan
+          <span class="badge bg-secondary ms-2">12 runs</span>
         </button>
       </h2>
-      <div id="collapse-pd" class="accordion-collapse collapse show"
+      <div id="collapse-flp" class="accordion-collapse collapse show"
            data-bs-parent="#historyAccordion">
         <div class="accordion-body p-2">
           
-          <div class="accordion" id="runsAccordion-pd">
+          <div class="accordion" id="runsAccordion-flp">
             
             <div class="accordion-item">
               <h2 class="accordion-header">
                 <button class="accordion-button collapsed py-2" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#run-pd-27557964902"
+                        data-bs-toggle="collapse" data-bs-target="#run-flp-33174021749"
                         style="font-size:0.85rem">
                   
                     <span class="badge badge-pass me-2">PASS</span>
+                  
+                  #12
+                  &middot; ffrancois-inria_ORflow-dashboard
+                  &middot; <code>ab051a8a</code>
+                  &middot; 1h 54m
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-08-28 13:07 UTC</span>
+                </button>
+              </h2>
+              <div id="run-flp-33174021749" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-flp">
+                <div class="accordion-body p-2">
+                  <div class="mb-2" style="font-size:0.8rem">
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/33174021749" target="_blank" rel="noopener">View on GitHub</a>
+                    &middot; Event: 
+                    &middot; Flows: 3/3 passed
+                  </div>
+                  
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover flow-table mb-0">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Arch</th>
+                          <th>Config</th>
+                          <th>fmax (MHz)</th>
+                          <th>Area (Kgate)</th>
+                          <th>Worst Slack (ps)</th>
+                          <th>Status</th>
+                          <th>Duration</th>
+                          <th>Download</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        
+                        <tr>
+                          <td>CV32A65X</td>
+                          <td><code>base</code></td>
+                          <td>781.17</td>
+                          <td>182.12</td>
+                          <td>-1051.87</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>N/A</td>
+                          <td>
+                            
+                              <a href="./PD-data/33174021749/cv32a65x_base.json" 
+                                class="btn btn-sm btn-outline-primary" 
+                                download="cv32a65x-base.json"
+                                title="Download raw JSON metrics">
+                                📥 JSON
+                              </a>
+                            
+                          </td>
+                        </tr>
+                        
+                        <tr>
+                          <td>CV64A6_IMAFDC_SV39_HPDCACHE</td>
+                          <td><code>base</code></td>
+                          <td>632.19</td>
+                          <td>525.95</td>
+                          <td>-1470.52</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>N/A</td>
+                          <td>
+                            
+                              <a href="./PD-data/33174021749/cv64a6_imafdc_sv39_hpdcache_base.json" 
+                                class="btn btn-sm btn-outline-primary" 
+                                download="cv64a6_imafdc_sv39_hpdcache-base.json"
+                                title="Download raw JSON metrics">
+                                📥 JSON
+                              </a>
+                            
+                          </td>
+                        </tr>
+                        
+                        <tr>
+                          <td>CV64A6_IMAFDC_SV39_HPDCACHE_WB</td>
+                          <td><code>base</code></td>
+                          <td>631.15</td>
+                          <td>526.65</td>
+                          <td>-1477.12</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>N/A</td>
+                          <td>
+                            
+                              <a href="./PD-data/33174021749/cv64a6_imafdc_sv39_hpdcache_wb_base.json" 
+                                class="btn btn-sm btn-outline-primary" 
+                                download="cv64a6_imafdc_sv39_hpdcache_wb-base.json"
+                                title="Download raw JSON metrics">
+                                📥 JSON
+                              </a>
+                            
+                          </td>
+                        </tr>
+                        
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                </div>
+              </div>
+            </div>
+            
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#run-flp-33163937457"
+                        style="font-size:0.85rem">
+                  
+                    <span class="badge badge-skip me-2">CANCELLED</span>
+                  
+                  #11
+                  &middot; ffrancois-inria_ORflow-dashboard
+                  &middot; <code>9a57e94c</code>
+                  &middot; 11m 6s
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-08-28 10:35 UTC</span>
+                </button>
+              </h2>
+              <div id="run-flp-33163937457" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-flp">
+                <div class="accordion-body p-2">
+                  <div class="mb-2" style="font-size:0.8rem">
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/33163937457" target="_blank" rel="noopener">View on GitHub</a>
+                    &middot; Event: 
+                    &middot; Flows: 0/0 passed
+                  </div>
+                  
+                  <div class="text-muted">No flow data available.</div>
+                  
+                </div>
+              </div>
+            </div>
+            
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#run-flp-33163656704"
+                        style="font-size:0.85rem">
+                  
+                    <span class="badge badge-fail me-2">FAIL</span>
+                  
+                  #10
+                  &middot; ffrancois-inria_ORflow-dashboard
+                  &middot; <code>01c04727</code>
+                  &middot; 1h 53m
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-08-28 10:31 UTC</span>
+                </button>
+              </h2>
+              <div id="run-flp-33163656704" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-flp">
+                <div class="accordion-body p-2">
+                  <div class="mb-2" style="font-size:0.8rem">
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/33163656704" target="_blank" rel="noopener">View on GitHub</a>
+                    &middot; Event: 
+                    &middot; Flows: 0/0 passed
+                  </div>
+                  
+                  <div class="text-muted">No flow data available.</div>
+                  
+                </div>
+              </div>
+            </div>
+            
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#run-flp-33160822418"
+                        style="font-size:0.85rem">
+                  
+                    <span class="badge badge-fail me-2">FAIL</span>
+                  
+                  #9
+                  &middot; ffrancois-inria_ORflow-dashboard
+                  &middot; <code>3de2a208</code>
+                  &middot; 5m 44s
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-08-28 09:47 UTC</span>
+                </button>
+              </h2>
+              <div id="run-flp-33160822418" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-flp">
+                <div class="accordion-body p-2">
+                  <div class="mb-2" style="font-size:0.8rem">
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/33160822418" target="_blank" rel="noopener">View on GitHub</a>
+                    &middot; Event: 
+                    &middot; Flows: 0/0 passed
+                  </div>
+                  
+                  <div class="text-muted">No flow data available.</div>
+                  
+                </div>
+              </div>
+            </div>
+            
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#run-flp-33159873198"
+                        style="font-size:0.85rem">
+                  
+                    <span class="badge badge-fail me-2">FAIL</span>
                   
                   #8
                   &middot; ffrancois-inria_ORflow-dashboard
-                  &middot; <code>faef14b5</code>
-                  &middot; 0m 15s
-                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-06-15 15:41 UTC</span>
+                  &middot; <code>538df27b</code>
+                  &middot; 7m 1s
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-08-28 09:33 UTC</span>
                 </button>
               </h2>
-              <div id="run-pd-27557964902" class="accordion-collapse collapse"
-                   data-bs-parent="#runsAccordion-pd">
+              <div id="run-flp-33159873198" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-flp">
                 <div class="accordion-body p-2">
                   <div class="mb-2" style="font-size:0.8rem">
-                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/27557964902" target="_blank" rel="noopener">View on GitHub</a>
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/33159873198" target="_blank" rel="noopener">View on GitHub</a>
                     &middot; Event: 
-                    &middot; Flows: 1/1 passed
+                    &middot; Flows: 0/0 passed
                   </div>
                   
-                  <div class="table-responsive">
-                    <table class="table table-sm table-hover flow-table mb-0">
-                      <thead class="table-light">
-                        <tr>
-                          <th>Arch</th>
-                          <th>Config</th>
-                          <th>fmax (MHz)</th>
-                          <th>Area (Kgate)</th>
-                          <th>Worst Slack (ps)</th>
-                          <th>Status</th>
-                          <th>Duration</th>
-                          <th>Download</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        
-                        <tr>
-                          <td>L1METADATAARRAY</td>
-                          <td><code>base</code></td>
-                          <td>2674.38</td>
-                          <td>0.324</td>
-                          <td>-174.057</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>N/A</td>
-                          <td>
-                            
-                              <a href="./PD-data/27557964902/L1MetadataArray_base.json" 
-                                class="btn btn-sm btn-outline-primary" 
-                                download="L1MetadataArray-base.json"
-                                title="Download raw JSON metrics">
-                                📥 JSON
-                              </a>
-                            
-                          </td>
-                        </tr>
-                        
-                      </tbody>
-                    </table>
-                  </div>
+                  <div class="text-muted">No flow data available.</div>
                   
                 </div>
               </div>
@@ -320,70 +677,28 @@
             <div class="accordion-item">
               <h2 class="accordion-header">
                 <button class="accordion-button collapsed py-2" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#run-pd-27205672859"
+                        data-bs-toggle="collapse" data-bs-target="#run-flp-33158122302"
                         style="font-size:0.85rem">
                   
-                    <span class="badge badge-pass me-2">PASS</span>
+                    <span class="badge badge-fail me-2">FAIL</span>
                   
                   #7
                   &middot; ffrancois-inria_ORflow-dashboard
-                  &middot; <code>d5e1ca4b</code>
-                  &middot; 0m 9s
-                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-06-09 12:20 UTC</span>
+                  &middot; <code>d68afa00</code>
+                  &middot; 6m 37s
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-08-28 09:08 UTC</span>
                 </button>
               </h2>
-              <div id="run-pd-27205672859" class="accordion-collapse collapse"
-                   data-bs-parent="#runsAccordion-pd">
+              <div id="run-flp-33158122302" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-flp">
                 <div class="accordion-body p-2">
                   <div class="mb-2" style="font-size:0.8rem">
-                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/27205672859" target="_blank" rel="noopener">View on GitHub</a>
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/33158122302" target="_blank" rel="noopener">View on GitHub</a>
                     &middot; Event: 
-                    &middot; Flows: 1/1 passed
+                    &middot; Flows: 0/0 passed
                   </div>
                   
-                  <div class="table-responsive">
-                    <table class="table table-sm table-hover flow-table mb-0">
-                      <thead class="table-light">
-                        <tr>
-                          <th>Arch</th>
-                          <th>Config</th>
-                          <th>fmax (MHz)</th>
-                          <th>Area (Kgate)</th>
-                          <th>Worst Slack (ps)</th>
-                          <th>Status</th>
-                          <th>Duration</th>
-                          <th>Download</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        
-                        <tr>
-                          <td>L1METADATAARRAY</td>
-                          <td><code>base</code></td>
-                          <td>2674.38</td>
-                          <td>0.324</td>
-                          <td>-174.057</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>N/A</td>
-                          <td>
-                            
-                              <a href="./PD-data/27205672859/L1MetadataArray_base.json" 
-                                class="btn btn-sm btn-outline-primary" 
-                                download="L1MetadataArray-base.json"
-                                title="Download raw JSON metrics">
-                                📥 JSON
-                              </a>
-                            
-                          </td>
-                        </tr>
-                        
-                      </tbody>
-                    </table>
-                  </div>
+                  <div class="text-muted">No flow data available.</div>
                   
                 </div>
               </div>
@@ -392,70 +707,28 @@
             <div class="accordion-item">
               <h2 class="accordion-header">
                 <button class="accordion-button collapsed py-2" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#run-pd-27205324408"
+                        data-bs-toggle="collapse" data-bs-target="#run-flp-33157727697"
                         style="font-size:0.85rem">
                   
-                    <span class="badge badge-pass me-2">PASS</span>
+                    <span class="badge badge-fail me-2">FAIL</span>
                   
                   #6
                   &middot; ffrancois-inria_ORflow-dashboard
-                  &middot; <code>e9e7edee</code>
-                  &middot; 0m 11s
-                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-06-09 12:13 UTC</span>
+                  &middot; <code>bb8a602d</code>
+                  &middot; 0m 32s
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-08-28 09:02 UTC</span>
                 </button>
               </h2>
-              <div id="run-pd-27205324408" class="accordion-collapse collapse"
-                   data-bs-parent="#runsAccordion-pd">
+              <div id="run-flp-33157727697" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-flp">
                 <div class="accordion-body p-2">
                   <div class="mb-2" style="font-size:0.8rem">
-                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/27205324408" target="_blank" rel="noopener">View on GitHub</a>
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/33157727697" target="_blank" rel="noopener">View on GitHub</a>
                     &middot; Event: 
-                    &middot; Flows: 1/1 passed
+                    &middot; Flows: 0/0 passed
                   </div>
                   
-                  <div class="table-responsive">
-                    <table class="table table-sm table-hover flow-table mb-0">
-                      <thead class="table-light">
-                        <tr>
-                          <th>Arch</th>
-                          <th>Config</th>
-                          <th>fmax (MHz)</th>
-                          <th>Area (Kgate)</th>
-                          <th>Worst Slack (ps)</th>
-                          <th>Status</th>
-                          <th>Duration</th>
-                          <th>Download</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        
-                        <tr>
-                          <td>L1METADATAARRAY</td>
-                          <td><code>base</code></td>
-                          <td>2674.38</td>
-                          <td>0.324</td>
-                          <td>-174.057</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>N/A</td>
-                          <td>
-                            
-                              <a href="./PD-data/27205324408/L1MetadataArray_base.json" 
-                                class="btn btn-sm btn-outline-primary" 
-                                download="L1MetadataArray-base.json"
-                                title="Download raw JSON metrics">
-                                📥 JSON
-                              </a>
-                            
-                          </td>
-                        </tr>
-                        
-                      </tbody>
-                    </table>
-                  </div>
+                  <div class="text-muted">No flow data available.</div>
                   
                 </div>
               </div>
@@ -464,70 +737,28 @@
             <div class="accordion-item">
               <h2 class="accordion-header">
                 <button class="accordion-button collapsed py-2" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#run-pd-27198344988"
+                        data-bs-toggle="collapse" data-bs-target="#run-flp-33156736261"
                         style="font-size:0.85rem">
                   
-                    <span class="badge badge-pass me-2">PASS</span>
+                    <span class="badge badge-fail me-2">FAIL</span>
                   
                   #5
                   &middot; ffrancois-inria_ORflow-dashboard
-                  &middot; <code>e702ff26</code>
-                  &middot; 0m 13s
-                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-06-09 09:55 UTC</span>
+                  &middot; <code>1d7b7883</code>
+                  &middot; 3m 29s
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-08-28 08:47 UTC</span>
                 </button>
               </h2>
-              <div id="run-pd-27198344988" class="accordion-collapse collapse"
-                   data-bs-parent="#runsAccordion-pd">
+              <div id="run-flp-33156736261" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-flp">
                 <div class="accordion-body p-2">
                   <div class="mb-2" style="font-size:0.8rem">
-                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/27198344988" target="_blank" rel="noopener">View on GitHub</a>
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/33156736261" target="_blank" rel="noopener">View on GitHub</a>
                     &middot; Event: 
-                    &middot; Flows: 1/1 passed
+                    &middot; Flows: 0/0 passed
                   </div>
                   
-                  <div class="table-responsive">
-                    <table class="table table-sm table-hover flow-table mb-0">
-                      <thead class="table-light">
-                        <tr>
-                          <th>Arch</th>
-                          <th>Config</th>
-                          <th>fmax (MHz)</th>
-                          <th>Area (Kgate)</th>
-                          <th>Worst Slack (ps)</th>
-                          <th>Status</th>
-                          <th>Duration</th>
-                          <th>Download</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        
-                        <tr>
-                          <td>L1METADATAARRAY</td>
-                          <td><code>base</code></td>
-                          <td>2674.38</td>
-                          <td>0.324</td>
-                          <td>-174.057</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>N/A</td>
-                          <td>
-                            
-                              <a href="./PD-data/27198344988/L1MetadataArray_base.json" 
-                                class="btn btn-sm btn-outline-primary" 
-                                download="L1MetadataArray-base.json"
-                                title="Download raw JSON metrics">
-                                📥 JSON
-                              </a>
-                            
-                          </td>
-                        </tr>
-                        
-                      </tbody>
-                    </table>
-                  </div>
+                  <div class="text-muted">No flow data available.</div>
                   
                 </div>
               </div>
@@ -536,70 +767,28 @@
             <div class="accordion-item">
               <h2 class="accordion-header">
                 <button class="accordion-button collapsed py-2" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#run-pd-27197808386"
+                        data-bs-toggle="collapse" data-bs-target="#run-flp-33081497871"
                         style="font-size:0.85rem">
                   
-                    <span class="badge badge-pass me-2">PASS</span>
+                    <span class="badge badge-skip me-2">CANCELLED</span>
                   
                   #4
                   &middot; ffrancois-inria_ORflow-dashboard
-                  &middot; <code>05753a55</code>
-                  &middot; 0m 12s
-                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-06-09 09:45 UTC</span>
+                  &middot; <code>b39158b3</code>
+                  &middot; 1h 31m
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-08-27 14:18 UTC</span>
                 </button>
               </h2>
-              <div id="run-pd-27197808386" class="accordion-collapse collapse"
-                   data-bs-parent="#runsAccordion-pd">
+              <div id="run-flp-33081497871" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-flp">
                 <div class="accordion-body p-2">
                   <div class="mb-2" style="font-size:0.8rem">
-                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/27197808386" target="_blank" rel="noopener">View on GitHub</a>
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/33081497871" target="_blank" rel="noopener">View on GitHub</a>
                     &middot; Event: 
-                    &middot; Flows: 1/1 passed
+                    &middot; Flows: 0/0 passed
                   </div>
                   
-                  <div class="table-responsive">
-                    <table class="table table-sm table-hover flow-table mb-0">
-                      <thead class="table-light">
-                        <tr>
-                          <th>Arch</th>
-                          <th>Config</th>
-                          <th>fmax (MHz)</th>
-                          <th>Area (Kgate)</th>
-                          <th>Worst Slack (ps)</th>
-                          <th>Status</th>
-                          <th>Duration</th>
-                          <th>Download</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        
-                        <tr>
-                          <td>L1METADATAARRAY</td>
-                          <td><code>base</code></td>
-                          <td>2674.38</td>
-                          <td>0.324</td>
-                          <td>-174.057</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>N/A</td>
-                          <td>
-                            
-                              <a href="./PD-data/27197808386/L1MetadataArray_base.json" 
-                                class="btn btn-sm btn-outline-primary" 
-                                download="L1MetadataArray-base.json"
-                                title="Download raw JSON metrics">
-                                📥 JSON
-                              </a>
-                            
-                          </td>
-                        </tr>
-                        
-                      </tbody>
-                    </table>
-                  </div>
+                  <div class="text-muted">No flow data available.</div>
                   
                 </div>
               </div>
@@ -608,70 +797,28 @@
             <div class="accordion-item">
               <h2 class="accordion-header">
                 <button class="accordion-button collapsed py-2" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#run-pd-26830393177"
+                        data-bs-toggle="collapse" data-bs-target="#run-flp-33075134167"
                         style="font-size:0.85rem">
                   
-                    <span class="badge badge-pass me-2">PASS</span>
+                    <span class="badge badge-fail me-2">FAIL</span>
                   
                   #3
                   &middot; ffrancois-inria_ORflow-dashboard
-                  &middot; <code>1dc86ab4</code>
-                  &middot; 0m 16s
-                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-06-02 15:33 UTC</span>
+                  &middot; <code>154d8289</code>
+                  &middot; 1h 20m
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-08-27 13:06 UTC</span>
                 </button>
               </h2>
-              <div id="run-pd-26830393177" class="accordion-collapse collapse"
-                   data-bs-parent="#runsAccordion-pd">
+              <div id="run-flp-33075134167" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-flp">
                 <div class="accordion-body p-2">
                   <div class="mb-2" style="font-size:0.8rem">
-                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/26830393177" target="_blank" rel="noopener">View on GitHub</a>
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/33075134167" target="_blank" rel="noopener">View on GitHub</a>
                     &middot; Event: 
-                    &middot; Flows: 1/1 passed
+                    &middot; Flows: 0/0 passed
                   </div>
                   
-                  <div class="table-responsive">
-                    <table class="table table-sm table-hover flow-table mb-0">
-                      <thead class="table-light">
-                        <tr>
-                          <th>Arch</th>
-                          <th>Config</th>
-                          <th>fmax (MHz)</th>
-                          <th>Area (Kgate)</th>
-                          <th>Worst Slack (ps)</th>
-                          <th>Status</th>
-                          <th>Duration</th>
-                          <th>Download</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        
-                        <tr>
-                          <td>L1METADATAARRAY</td>
-                          <td><code>base</code></td>
-                          <td>2674.38</td>
-                          <td>0.324</td>
-                          <td>-174.057</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>N/A</td>
-                          <td>
-                            
-                              <a href="./PD-data/26830393177/L1MetadataArray_base.json" 
-                                class="btn btn-sm btn-outline-primary" 
-                                download="L1MetadataArray-base.json"
-                                title="Download raw JSON metrics">
-                                📥 JSON
-                              </a>
-                            
-                          </td>
-                        </tr>
-                        
-                      </tbody>
-                    </table>
-                  </div>
+                  <div class="text-muted">No flow data available.</div>
                   
                 </div>
               </div>
@@ -680,70 +827,28 @@
             <div class="accordion-item">
               <h2 class="accordion-header">
                 <button class="accordion-button collapsed py-2" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#run-pd-26825245460"
+                        data-bs-toggle="collapse" data-bs-target="#run-flp-33074782510"
                         style="font-size:0.85rem">
                   
-                    <span class="badge badge-pass me-2">PASS</span>
+                    <span class="badge badge-fail me-2">FAIL</span>
                   
                   #2
-                  &middot; ffrancois-inria_ORflow-dashboard
-                  &middot; <code>1dc86ab4</code>
-                  &middot; 0m 13s
-                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-06-02 14:08 UTC</span>
+                  &middot; master
+                  &middot; <code>7ef3c88a</code>
+                  &middot; 0m 12s
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-08-27 13:02 UTC</span>
                 </button>
               </h2>
-              <div id="run-pd-26825245460" class="accordion-collapse collapse"
-                   data-bs-parent="#runsAccordion-pd">
+              <div id="run-flp-33074782510" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-flp">
                 <div class="accordion-body p-2">
                   <div class="mb-2" style="font-size:0.8rem">
-                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/26825245460" target="_blank" rel="noopener">View on GitHub</a>
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/33074782510" target="_blank" rel="noopener">View on GitHub</a>
                     &middot; Event: 
-                    &middot; Flows: 1/1 passed
+                    &middot; Flows: 0/0 passed
                   </div>
                   
-                  <div class="table-responsive">
-                    <table class="table table-sm table-hover flow-table mb-0">
-                      <thead class="table-light">
-                        <tr>
-                          <th>Arch</th>
-                          <th>Config</th>
-                          <th>fmax (MHz)</th>
-                          <th>Area (Kgate)</th>
-                          <th>Worst Slack (ps)</th>
-                          <th>Status</th>
-                          <th>Duration</th>
-                          <th>Download</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        
-                        <tr>
-                          <td>L1METADATAARRAY</td>
-                          <td><code>base</code></td>
-                          <td>2674.38</td>
-                          <td>0.324</td>
-                          <td>-174.057</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>N/A</td>
-                          <td>
-                            
-                              <a href="./PD-data/26825245460/L1MetadataArray_base.json" 
-                                class="btn btn-sm btn-outline-primary" 
-                                download="L1MetadataArray-base.json"
-                                title="Download raw JSON metrics">
-                                📥 JSON
-                              </a>
-                            
-                          </td>
-                        </tr>
-                        
-                      </tbody>
-                    </table>
-                  </div>
+                  <div class="text-muted">No flow data available.</div>
                   
                 </div>
               </div>
@@ -752,76 +857,52 @@
             <div class="accordion-item">
               <h2 class="accordion-header">
                 <button class="accordion-button collapsed py-2" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#run-pd-26820889030"
+                        data-bs-toggle="collapse" data-bs-target="#run-flp-33074583212"
                         style="font-size:0.85rem">
                   
-                    <span class="badge badge-pass me-2">PASS</span>
+                    <span class="badge badge-fail me-2">FAIL</span>
                   
                   #1
-                  &middot; ffrancois-inria_ORflow-dashboard
-                  &middot; <code>bdbdf42a</code>
-                  &middot; 0m 11s
-                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-06-02 12:51 UTC</span>
+                  &middot; master
+                  &middot; <code>7ef3c88a</code>
+                  &middot; 0m 15s
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-08-27 13:00 UTC</span>
                 </button>
               </h2>
-              <div id="run-pd-26820889030" class="accordion-collapse collapse"
-                   data-bs-parent="#runsAccordion-pd">
+              <div id="run-flp-33074583212" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-flp">
                 <div class="accordion-body p-2">
                   <div class="mb-2" style="font-size:0.8rem">
-                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/26820889030" target="_blank" rel="noopener">View on GitHub</a>
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/33074583212" target="_blank" rel="noopener">View on GitHub</a>
                     &middot; Event: 
-                    &middot; Flows: 1/1 passed
+                    &middot; Flows: 0/0 passed
                   </div>
                   
-                  <div class="table-responsive">
-                    <table class="table table-sm table-hover flow-table mb-0">
-                      <thead class="table-light">
-                        <tr>
-                          <th>Arch</th>
-                          <th>Config</th>
-                          <th>fmax (MHz)</th>
-                          <th>Area (Kgate)</th>
-                          <th>Worst Slack (ps)</th>
-                          <th>Status</th>
-                          <th>Duration</th>
-                          <th>Download</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        
-                        <tr>
-                          <td>L1METADATAARRAY</td>
-                          <td><code>base</code></td>
-                          <td>2674.38</td>
-                          <td>0.324</td>
-                          <td>-174.057</td>
-                          <td>
-                            
-                              <span class="badge badge-pass">PASS</span>
-                            
-                          </td>
-                          <td>N/A</td>
-                          <td>
-                            
-                              <a href="./PD-data/26820889030/L1MetadataArray_base.json" 
-                                class="btn btn-sm btn-outline-primary" 
-                                download="L1MetadataArray-base.json"
-                                title="Download raw JSON metrics">
-                                📥 JSON
-                              </a>
-                            
-                          </td>
-                        </tr>
-                        
-                      </tbody>
-                    </table>
-                  </div>
+                  <div class="text-muted">No flow data available.</div>
                   
                 </div>
               </div>
             </div>
             
           </div>
+          
+        </div>
+      </div>
+    </div>
+    
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button"
+                data-bs-toggle="collapse" data-bs-target="#collapse-grt">
+          OR-flow-grt
+          <span class="badge bg-secondary ms-2">0 runs</span>
+        </button>
+      </h2>
+      <div id="collapse-grt" class="accordion-collapse collapse "
+           data-bs-parent="#historyAccordion">
+        <div class="accordion-body p-2">
+          
+          <div class="text-muted">No run history available.</div>
           
         </div>
       </div>
@@ -846,7 +927,7 @@
       </div>
       <div class="col-md-6 text-md-end">
         <small class="text-light opacity-75">
-          Generated: 2026-06-15 15:49 UTC
+          Generated: 2026-08-28 15:02 UTC
           &middot; <a href="https://github.com/ffrancois-inria/cva6-fork" class="text-light" target="_blank" rel="noopener">Source</a>
         </small>
       </div>
@@ -860,7 +941,7 @@
 // ============================================================
 // Chart.js Trend Charts
 // ============================================================
-const chartData = {"pd": {"labels": ["1", "2", "3", "4", "5", "6", "7", "8"], "series": {"L1MetadataArray_base": {"fmax_mhz": [2674.38, 2674.38, 2674.38, 2674.38, 2674.38, 2674.38, 2674.38, 2674.38], "stdcell_kgate": [0.324, 0.324, 0.324, 0.324, 0.324, 0.324, 0.324, 0.324], "worst_setup_slack_ps": [-174.057, -174.057, -174.057, -174.057, -174.057, -174.057, -174.057, -174.057], "timing_met": [false, false, false, false, false, false, false, false]}}, "pass_rates": [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0], "durations": [0.2, 0.2, 0.3, 0.2, 0.2, 0.2, 0.1, 0.2]}};
+const chartData = {"flp": {"labels": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"], "series": {"cv32a65x_base": {"fmax_mhz": [null, null, null, null, null, null, null, null, null, null, null, 781.17], "stdcell_kgate": [null, null, null, null, null, null, null, null, null, null, null, 182.12], "worst_setup_slack_ps": [null, null, null, null, null, null, null, null, null, null, null, -1051.87], "timing_met": [null, null, null, null, null, null, null, null, null, null, null, false]}, "cv64a6_imafdc_sv39_hpdcache_base": {"fmax_mhz": [null, null, null, null, null, null, null, null, null, null, null, 632.19], "stdcell_kgate": [null, null, null, null, null, null, null, null, null, null, null, 525.95], "worst_setup_slack_ps": [null, null, null, null, null, null, null, null, null, null, null, -1470.52], "timing_met": [null, null, null, null, null, null, null, null, null, null, null, false]}, "cv64a6_imafdc_sv39_hpdcache_wb_base": {"fmax_mhz": [null, null, null, null, null, null, null, null, null, null, null, 631.15], "stdcell_kgate": [null, null, null, null, null, null, null, null, null, null, null, 526.65], "worst_setup_slack_ps": [null, null, null, null, null, null, null, null, null, null, null, -1477.12], "timing_met": [null, null, null, null, null, null, null, null, null, null, null, false]}}, "pass_rates": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100.0], "durations": [0.2, 0.2, 80.1, 91.3, 3.5, 0.5, 6.6, 7.0, 5.7, 113.3, 11.1, 114.6]}, "grt": {"labels": [], "series": {}, "pass_rates": [], "durations": []}};
 
 Object.keys(chartData).forEach(key => {
   const wf = chartData[key];

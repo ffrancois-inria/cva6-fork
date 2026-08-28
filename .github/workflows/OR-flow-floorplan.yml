@@ -13,8 +13,9 @@ on:
 jobs:
   design-flow:
     name: ${{ matrix.config }}
-    runs-on: ubuntu-22.04
-    timeout-minutes: 90
+    runs-on: ubuntu-24.04
+    # timeout-minutes: 90
+    timeout-minutes: 180
 
     permissions:
       contents: read
@@ -30,13 +31,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Install Bazelisk
         run: |
-          curl -fsSL \
+          sudo curl -fsSL \
             https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 \
             -o /usr/local/bin/bazel
-          chmod +x /usr/local/bin/bazel
+          sudo chmod +x /usr/local/bin/bazel
 
       - name: Restore Bazel disk cache
         id: cache-restore
@@ -49,12 +52,28 @@ jobs:
             bazel-orfs-${{ runner.os }}-${{ matrix.config }}-
             bazel-orfs-${{ runner.os }}-
 
+      # repository cache persists all the downloaded tarballs and git archives
+      # shared across all matrix configs; keyed on MODULE.bazel (defines all external deps)
+      - name: Restore Bazel repository cache
+        id: repo-cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/bazel-repo-cache
+          key: bazel-orfs-${{ runner.os }}-repo-${{ hashFiles('MODULE.bazel') }}
+          restore-keys: |
+            bazel-orfs-${{ runner.os }}-repo-
+
       - name: Run floorplan
         # explicit disk cache (not the output base); GC limit set to 2 GB in .bazelrc
+        # Using fast variant bazel target (macros abstract_stage = place)
         run: |
-          bazel build \
-            --disk_cache="$HOME/.cache/bazel-disk-cache" \
-            //:${{ matrix.config }}_floorplan
+          for attempt in 1 2 3; do
+            bazel build \
+              --disk_cache="$HOME/.cache/bazel-disk-cache" \
+              --repository_cache="$HOME/.cache/bazel-repo-cache" \
+              //:${{ matrix.config }}_fast_floorplan && break
+            [ "$attempt" -lt 3 ] && echo "Attempt $attempt failed, retrying in 30s..." && sleep 30
+          done
 
       - name: Save Bazel disk cache
         uses: actions/cache/save@v4
@@ -63,6 +82,13 @@ jobs:
         with:
           path: ~/.cache/bazel-disk-cache
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+
+      - name: Save Bazel repository cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: ~/.cache/bazel-repo-cache
+          key: ${{ steps.repo-cache-restore.outputs.cache-primary-key }}
 
       - name: Upload metrics artifact
         uses: actions/upload-artifact@v4

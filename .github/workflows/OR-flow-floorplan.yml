@@ -96,3 +96,11 @@ jobs:
           name: PD-flp-${{ startsWith(matrix.config, 'cv32') && 'RV32' || 'RV64' }}-${{ matrix.config }}
           path: bazel-bin/logs/asap7/cva6/base/2_1_floorplan.json
           if-no-files-found: warn  # the job result already reflects build success/failure
+
+      - name: Upload logs artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PD-flp-logs-${{ startsWith(matrix.config, 'cv32') && 'RV32' || 'RV64' }}-${{ matrix.config }}
+          path: bazel-bin/logs/asap7/cva6/base/*.log
+          if-no-files-found: warn

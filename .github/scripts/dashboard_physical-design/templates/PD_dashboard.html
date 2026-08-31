@@ -354,7 +354,7 @@
                           <th>Worst Slack (ps)</th>
                           <th>Status</th>
                           <th>Duration</th>
-                          <th>Download</th>
+                          <th>Downloads</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -376,16 +376,27 @@
                           </td>
                           <td>{{ flow.duration_display }}</td>
                           <td>
-                            {% if flow.raw_json_path %}
-                              <a href="{{ flow.raw_json_path }}" 
-                                class="btn btn-sm btn-outline-primary" 
-                                download="{{ flow.arch }}-{{ flow.config }}.json"
-                                title="Download raw JSON metrics">
-                                📥 JSON
-                              </a>
-                            {% else %}
-                              <span class="text-muted" style="font-size:0.75rem">N/A</span>
-                            {% endif %}
+                            <div class="d-flex gap-1 flex-wrap">
+                              {% if flow.raw_json_path %}
+                                <a href="{{ flow.raw_json_path }}"
+                                  class="btn btn-sm btn-outline-primary"
+                                  download="{{ flow.arch }}-{{ flow.config }}.json"
+                                  title="Download raw JSON metrics">
+                                  📥 JSON
+                                </a>
+                              {% endif %}
+                              {% if flow.logs_zip_path %}
+                                <a href="{{ flow.logs_zip_path }}"
+                                  class="btn btn-sm btn-outline-secondary"
+                                  download="{{ flow.arch }}-{{ flow.config }}-logs.zip"
+                                  title="Download stage logs (.zip)">
+                                  📋 Logs
+                                </a>
+                              {% endif %}
+                              {% if not flow.raw_json_path and not flow.logs_zip_path %}
+                                <span class="text-muted" style="font-size:0.75rem">N/A</span>
+                              {% endif %}
+                            </div>
                           </td>
                         </tr>
                         {% endfor %}

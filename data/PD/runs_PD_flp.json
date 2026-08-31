@@ -1,5 +1,80 @@
 [
   {
+    "id": 33400130301,
+    "run_number": 15,
+    "conclusion": "success",
+    "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/33400130301",
+    "head_branch": "ffrancois-inria_ORflow-dashboard",
+    "head_sha": "6bee36be",
+    "created_at": "2026-08-31T14:00:38Z",
+    "duration_seconds": 2654,
+    "total_flows": 3,
+    "passed_flows": 3,
+    "failed_flows": 0,
+    "flows": [
+      {
+        "arch": "cv32a65x",
+        "config": "base",
+        "conclusion": "success",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/33400130301",
+        "duration_seconds": 0,
+        "raw_json_path": "./PD-data/33400130301/cv32a65x_base.json",
+        "metrics": {
+          "stdcell_area_um2": 18435.5,
+          "macro_area_um2": 21294.6,
+          "total_instance_area_um2": 39730.1,
+          "core_area_um2": 55597.4,
+          "die_area_um2": 57586.6,
+          "utilization": 0.714604,
+          "stdcell_kgate": 210.9325,
+          "fmax_mhz": 765.72,
+          "worst_setup_slack_ps": -1111.68,
+          "timing_met": false
+        }
+      },
+      {
+        "arch": "cv64a6_imafdc_sv39_hpdcache",
+        "config": "base",
+        "conclusion": "success",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/33400130301",
+        "duration_seconds": 0,
+        "raw_json_path": "./PD-data/33400130301/cv64a6_imafdc_sv39_hpdcache_base.json",
+        "metrics": {
+          "stdcell_area_um2": 51225.7,
+          "macro_area_um2": 366463,
+          "total_instance_area_um2": 417689,
+          "core_area_um2": 593877,
+          "die_area_um2": 600282,
+          "utilization": 0.703325,
+          "stdcell_kgate": 586.1064,
+          "fmax_mhz": 623.0,
+          "worst_setup_slack_ps": -1499.65,
+          "timing_met": false
+        }
+      },
+      {
+        "arch": "cv64a6_imafdc_sv39_hpdcache_wb",
+        "config": "base",
+        "conclusion": "success",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/33400130301",
+        "duration_seconds": 0,
+        "raw_json_path": "./PD-data/33400130301/cv64a6_imafdc_sv39_hpdcache_wb_base.json",
+        "metrics": {
+          "stdcell_area_um2": 51427.8,
+          "macro_area_um2": 366463,
+          "total_instance_area_um2": 417891,
+          "core_area_um2": 594043,
+          "die_area_um2": 600566,
+          "utilization": 0.703469,
+          "stdcell_kgate": 588.4188,
+          "fmax_mhz": 613.27,
+          "worst_setup_slack_ps": -1525.1,
+          "timing_met": false
+        }
+      }
+    ]
+  },
+  {
     "id": 33389743069,
     "run_number": 14,
     "conclusion": "success",

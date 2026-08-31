@@ -181,6 +181,28 @@ def duration_seconds(started_at: str, completed_at: str) -> int:
 # GitHub API helpers  (mirrors collect_data.py)
 # ---------------------------------------------------------------------------
 
+def fetch_job_durations(repo: str, run_id: int) -> dict:
+    """Return {config_name: duration_seconds} for every matrix job in a run."""
+    result = subprocess.run(
+        ["gh", "api", f"/repos/{repo}/actions/runs/{run_id}/jobs", "--paginate"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print(
+            f"  WARNING: Could not fetch jobs for run {run_id}: {result.stderr}",
+            file=sys.stderr,
+        )
+        return {}
+    data = json.loads(result.stdout)
+    durations = {}
+    for job in data.get("jobs", []):
+        name = job.get("name", "")
+        dur = duration_seconds(job.get("started_at", ""), job.get("completed_at", ""))
+        durations[name] = dur
+    return durations
+
+
 def gh_api(endpoint: str, repo: str) -> dict:
     """Call GitHub API via `gh api` and return parsed JSON."""
     url    = f"/repos/{repo}/actions/{endpoint}"
@@ -271,6 +293,8 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
     run_id = run["id"]
     extractor = extract_flp_metrics if artifact_prefix == "PD-flp-" else extract_grt_metrics
 
+    job_durations = fetch_job_durations(repo, run_id)
+
     with tempfile.TemporaryDirectory() as tmp:
         json_list = download_run_artifacts(repo, run_id, Path(tmp), artifact_prefix)
 
@@ -300,12 +324,14 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
                 metrics    = {}
                 conclusion = "failure"
 
+            # Job name in the workflow is set to `${{ matrix.config }}`, matching `config`
+            flow_dur = job_durations.get(config, 0)
             flows.append({
                 "arch":             arch,
                 "config":           config,
                 "conclusion":       conclusion,
                 "html_url":         run.get("html_url", ""),
-                "duration_seconds": 0,  # per-flow timing not available from artifacts
+                "duration_seconds": flow_dur,
                 "raw_json_path": f"./PD-data/{str(run_id)}/{arch}_{config}.json",
                 "metrics":          metrics,
             })

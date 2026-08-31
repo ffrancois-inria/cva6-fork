@@ -107,7 +107,7 @@
       <a class="nav-link active" href="PD_dashboard.html">⚡ PD Dashboard</a>
     </div>
     <span class="navbar-text text-muted" style="font-size:0.85rem">
-      Generated: 2026-08-30 20:48 UTC
+      Generated: 2026-08-31 12:37 UTC
     </span>
   </div>
 </nav>
@@ -122,7 +122,7 @@
   <div class="row g-3">
     
     <div class="col-md-6">
-      <div class="card status-card shadow-sm unknown">
+      <div class="card status-card shadow-sm pass">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
@@ -130,7 +130,7 @@
               <small class="text-muted">Push-triggered · Floorplan</small>
             </div>
             
-              <span class="badge badge-skip">CANCELLED</span>
+              <span class="badge badge-pass">PASS</span>
             
           </div>
           <!-- 
@@ -150,16 +150,16 @@
             </div>
             <div>
               <strong>Flows:</strong>
-              <span class="text-success">1 passed</span>
+              <span class="text-success">3 passed</span>
               
-              (1 total)
+              (3 total)
             </div>
             <div>
-              <strong>Duration:</strong> 3h 0m
-              &middot; <strong>Run:</strong> #13
+              <strong>Duration:</strong> 35m 12s
+              &middot; <strong>Run:</strong> #14
             </div>
             <div>
-              <strong>Created at:</strong> 2026-08-28 15:21 UTC
+              <strong>Created at:</strong> 2026-08-31 12:02 UTC
             </div>
           </div>
           
@@ -218,13 +218,63 @@
                     </td>
                   </tr>
                   
+                  
+                  
+                  <tr>
+                    <td>CV64A6_IMAFDC_SV39_HPDCACHE</td>
+                    <td><code style="font-size:0.78rem">base</code></td>
+                    <td>
+                      
+                        632.19
+                        
+                      
+                    </td>
+                    <td>
+                      
+                        525.95
+                        
+                      
+                    </td>
+                    <td>
+                      
+                        -1470.52
+                        
+                      
+                    </td>
+                  </tr>
+                  
+                  
+                  
+                  <tr>
+                    <td>CV64A6_IMAFDC_SV39_HPDCACHE_WB</td>
+                    <td><code style="font-size:0.78rem">base</code></td>
+                    <td>
+                      
+                        631.15
+                        
+                      
+                    </td>
+                    <td>
+                      
+                        526.65
+                        
+                      
+                    </td>
+                    <td>
+                      
+                        -1477.12
+                        
+                      
+                    </td>
+                  </tr>
+                  
                 </tbody>
               </table>
             </div>
           </div>
           
           <div class="mt-2">
-            <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/33184700968" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">
+            <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/33389743069" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">
               View on GitHub &rarr;
             </a>
           </div>
@@ -458,7 +508,7 @@
         <button class="accordion-button " type="button"
                 data-bs-toggle="collapse" data-bs-target="#collapse-flp">
           OR-flow-floorplan
-          <span class="badge bg-secondary ms-2">13 runs</span>
+          <span class="badge bg-secondary ms-2">14 runs</span>
         </button>
       </h2>
       <div id="collapse-flp" class="accordion-collapse collapse show"
@@ -466,6 +516,126 @@
         <div class="accordion-body p-2">
           
           <div class="accordion" id="runsAccordion-flp">
+            
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#run-flp-33389743069"
+                        style="font-size:0.85rem">
+                  
+                    <span class="badge badge-pass me-2">PASS</span>
+                  
+                  #14
+                  &middot; master
+                  &middot; <code>ecf358c3</code>
+                  &middot; 35m 12s
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-08-31 12:02 UTC</span>
+                </button>
+              </h2>
+              <div id="run-flp-33389743069" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-flp">
+                <div class="accordion-body p-2">
+                  <div class="mb-2" style="font-size:0.8rem">
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/33389743069" target="_blank" rel="noopener">View on GitHub</a>
+                    &middot; Event: 
+                    &middot; Flows: 3/3 passed
+                  </div>
+                  
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover flow-table mb-0">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Arch</th>
+                          <th>Config</th>
+                          <th>fmax (MHz)</th>
+                          <th>Area (Kgate)</th>
+                          <th>Worst Slack (ps)</th>
+                          <th>Status</th>
+                          <th>Duration</th>
+                          <th>Download</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        
+                        <tr>
+                          <td>CV32A65X</td>
+                          <td><code>base</code></td>
+                          <td>781.17</td>
+                          <td>182.12</td>
+                          <td>-1051.87</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>N/A</td>
+                          <td>
+                            
+                              <a href="./PD-data/33389743069/cv32a65x_base.json" 
+                                class="btn btn-sm btn-outline-primary" 
+                                download="cv32a65x-base.json"
+                                title="Download raw JSON metrics">
+                                📥 JSON
+                              </a>
+                            
+                          </td>
+                        </tr>
+                        
+                        <tr>
+                          <td>CV64A6_IMAFDC_SV39_HPDCACHE</td>
+                          <td><code>base</code></td>
+                          <td>632.19</td>
+                          <td>525.95</td>
+                          <td>-1470.52</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>N/A</td>
+                          <td>
+                            
+                              <a href="./PD-data/33389743069/cv64a6_imafdc_sv39_hpdcache_base.json" 
+                                class="btn btn-sm btn-outline-primary" 
+                                download="cv64a6_imafdc_sv39_hpdcache-base.json"
+                                title="Download raw JSON metrics">
+                                📥 JSON
+                              </a>
+                            
+                          </td>
+                        </tr>
+                        
+                        <tr>
+                          <td>CV64A6_IMAFDC_SV39_HPDCACHE_WB</td>
+                          <td><code>base</code></td>
+                          <td>631.15</td>
+                          <td>526.65</td>
+                          <td>-1477.12</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>N/A</td>
+                          <td>
+                            
+                              <a href="./PD-data/33389743069/cv64a6_imafdc_sv39_hpdcache_wb_base.json" 
+                                class="btn btn-sm btn-outline-primary" 
+                                download="cv64a6_imafdc_sv39_hpdcache_wb-base.json"
+                                title="Download raw JSON metrics">
+                                📥 JSON
+                              </a>
+                            
+                          </td>
+                        </tr>
+                        
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                </div>
+              </div>
+            </div>
             
             <div class="accordion-item">
               <h2 class="accordion-header">
@@ -1178,7 +1348,7 @@
       </div>
       <div class="col-md-6 text-md-end">
         <small class="text-light opacity-75">
-          Generated: 2026-08-30 20:48 UTC
+          Generated: 2026-08-31 12:37 UTC
           &middot; <a href="https://github.com/ffrancois-inria/cva6-fork" class="text-light" target="_blank" rel="noopener">Source</a>
         </small>
       </div>
@@ -1192,7 +1362,7 @@
 // ============================================================
 // Chart.js Trend Charts
 // ============================================================
-const chartData = {"flp": {"labels": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"], "series": {"cv32a65x_base": {"fmax_mhz": [null, null, null, null, null, null, null, null, null, null, null, 781.17, 781.17], "stdcell_kgate": [null, null, null, null, null, null, null, null, null, null, null, 182.12, 182.12], "worst_setup_slack_ps": [null, null, null, null, null, null, null, null, null, null, null, -1051.87, -1051.87], "timing_met": [null, null, null, null, null, null, null, null, null, null, null, false, false]}, "cv64a6_imafdc_sv39_hpdcache_base": {"fmax_mhz": [null, null, null, null, null, null, null, null, null, null, null, 632.19, null], "stdcell_kgate": [null, null, null, null, null, null, null, null, null, null, null, 525.95, null], "worst_setup_slack_ps": [null, null, null, null, null, null, null, null, null, null, null, -1470.52, null], "timing_met": [null, null, null, null, null, null, null, null, null, null, null, false, null]}, "cv64a6_imafdc_sv39_hpdcache_wb_base": {"fmax_mhz": [null, null, null, null, null, null, null, null, null, null, null, 631.15, null], "stdcell_kgate": [null, null, null, null, null, null, null, null, null, null, null, 526.65, null], "worst_setup_slack_ps": [null, null, null, null, null, null, null, null, null, null, null, -1477.12, null], "timing_met": [null, null, null, null, null, null, null, null, null, null, null, false, null]}}, "pass_rates": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100.0, 100.0], "durations": [0.2, 0.2, 80.1, 91.3, 3.5, 0.5, 6.6, 7.0, 5.7, 113.3, 11.1, 114.6, 180.7]}, "grt": {"labels": ["1", "2"], "series": {"cv32a65x_base": {"fmax_mhz": [483.35, 483.35], "stdcell_kgate": [188.46, 188.46], "worst_setup_slack_ps": [-1553.01, -1553.01], "timing_met": [false, false]}}, "pass_rates": [100.0, 100.0], "durations": [254.0, 81.4]}};
+const chartData = {"flp": {"labels": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14"], "series": {"cv64a6_imafdc_sv39_hpdcache_base": {"fmax_mhz": [null, null, null, null, null, null, null, null, null, null, null, 632.19, null, 632.19], "stdcell_kgate": [null, null, null, null, null, null, null, null, null, null, null, 525.95, null, 525.95], "worst_setup_slack_ps": [null, null, null, null, null, null, null, null, null, null, null, -1470.52, null, -1470.52], "timing_met": [null, null, null, null, null, null, null, null, null, null, null, false, null, false]}, "cv64a6_imafdc_sv39_hpdcache_wb_base": {"fmax_mhz": [null, null, null, null, null, null, null, null, null, null, null, 631.15, null, 631.15], "stdcell_kgate": [null, null, null, null, null, null, null, null, null, null, null, 526.65, null, 526.65], "worst_setup_slack_ps": [null, null, null, null, null, null, null, null, null, null, null, -1477.12, null, -1477.12], "timing_met": [null, null, null, null, null, null, null, null, null, null, null, false, null, false]}, "cv32a65x_base": {"fmax_mhz": [null, null, null, null, null, null, null, null, null, null, null, 781.17, 781.17, 781.17], "stdcell_kgate": [null, null, null, null, null, null, null, null, null, null, null, 182.12, 182.12, 182.12], "worst_setup_slack_ps": [null, null, null, null, null, null, null, null, null, null, null, -1051.87, -1051.87, -1051.87], "timing_met": [null, null, null, null, null, null, null, null, null, null, null, false, false, false]}}, "pass_rates": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100.0, 100.0, 100.0], "durations": [0.2, 0.2, 80.1, 91.3, 3.5, 0.5, 6.6, 7.0, 5.7, 113.3, 11.1, 114.6, 180.7, 35.2]}, "grt": {"labels": ["1", "2"], "series": {"cv32a65x_base": {"fmax_mhz": [483.35, 483.35], "stdcell_kgate": [188.46, 188.46], "worst_setup_slack_ps": [-1553.01, -1553.01], "timing_met": [false, false]}}, "pass_rates": [100.0, 100.0], "durations": [254.0, 81.4]}};
 
 Object.keys(chartData).forEach(key => {
   const wf = chartData[key];

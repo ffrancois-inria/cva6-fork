@@ -112,12 +112,14 @@ filegroup(
         # "SYNTH_MOCK_LARGE_MEMORIES": "1",      # SRAM auto mockup
 
         # Floorplan
-        "CORE_UTILIZATION": "70",             # 70% core area
+        # "CORE_UTILIZATION": "70",             # 70% core area
+        "CORE_UTILIZATION": "65",
         "CORE_MARGIN": "2",                   # 2µm margin
         "MACRO_PLACE_HALO": "3 3",            # 3µm around macros 
 
         # Placement
-        "PLACE_DENSITY": "0.73",
+        # "PLACE_DENSITY": "0.73",
+        "PLACE_DENSITY": "0.65",  # Trying lower density for GRT CI to succeed
 
         # CTS
         "ASAP7_USE_VT": "RVT LVT SLVT",      # uses the three ASAP7 cell families
@@ -131,7 +133,7 @@ filegroup(
         "SKIP_INCREMENTAL_REPAIR": "1",
         "GND_NETS_VOLTAGES": "",
         "PWR_NETS_VOLTAGES": "",
-        "GPL_ROUTABILITY_DRIVEN": "0",
+        "GPL_ROUTABILITY_DRIVEN": "1",
         "GPL_TIMING_DRIVEN": "0",
         "SETUP_SLACK_MARGIN": "-10000",
         "TNS_END_PERCENT": "0",

@@ -13,7 +13,7 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 from collections import defaultdict
-from typing import TypedDict
+from zoneinfo import ZoneInfo
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -54,12 +54,15 @@ def format_duration(seconds: int) -> str:
 
 
 def format_datetime(iso_str: str) -> str:
-    """Format ISO datetime to readable string."""
+    """Format ISO datetime to readable string (Paris time)."""
     if not iso_str:
         return "N/A"
     try:
         dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
-        return dt.strftime("%Y-%m-%d %H:%M UTC")
+        # Convert UTC to Paris time
+        paris_tz = ZoneInfo("Europe/Paris")
+        dt_paris = dt.astimezone(paris_tz)
+        return dt_paris.strftime("%Y-%m-%d %H:%M %Z")
     except (ValueError, TypeError):
         return iso_str
 
@@ -318,7 +321,7 @@ def main():
                 break
 
     context = {
-        "generated_at": now.strftime("%Y-%m-%d %H:%M UTC"),
+        "generated_at": format_datetime(now.isoformat()),
         "year": now.year,
         "repo": args.repo,
         "workflows": workflows,

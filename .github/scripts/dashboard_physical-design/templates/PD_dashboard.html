@@ -137,19 +137,20 @@
               <span class="badge badge-skip">{{ wf.latest.conclusion|upper }}</span>
             {% endif %}
           </div>
-          <!-- {% if wf.latest.flows %}
-            <div style="font-size:0.9rem">
-              <div>
-                <strong>Fmax (MHz):</strong> {{ wf.latest.flows[0].metrics.fmax_mhz }}
-                &middot; <strong>Area (Kgate):</strong> {{ wf.latest.flows[0].metrics.stdcell_kgate }}
-                &middot; <strong>Worst slack (ps):</strong> {{ wf.latest.flows[0].metrics.worst_setup_slack_ps }}
-              </div>
-            </div>
-          {% endif %} -->
           <div class="text-muted" style="font-size:0.8rem">
-            <!-- <div> — </div> -->
             <div>
               <strong>Branch:</strong> {{ wf.latest.head_branch }}
+            </div>
+            <div>
+              <strong>Commit:</strong>
+              {% if wf.latest.commit_subject %}
+                {{ wf.latest.commit_subject }}
+                {% if wf.latest.event == 'workflow_dispatch' %}
+                  <em>(manual trigger)</em>
+                {% endif %}
+              {% else %}
+                <span class="text-muted">N/A</span>
+              {% endif %}
               &middot; <code>{{ wf.latest.head_sha }}</code>
             </div>
             <div>
@@ -328,9 +329,16 @@
                     <span class="badge badge-skip me-2">{{ run.conclusion|upper }}</span>
                   {% endif %}
                   #{{ run.run_number }}
-                  &middot; {{ run.head_branch }}
-                  &middot; <code>{{ run.head_sha }}</code>
-                  &middot; {{ run.duration_display }}
+                  &middot;&nbsp;
+                  {% if run.commit_subject %}
+                    <span style="font-weight: 600">{{ run.commit_subject }}</span>
+                    {% if run.event == 'workflow_dispatch' %}
+                      &nbsp; <strong class="text-secondary"><em>(manual trigger)</em></strong>
+                    {% endif %}
+                  {% endif %}
+                  &nbsp;&middot;&nbsp; <span class="text-muted">{{ run.head_branch }}</span>
+                  &nbsp;&middot;&nbsp; <code>{{ run.head_sha }}</code>
+                  &nbsp;&middot; {{ run.duration_display }}
                   <span class="ms-auto text-muted" style="font-size:0.75rem">{{ run.created_at_display }}</span>
                 </button>
               </h2>
@@ -338,6 +346,9 @@
                    data-bs-parent="#runsAccordion-{{ wf.key }}">
                 <div class="accordion-body p-2">
                   <div class="mb-2" style="font-size:0.8rem">
+                    {% if run.actor %}
+                    <div class="text-muted mb-1">Authored by: <strong>{{ run.actor }}</strong></div>
+                    {% endif %}
                     <a href="{{ run.html_url }}" target="_blank" rel="noopener">View on GitHub</a>
                     &middot; Event: {{ run.event }}
                     &middot; Flows: {{ run.passed_flows }}/{{ run.total_flows }} passed

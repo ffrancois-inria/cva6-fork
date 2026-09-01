@@ -415,13 +415,21 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
         run.get("updated_at", ""),
     )
 
+    head_commit    = run.get("head_commit") or {}
+    commit_msg     = head_commit.get("message", "")
+    commit_subject = commit_msg.splitlines()[0].strip() if commit_msg else ""
+    actor          = (run.get("actor") or {}).get("login", "")
+
     return {
         "id":               run_id,
         "run_number":       run.get("run_number", 0),
         "conclusion":       run.get("conclusion", "unknown"),
+        "event":            run.get("event", ""),
         "html_url":         run.get("html_url", ""),
         "head_branch":      run.get("head_branch", ""),
         "head_sha":         run.get("head_sha", "")[:8],
+        "commit_subject":   commit_subject,
+        "actor":            actor,
         "created_at":       run.get("created_at", ""),
         "duration_seconds": run_dur,
         "total_flows":       len(flows),

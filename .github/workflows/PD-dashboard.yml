@@ -144,6 +144,11 @@ jobs:
             git commit -m "Initialize gh-pages-cva6-dashboard-data branch"
           fi
 
+      - name: Clean stale data directories
+        # download-artifact only overwrites/adds files; it never removes ones no
+        # longer produced, so stale/nested leftovers would linger forever otherwise.
+        run: rm -rf data/dash-site data/PD
+
       - name: Download updated dash-site data
         uses: actions/download-artifact@v4
         with:

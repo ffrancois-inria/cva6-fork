@@ -380,7 +380,7 @@
                               {% if flow.raw_json_path %}
                                 <a href="{{ flow.raw_json_path }}"
                                   class="btn btn-sm btn-outline-primary"
-                                  download="{{ flow.arch }}-{{ flow.config }}.json"
+                                  download="run{{ run.run_number }}_{{ flow.arch }}-{{ flow.config }}.json"
                                   title="Download raw JSON metrics">
                                   📥 JSON
                                 </a>
@@ -388,7 +388,7 @@
                               {% if flow.logs_zip_path %}
                                 <a href="{{ flow.logs_zip_path }}"
                                   class="btn btn-sm btn-outline-secondary"
-                                  download="{{ flow.arch }}-{{ flow.config }}-logs.zip"
+                                  download="run{{ run.run_number }}_{{ flow.arch }}-{{ flow.config }}-logs.zip"
                                   title="Download stage logs (.zip)">
                                   📋 Logs
                                 </a>

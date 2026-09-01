@@ -37,6 +37,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 import shutil
@@ -53,6 +54,12 @@ MAX_HISTORY = 50
 METRICS_FILENAME = {
     "PD-flp-": "2_1_floorplan.json",
     "PD-grt-": "5_1_grt.json",
+}
+
+# Maps metrics artifact prefix to its corresponding logs artifact prefix.
+LOGS_ARTIFACT_PREFIX = {
+    "PD-flp-": "PD-flp-logs-",
+    "PD-grt-": "PD-grt-logs-",
 }
 
 
@@ -181,6 +188,28 @@ def duration_seconds(started_at: str, completed_at: str) -> int:
 # GitHub API helpers  (mirrors collect_data.py)
 # ---------------------------------------------------------------------------
 
+def fetch_job_durations(repo: str, run_id: int) -> dict:
+    """Return {config_name: duration_seconds} for every matrix job in a run."""
+    result = subprocess.run(
+        ["gh", "api", f"/repos/{repo}/actions/runs/{run_id}/jobs", "--paginate"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print(
+            f"  WARNING: Could not fetch jobs for run {run_id}: {result.stderr}",
+            file=sys.stderr,
+        )
+        return {}
+    data = json.loads(result.stdout)
+    durations = {}
+    for job in data.get("jobs", []):
+        name = job.get("name", "")
+        dur = duration_seconds(job.get("started_at", ""), job.get("completed_at", ""))
+        durations[name] = dur
+    return durations
+
+
 def gh_api(endpoint: str, repo: str) -> dict:
     """Call GitHub API via `gh api` and return parsed JSON."""
     url    = f"/repos/{repo}/actions/{endpoint}"
@@ -207,6 +236,20 @@ def fetch_runs(repo: str, workflow_file: str, count: int) -> list:
 # ---------------------------------------------------------------------------
 # Artifact download
 # ---------------------------------------------------------------------------
+
+def iter_artifact_dirs(dest_dir: Path, prefix: str):
+    """Yield (arch, config, artifact_dir) for each artifact directory matching prefix."""
+        
+    for artifact_dir in sorted(dest_dir.iterdir()):
+        if not artifact_dir.is_dir() or not artifact_dir.name.startswith(prefix):
+            continue
+        suffix = artifact_dir.name[len(prefix):]
+        # rsplit on "-" (last occurrence) so design names containing "-" are preserved.
+        parts  = suffix.rsplit("-", 1)
+        arch   = parts[0] if len(parts) >= 1 else suffix
+        config = parts[1] if len(parts) >= 2 else "base"
+        yield arch, config, artifact_dir
+
 
 def download_run_artifacts(repo: str, run_id: int, dest_dir: Path, artifact_prefix: str) -> list:
     """Download all artifacts matching artifact_prefix for a run into dest_dir.
@@ -235,31 +278,60 @@ def download_run_artifacts(repo: str, run_id: int, dest_dir: Path, artifact_pref
         return []
 
     found = []
-    for artifact_dir in sorted(dest_dir.iterdir()):
-        if not artifact_dir.is_dir():
-            continue
-        artifact_name = artifact_dir.name
-        if not artifact_name.startswith(artifact_prefix):
-            continue
-
-        # Parse arch and config from artifact name.
-        # rsplit on "-" (last occurrence) so design names containing "-" are preserved.
-        suffix  = artifact_name[len(artifact_prefix):]
-        parts   = suffix.rsplit("-", 1)
-        arch    = parts[0] if len(parts) >= 1 else suffix
-        config  = parts[1] if len(parts) >= 2 else "base"
-
+    for arch, config, artifact_dir in iter_artifact_dirs(dest_dir, artifact_prefix):
         json_path = artifact_dir / metrics_filename
         if json_path.exists():
             found.append((arch, config, json_path))
-            print(f"  Downloaded: {artifact_name} -> {arch}/{config}")
+            print(f"  Downloaded: {artifact_dir.name} -> {arch}/{config}")
         else:
             print(
-                f"  WARNING: {metrics_filename} not found in artifact {artifact_name}",
+                f"  WARNING: {metrics_filename} not found in artifact {artifact_dir.name}",
                 file=sys.stderr,
             )
 
     return found
+
+
+def download_and_zip_logs(
+    repo: str,
+    run_id: int,
+    dest_dir: Path,
+    logs_prefix: str,
+    run_raw_dir: Path,
+) -> dict:
+    """Download log artifacts, zip them per config, return {(arch, config): site_relative_path}."""
+    result = subprocess.run(
+        [
+            "gh", "run", "download", str(run_id),
+            "--repo", repo,
+            "--pattern", f"{logs_prefix}*",
+            "--dir", str(dest_dir),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print(
+            f"  WARNING: gh run download (logs) failed for run {run_id}: {result.stderr}",
+            file=sys.stderr,
+        )
+        return {}
+
+    logs_map = {}
+    for arch, config, artifact_dir in iter_artifact_dirs(dest_dir, logs_prefix):
+        log_files = sorted(artifact_dir.rglob("*.log"))
+        if not log_files:
+            print(f"  WARNING: no .log files in artifact {artifact_dir.name}", file=sys.stderr)
+            continue
+
+        zip_dest = run_raw_dir / f"{arch}_{config}_logs.zip"
+        with zipfile.ZipFile(zip_dest, "w", zipfile.ZIP_DEFLATED) as zf:
+            for lf in log_files:
+                zf.write(lf, lf.name)
+        logs_map[(arch, config)] = f"./PD-data/raw/{run_id}/{arch}_{config}_logs.zip"
+        print(f"  Zipped {len(log_files)} log(s) -> {zip_dest.name}")
+
+    return logs_map
 
 
 # ---------------------------------------------------------------------------
@@ -271,15 +343,21 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
     run_id = run["id"]
     extractor = extract_flp_metrics if artifact_prefix == "PD-flp-" else extract_grt_metrics
 
-    with tempfile.TemporaryDirectory() as tmp:
-        json_list = download_run_artifacts(repo, run_id, Path(tmp), artifact_prefix)
+    job_durations = fetch_job_durations(repo, run_id)
 
-        # Persist raw JSONs before the tmpdir is deleted
-        run_raw_dir = raw_dir / str(run_id)
-        run_raw_dir.mkdir(parents=True, exist_ok=True)
+    # Persist raw files before the tmpdir is deleted
+    run_raw_dir = raw_dir / str(run_id)
+    run_raw_dir.mkdir(parents=True, exist_ok=True)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        json_list = download_run_artifacts(repo, run_id, tmp_path / "artifacts", artifact_prefix)
+
         for arch, config, json_path in json_list:
-            dest = run_raw_dir / f"{arch}_{config}.json"
-            shutil.copy2(json_path, dest)
+            shutil.copy2(json_path, run_raw_dir / f"{arch}_{config}.json")
+
+        logs_prefix = LOGS_ARTIFACT_PREFIX[artifact_prefix]
+        logs_map = download_and_zip_logs(repo, run_id, tmp_path / "logs", logs_prefix, run_raw_dir)
 
         flows = []
         for arch, config, json_path in json_list:
@@ -300,13 +378,19 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
                 metrics    = {}
                 conclusion = "failure"
 
+            # Job name in the workflow is set to `${{ matrix.config }}`, matching `config`
+            print("#DEBUG: job_durations: ", job_durations)  #debug
+            print("#DEBUG: config: ", config)  #debug
+            flow_dur = job_durations.get(config, 0)
+            print("#DEBUG: flow_dur: ", flow_dur)  #debug
             flows.append({
                 "arch":             arch,
                 "config":           config,
                 "conclusion":       conclusion,
                 "html_url":         run.get("html_url", ""),
-                "duration_seconds": 0,  # per-flow timing not available from artifacts
-                "raw_json_path": f"./PD-data/{str(run_id)}/{arch}_{config}.json",
+                "duration_seconds": flow_dur,
+                "raw_json_path":    f"./PD-data/raw/{run_id}/{arch}_{config}.json",
+                "logs_zip_path":    logs_map.get((arch, config)),
                 "metrics":          metrics,
             })
 

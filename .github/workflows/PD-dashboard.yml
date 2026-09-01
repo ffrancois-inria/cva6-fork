@@ -19,10 +19,14 @@ jobs:
   build:
     name: Build PD Dashboard
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          # workflow_run always evaluates this YAML from the default branch, but pin
+          # checked-out scripts to the triggering run's commit (falls back to github.ref
+          # for workflow_dispatch, where workflow_run context is unset).
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Restore PD dashboard history from gh-pages-cva6-dashboard-data
         run: |
@@ -80,6 +84,7 @@ jobs:
             > /tmp/dash-site/tier_dashboard.html
           fi
           cp .github/scripts/landing_page/index.html /tmp/dash-site/index.html
+          rm -rf /tmp/dash-site/PD-data
           cp -r /tmp/PD-data /tmp/dash-site/PD-data
 
       - name: Upload Pages artifact
@@ -120,6 +125,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Prepare gh-pages-cva6-dashboard-data branch
         run: |

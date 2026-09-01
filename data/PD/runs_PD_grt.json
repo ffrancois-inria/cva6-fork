@@ -1,5 +1,43 @@
 [
   {
+    "id": 33529355250,
+    "run_number": 3,
+    "conclusion": "failure",
+    "event": "workflow_dispatch",
+    "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/33529355250",
+    "head_branch": "ffrancois-inria_ORflow-dashboard",
+    "head_sha": "973fe33d",
+    "commit_subject": "ci/OR-flow: lower PLACE_DENSITY OR param to avoid congestion failure on GRT flow",
+    "actor": "ffrancois-inria",
+    "created_at": "2026-09-01T16:01:45Z",
+    "duration_seconds": 5665,
+    "total_flows": 1,
+    "passed_flows": 1,
+    "failed_flows": 0,
+    "flows": [
+      {
+        "arch": "RV32",
+        "config": "cv32a65x",
+        "conclusion": "success",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/33529355250",
+        "duration_seconds": 3547,
+        "raw_json_path": "./PD-data/raw/33529355250/RV32_cv32a65x.json",
+        "logs_zip_path": "./PD-data/raw/33529355250/RV32_cv32a65x_logs.zip",
+        "metrics": {
+          "stdcell_area_um2": 16500,
+          "macro_area_um2": 21294.6,
+          "total_instance_area_um2": 37794.6,
+          "core_area_um2": 52089.4,
+          "die_area_um2": 54002.3,
+          "stdcell_kgate": 188.7872,
+          "fmax_mhz": 522.9,
+          "worst_setup_slack_ps": -1462.62,
+          "timing_met": false
+        }
+      }
+    ]
+  },
+  {
     "id": 33300313343,
     "run_number": 2,
     "conclusion": "failure",

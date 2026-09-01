@@ -172,6 +172,19 @@ def cleanup_old_raw_files(raw_dir: Path, kept_run_ids: set) -> None:
             except ValueError:
                 pass  # Skip non-numeric directories
 
+
+def all_kept_run_ids(data_dir: Path) -> set:
+    """Union of run ids across every runs_PD_*.json file in data_dir.
+
+    raw/ is shared between the flp and grt invocations of this script, so
+    cleanup must keep ids from both JSON files, not just the one just written.
+    """
+    ids = set()
+    for path in data_dir.glob("runs_PD_*.json"):
+        ids.update(runs_file["id"] for runs_file in load_existing(path))
+    return ids
+
+
 def duration_seconds(started_at: str, completed_at: str) -> int:
     """Calculate duration in seconds between two ISO timestamps."""
     if not started_at or not completed_at:
@@ -278,7 +291,12 @@ def download_run_artifacts(repo: str, run_id: int, dest_dir: Path, artifact_pref
         return []
 
     found = []
+    logs_prefix = LOGS_ARTIFACT_PREFIX.get(artifact_prefix, "")
     for arch, config, artifact_dir in iter_artifact_dirs(dest_dir, artifact_prefix):
+        # "PD-flp-*" also matches "PD-flp-logs-*" artifacts pulled by the same
+        # `gh run download` pattern; skip those, they're handled separately.
+        if logs_prefix and artifact_dir.name.startswith(logs_prefix):
+            continue
         json_path = artifact_dir / metrics_filename
         if json_path.exists():
             found.append((arch, config, json_path))
@@ -379,10 +397,7 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
                 conclusion = "failure"
 
             # Job name in the workflow is set to `${{ matrix.config }}`, matching `config`
-            print("#DEBUG: job_durations: ", job_durations)  #debug
-            print("#DEBUG: config: ", config)  #debug
             flow_dur = job_durations.get(config, 0)
-            print("#DEBUG: flow_dur: ", flow_dur)  #debug
             flows.append({
                 "arch":             arch,
                 "config":           config,
@@ -500,14 +515,14 @@ def main() -> None:
 
     merged = merge_runs(existing, new_runs)
 
-    # Keep only raw files for runs we're actually storing
-    kept_run_ids = {run["id"] for run in merged}
-    cleanup_old_raw_files(raw_dir, kept_run_ids)
-
     with open(json_path, "w") as f:
         json.dump(merged, f, indent=2)
 
     print(f"\nSaved {len(merged)} records to {json_path}")
+
+    # raw/ is shared with the sibling flp/grt invocation; cleanup must keep ids
+    # referenced by ANY runs_PD_*.json, not just the one just written above.
+    cleanup_old_raw_files(raw_dir, all_kept_run_ids(data_dir))
 
 
 if __name__ == "__main__":

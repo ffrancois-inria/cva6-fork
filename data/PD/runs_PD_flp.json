@@ -1,5 +1,41 @@
 [
   {
+    "id": 33503847918,
+    "run_number": 18,
+    "conclusion": "cancelled",
+    "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/33503847918",
+    "head_branch": "ffrancois-inria_ORflow-dashboard",
+    "head_sha": "07d3449c",
+    "created_at": "2026-09-01T11:42:22Z",
+    "duration_seconds": 708,
+    "total_flows": 1,
+    "passed_flows": 1,
+    "failed_flows": 0,
+    "flows": [
+      {
+        "arch": "RV32",
+        "config": "cv32a65x",
+        "conclusion": "success",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/33503847918",
+        "duration_seconds": 232,
+        "raw_json_path": "./PD-data/raw/33503847918/RV32_cv32a65x.json",
+        "logs_zip_path": "./PD-data/raw/33503847918/RV32_cv32a65x_logs.zip",
+        "metrics": {
+          "stdcell_area_um2": 15917.2,
+          "macro_area_um2": 21294.6,
+          "total_instance_area_um2": 37211.8,
+          "core_area_um2": 52089.4,
+          "die_area_um2": 54002.3,
+          "utilization": 0.714383,
+          "stdcell_kgate": 182.119,
+          "fmax_mhz": 781.17,
+          "worst_setup_slack_ps": -1051.87,
+          "timing_met": false
+        }
+      }
+    ]
+  },
+  {
     "id": 33499861531,
     "run_number": 17,
     "conclusion": "success",

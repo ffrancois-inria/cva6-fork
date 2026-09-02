@@ -1,5 +1,43 @@
 [
   {
+    "id": 33612722263,
+    "run_number": 4,
+    "conclusion": "failure",
+    "event": "workflow_dispatch",
+    "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/33612722263",
+    "head_branch": "ffrancois-inria_ORflow-dashboard",
+    "head_sha": "3914a50a",
+    "commit_subject": "ci/OR-flow: tweak BUILD.bazel OR params to avoid congestion failure on GRT flow",
+    "actor": "ffrancois-inria",
+    "created_at": "2026-09-02T09:11:09Z",
+    "duration_seconds": 17950,
+    "total_flows": 2,
+    "passed_flows": 0,
+    "failed_flows": 2,
+    "flows": [
+      {
+        "arch": "RV32",
+        "config": "cv32a65x",
+        "conclusion": "failure",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/33612722263",
+        "duration_seconds": 3689,
+        "raw_json_path": "./PD-data/raw/33612722263/RV32_cv32a65x.json",
+        "logs_zip_path": "./PD-data/raw/33612722263/RV32_cv32a65x_logs.zip",
+        "metrics": {}
+      },
+      {
+        "arch": "RV64",
+        "config": "cv64a6_imafdc_sv39_hpdcache",
+        "conclusion": "failure",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/33612722263",
+        "duration_seconds": 17946,
+        "raw_json_path": "./PD-data/raw/33612722263/RV64_cv64a6_imafdc_sv39_hpdcache.json",
+        "logs_zip_path": "./PD-data/raw/33612722263/RV64_cv64a6_imafdc_sv39_hpdcache_logs.zip",
+        "metrics": {}
+      }
+    ]
+  },
+  {
     "id": 33529355250,
     "run_number": 3,
     "conclusion": "failure",

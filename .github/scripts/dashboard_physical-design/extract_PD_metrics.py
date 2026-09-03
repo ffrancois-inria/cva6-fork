@@ -337,7 +337,8 @@ def download_and_zip_logs(
 
     logs_map = {}
     for arch, config, artifact_dir in iter_artifact_dirs(dest_dir, logs_prefix):
-        log_files = sorted(artifact_dir.rglob("*.log"))
+        # Get all files in the artifact (logs + reports)
+        log_files = sorted([f for f in artifact_dir.rglob("*") if f.is_file()])
         if not log_files:
             print(f"  WARNING: no .log files in artifact {artifact_dir.name}", file=sys.stderr)
             continue

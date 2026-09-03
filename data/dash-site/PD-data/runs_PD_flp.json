@@ -1,5 +1,44 @@
 [
   {
+    "id": 33766693535,
+    "run_number": 22,
+    "conclusion": "cancelled",
+    "event": "push",
+    "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/33766693535",
+    "head_branch": "ffrancois-inria_ORflow-dashboard",
+    "head_sha": "adc27025",
+    "commit_subject": "ci/OR-flow: important constraints.sdc fix + OR build params testing",
+    "actor": "ffrancois-inria",
+    "created_at": "2026-09-03T14:24:51Z",
+    "duration_seconds": 10870,
+    "total_flows": 1,
+    "passed_flows": 1,
+    "failed_flows": 0,
+    "flows": [
+      {
+        "arch": "RV32",
+        "config": "cv32a65x",
+        "conclusion": "success",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/33766693535",
+        "duration_seconds": 1056,
+        "raw_json_path": "./PD-data/raw/33766693535/RV32_cv32a65x.json",
+        "logs_zip_path": "./PD-data/raw/33766693535/RV32_cv32a65x_logs.zip",
+        "metrics": {
+          "stdcell_area_um2": 12337,
+          "macro_area_um2": 21294.6,
+          "total_instance_area_um2": 33631.6,
+          "core_area_um2": 47194.1,
+          "die_area_um2": 49057.8,
+          "utilization": 0.712623,
+          "stdcell_kgate": 141.1556,
+          "fmax_mhz": 503.11,
+          "worst_setup_slack_ps": 12.367,
+          "timing_met": true
+        }
+      }
+    ]
+  },
+  {
     "id": 33612678060,
     "run_number": 21,
     "conclusion": "success",

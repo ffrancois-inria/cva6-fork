@@ -1,5 +1,19 @@
 [
   {
+    "id": 34017647836,
+    "run_number": 6,
+    "conclusion": "failure",
+    "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/34017647836",
+    "head_branch": "master",
+    "head_sha": "e491e192",
+    "created_at": "2026-09-06T06:52:38Z",
+    "duration_seconds": 225,
+    "total_flows": 0,
+    "passed_flows": 0,
+    "failed_flows": 0,
+    "flows": []
+  },
+  {
     "id": 33768106617,
     "run_number": 5,
     "conclusion": "failure",

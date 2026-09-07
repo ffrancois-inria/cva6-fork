@@ -1,7 +1,7 @@
 # cva6.sv has a single clock
 set clk_name clk
 set clk_port_name clk
-set clk_period 2000
+set clk_period 4000
 
 if {[llength [all_registers]] > 0} {
   # Parts of this constraint file are inspired from:

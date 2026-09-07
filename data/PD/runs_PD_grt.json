@@ -1,5 +1,43 @@
 [
   {
+    "id": 34105472990,
+    "run_number": 7,
+    "conclusion": "failure",
+    "event": "workflow_dispatch",
+    "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/34105472990",
+    "head_branch": "ffrancois-inria_ORflow-dashboard",
+    "head_sha": "42f8f054",
+    "commit_subject": "ci/OR-flow: switch to hybrid synth, and increase clock period",
+    "actor": "ffrancois-inria",
+    "created_at": "2026-09-07T09:20:39Z",
+    "duration_seconds": 21051,
+    "total_flows": 2,
+    "passed_flows": 0,
+    "failed_flows": 2,
+    "flows": [
+      {
+        "arch": "RV32",
+        "config": "cv32a65x",
+        "conclusion": "failure",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/34105472990",
+        "duration_seconds": 2778,
+        "raw_json_path": "./PD-data/raw/34105472990/RV32_cv32a65x.json",
+        "logs_zip_path": "./PD-data/raw/34105472990/RV32_cv32a65x_logs.zip",
+        "metrics": {}
+      },
+      {
+        "arch": "RV64",
+        "config": "cv64a6_imafdc_sv39_hpdcache_wb",
+        "conclusion": "failure",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/34105472990",
+        "duration_seconds": 21046,
+        "raw_json_path": "./PD-data/raw/34105472990/RV64_cv64a6_imafdc_sv39_hpdcache_wb.json",
+        "logs_zip_path": "./PD-data/raw/34105472990/RV64_cv64a6_imafdc_sv39_hpdcache_wb_logs.zip",
+        "metrics": {}
+      }
+    ]
+  },
+  {
     "id": 34017647836,
     "run_number": 6,
     "conclusion": "failure",

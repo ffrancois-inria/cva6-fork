@@ -107,7 +107,7 @@
       <a class="nav-link active" href="PD_dashboard.html">⚡ PD Dashboard</a>
     </div>
     <span class="navbar-text text-muted" style="font-size:0.85rem">
-      Generated: 2026-09-07 10:36 CEST
+      Generated: 2026-09-07 12:28 CEST
     </span>
   </div>
 </nav>
@@ -122,7 +122,7 @@
   <div class="row g-3">
     
     <div class="col-md-6">
-      <div class="card status-card shadow-sm fail">
+      <div class="card status-card shadow-sm pass">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
@@ -130,7 +130,7 @@
               <small class="text-muted">Push-triggered · Floorplan</small>
             </div>
             
-              <span class="badge badge-fail">FAIL</span>
+              <span class="badge badge-pass">PASS</span>
             
           </div>
           <div class="text-muted" style="font-size:0.8rem">
@@ -140,25 +140,23 @@
             <div>
               <strong>Commit:</strong>
               
-                ci/PD-dash: add reports dowload to dashboard
-                
-                  <em>(manual trigger)</em>
+                ci/OR-flow: switch to hybrid synth, and increase clock period
                 
               
-              &middot; <code>75e1c046</code>
+              &middot; <code>42f8f054</code>
             </div>
             <div>
               <strong>Flows:</strong>
-              <span class="text-success">1 passed</span>
+              <span class="text-success">3 passed</span>
               
-              (1 total)
+              (3 total)
             </div>
             <div>
-              <strong>Duration:</strong> 35m 32s
-              &middot; <strong>Run:</strong> #23
+              <strong>Duration:</strong> 1h 8m
+              &middot; <strong>Run:</strong> #24
             </div>
             <div>
-              <strong>Created at:</strong> 2026-09-07 10:00 CEST
+              <strong>Created at:</strong> 2026-09-07 11:19 CEST
             </div>
           </div>
           
@@ -184,34 +182,84 @@
                     <td><code style="font-size:0.78rem">cv32a65x</code></td>
                     <td>
                       
-                        503.11
+                        372.49
                         
                           
-                          <span style="color: #6c757d; font-size:0.78rem; font-weight:600">
-                            (+0.0)
+                          <span style="color: #dc3545; font-size:0.78rem; font-weight:600">
+                            (-130.62)
                           </span>
                         
                       
                     </td>
                     <td>
                       
-                        141.16
+                        170.41
                         
                           
-                          <span style="color: #6c757d; font-size:0.78rem; font-weight:600">
-                            (+0.0)
+                          <span style="color: #dc3545; font-size:0.78rem; font-weight:600">
+                            (+29.25)
                           </span>
                         
                       
                     </td>
                     <td>
                       
-                        12.37
+                        1315.35
                         
                           
-                          <span style="color: #6c757d; font-size:0.78rem; font-weight:600">
-                            (+0.0)
+                          <span style="color: #dc3545; font-size:0.78rem; font-weight:600">
+                            (+1302.98)
                           </span>
+                        
+                      
+                    </td>
+                  </tr>
+                  
+                  
+                  
+                  <tr>
+                    <td>RV64</td>
+                    <td><code style="font-size:0.78rem">cv64a6_imafdc_sv39_hpdcache</code></td>
+                    <td>
+                      
+                        368.44
+                        
+                      
+                    </td>
+                    <td>
+                      
+                        500.13
+                        
+                      
+                    </td>
+                    <td>
+                      
+                        1285.88
+                        
+                      
+                    </td>
+                  </tr>
+                  
+                  
+                  
+                  <tr>
+                    <td>RV64</td>
+                    <td><code style="font-size:0.78rem">cv64a6_imafdc_sv39_hpdcache_wb</code></td>
+                    <td>
+                      
+                        366.48
+                        
+                      
+                    </td>
+                    <td>
+                      
+                        499.54
+                        
+                      
+                    </td>
+                    <td>
+                      
+                        1271.31
                         
                       
                     </td>
@@ -223,7 +271,7 @@
           </div>
           
           <div class="mt-2">
-            <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/34098309180" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">
+            <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/34105399016" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">
               View on GitHub &rarr;
             </a>
           </div>
@@ -393,7 +441,7 @@
         <button class="accordion-button " type="button"
                 data-bs-toggle="collapse" data-bs-target="#collapse-flp">
           OR-flow-floorplan
-          <span class="badge bg-secondary ms-2">23 runs</span>
+          <span class="badge bg-secondary ms-2">24 runs</span>
         </button>
       </h2>
       <div id="collapse-flp" class="accordion-collapse collapse show"
@@ -401,6 +449,167 @@
         <div class="accordion-body p-2">
           
           <div class="accordion" id="runsAccordion-flp">
+            
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#run-flp-34105399016"
+                        style="font-size:0.85rem">
+                  
+                    <span class="badge badge-pass me-2">PASS</span>
+                  
+                  #24
+                  &middot;&nbsp;
+                  
+                    <span style="font-weight: 600">ci/OR-flow: switch to hybrid synth, and increase clock period</span>
+                    
+                  
+                  &nbsp;&middot;&nbsp; <span class="text-muted">ffrancois-inria_ORflow-dashboard</span>
+                  &nbsp;&middot;&nbsp; <code>42f8f054</code>
+                  &nbsp;&middot; 1h 8m
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-09-07 11:19 CEST</span>
+                </button>
+              </h2>
+              <div id="run-flp-34105399016" class="accordion-collapse collapse"
+                   data-bs-parent="#runsAccordion-flp">
+                <div class="accordion-body p-2">
+                  <div class="mb-2" style="font-size:0.8rem">
+                    
+                    <div class="text-muted mb-1">Authored by: <strong>ffrancois-inria</strong></div>
+                    
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/34105399016" target="_blank" rel="noopener">View on GitHub</a>
+                    &middot; Event: push
+                    &middot; Flows: 3/3 passed
+                  </div>
+                  
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover flow-table mb-0">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Arch</th>
+                          <th>Config</th>
+                          <th>fmax (MHz)</th>
+                          <th>Stdcell Area (Kgate)</th>
+                          <th>Worst Slack (ps)</th>
+                          <th>Status</th>
+                          <th>Duration</th>
+                          <th>Downloads</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        
+                        <tr>
+                          <td>RV32</td>
+                          <td><code>cv32a65x</code></td>
+                          <td>372.49</td>
+                          <td>170.41</td>
+                          <td>1315.35</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>14m 58s</td>
+                          <td>
+                            <div class="d-flex gap-1 flex-wrap">
+                              
+                                <a href="./PD-data/raw/34105399016/RV32_cv32a65x.json"
+                                  class="btn btn-sm btn-outline-primary"
+                                  download="run24_RV32-cv32a65x.json"
+                                  title="Download raw JSON metrics">
+                                  📥 JSON
+                                </a>
+                              
+                              
+                                <a href="./PD-data/raw/34105399016/RV32_cv32a65x_logs.zip"
+                                  class="btn btn-sm btn-outline-secondary"
+                                  download="run24_RV32-cv32a65x-logs.zip"
+                                  title="Download stage logs & reports (.zip)">
+                                  📋 Logs & Reports
+                                </a>
+                              
+                              
+                            </div>
+                          </td>
+                        </tr>
+                        
+                        <tr>
+                          <td>RV64</td>
+                          <td><code>cv64a6_imafdc_sv39_hpdcache</code></td>
+                          <td>368.44</td>
+                          <td>500.13</td>
+                          <td>1285.88</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>1h 8m</td>
+                          <td>
+                            <div class="d-flex gap-1 flex-wrap">
+                              
+                                <a href="./PD-data/raw/34105399016/RV64_cv64a6_imafdc_sv39_hpdcache.json"
+                                  class="btn btn-sm btn-outline-primary"
+                                  download="run24_RV64-cv64a6_imafdc_sv39_hpdcache.json"
+                                  title="Download raw JSON metrics">
+                                  📥 JSON
+                                </a>
+                              
+                              
+                                <a href="./PD-data/raw/34105399016/RV64_cv64a6_imafdc_sv39_hpdcache_logs.zip"
+                                  class="btn btn-sm btn-outline-secondary"
+                                  download="run24_RV64-cv64a6_imafdc_sv39_hpdcache-logs.zip"
+                                  title="Download stage logs & reports (.zip)">
+                                  📋 Logs & Reports
+                                </a>
+                              
+                              
+                            </div>
+                          </td>
+                        </tr>
+                        
+                        <tr>
+                          <td>RV64</td>
+                          <td><code>cv64a6_imafdc_sv39_hpdcache_wb</code></td>
+                          <td>366.48</td>
+                          <td>499.54</td>
+                          <td>1271.31</td>
+                          <td>
+                            
+                              <span class="badge badge-pass">PASS</span>
+                            
+                          </td>
+                          <td>1h 4m</td>
+                          <td>
+                            <div class="d-flex gap-1 flex-wrap">
+                              
+                                <a href="./PD-data/raw/34105399016/RV64_cv64a6_imafdc_sv39_hpdcache_wb.json"
+                                  class="btn btn-sm btn-outline-primary"
+                                  download="run24_RV64-cv64a6_imafdc_sv39_hpdcache_wb.json"
+                                  title="Download raw JSON metrics">
+                                  📥 JSON
+                                </a>
+                              
+                              
+                                <a href="./PD-data/raw/34105399016/RV64_cv64a6_imafdc_sv39_hpdcache_wb_logs.zip"
+                                  class="btn btn-sm btn-outline-secondary"
+                                  download="run24_RV64-cv64a6_imafdc_sv39_hpdcache_wb-logs.zip"
+                                  title="Download stage logs & reports (.zip)">
+                                  📋 Logs & Reports
+                                </a>
+                              
+                              
+                            </div>
+                          </td>
+                        </tr>
+                        
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                </div>
+              </div>
+            </div>
             
             <div class="accordion-item">
               <h2 class="accordion-header">
@@ -2264,44 +2473,6 @@
               </div>
             </div>
             
-            <div class="accordion-item">
-              <h2 class="accordion-header">
-                <button class="accordion-button collapsed py-2" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#run-flp-33081497871"
-                        style="font-size:0.85rem">
-                  
-                    <span class="badge badge-skip me-2">CANCELLED</span>
-                  
-                  #4
-                  &middot;&nbsp;
-                  
-                    <span style="font-weight: 600">ci: bump runners os version</span>
-                    
-                  
-                  &nbsp;&middot;&nbsp; <span class="text-muted">ffrancois-inria_ORflow-dashboard</span>
-                  &nbsp;&middot;&nbsp; <code>b39158b3</code>
-                  &nbsp;&middot; 1h 31m
-                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-08-27 16:18 CEST</span>
-                </button>
-              </h2>
-              <div id="run-flp-33081497871" class="accordion-collapse collapse"
-                   data-bs-parent="#runsAccordion-flp">
-                <div class="accordion-body p-2">
-                  <div class="mb-2" style="font-size:0.8rem">
-                    
-                    <div class="text-muted mb-1">Authored by: <strong>ffrancois-inria</strong></div>
-                    
-                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/33081497871" target="_blank" rel="noopener">View on GitHub</a>
-                    &middot; Event: push
-                    &middot; Flows: 0/0 passed
-                  </div>
-                  
-                  <div class="text-muted">No flow data available.</div>
-                  
-                </div>
-              </div>
-            </div>
-            
           </div>
           
         </div>
@@ -2864,7 +3035,7 @@
       </div>
       <div class="col-md-6 text-md-end">
         <small class="text-light opacity-75">
-          Generated: 2026-09-07 10:36 CEST
+          Generated: 2026-09-07 12:28 CEST
           &middot; <a href="https://github.com/ffrancois-inria/cva6-fork" class="text-light" target="_blank" rel="noopener">Source</a>
         </small>
       </div>
@@ -2878,7 +3049,7 @@
 // ============================================================
 // Chart.js Trend Charts
 // ============================================================
-const chartData = {"flp": {"labels": ["4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"], "series": {"cv64a6_imafdc_sv39_hpdcache_base": {"fmax_mhz": [null, null, null, null, null, null, null, null, 632.19, null, 632.19, 623.0, null, null, null, null, null, null, null, null], "stdcell_kgate": [null, null, null, null, null, null, null, null, 525.95, null, 525.95, 586.11, null, null, null, null, null, null, null, null], "worst_setup_slack_ps": [null, null, null, null, null, null, null, null, -1470.52, null, -1470.52, -1499.65, null, null, null, null, null, null, null, null], "timing_met": [null, null, null, null, null, null, null, null, false, null, false, false, null, null, null, null, null, null, null, null]}, "cv64a6_imafdc_sv39_hpdcache_wb_base": {"fmax_mhz": [null, null, null, null, null, null, null, null, 631.15, null, 631.15, 613.27, null, null, null, null, null, null, null, null], "stdcell_kgate": [null, null, null, null, null, null, null, null, 526.65, null, 526.65, 588.42, null, null, null, null, null, null, null, null], "worst_setup_slack_ps": [null, null, null, null, null, null, null, null, -1477.12, null, -1477.12, -1525.1, null, null, null, null, null, null, null, null], "timing_met": [null, null, null, null, null, null, null, null, false, null, false, false, null, null, null, null, null, null, null, null]}, "cv32a65x_base": {"fmax_mhz": [null, null, null, null, null, null, null, null, 781.17, 781.17, 781.17, 765.72, null, null, null, null, null, null, null, null], "stdcell_kgate": [null, null, null, null, null, null, null, null, 182.12, 182.12, 182.12, 210.93, null, null, null, null, null, null, null, null], "worst_setup_slack_ps": [null, null, null, null, null, null, null, null, -1051.87, -1051.87, -1051.87, -1111.68, null, null, null, null, null, null, null, null], "timing_met": [null, null, null, null, null, null, null, null, false, false, false, false, null, null, null, null, null, null, null, null]}, "RV64_cv64a6_imafdc_sv39_hpdcache_wb": {"fmax_mhz": [null, null, null, null, null, null, null, null, null, null, null, null, 613.27, 613.27, null, 631.15, 631.15, 631.15, null, null], "stdcell_kgate": [null, null, null, null, null, null, null, null, null, null, null, null, 588.42, 588.42, null, 526.65, 526.65, 526.65, null, null], "worst_setup_slack_ps": [null, null, null, null, null, null, null, null, null, null, null, null, -1525.1, -1525.1, null, -1477.12, -1477.12, -1477.12, null, null], "timing_met": [null, null, null, null, null, null, null, null, null, null, null, null, false, false, null, false, false, false, null, null]}, "RV64_cv64a6_imafdc_sv39_hpdcache": {"fmax_mhz": [null, null, null, null, null, null, null, null, null, null, null, null, 623.0, 623.0, null, 632.19, 632.19, 632.19, null, null], "stdcell_kgate": [null, null, null, null, null, null, null, null, null, null, null, null, 586.11, 586.11, null, 525.95, 525.95, 525.95, null, null], "worst_setup_slack_ps": [null, null, null, null, null, null, null, null, null, null, null, null, -1499.65, -1499.65, null, -1470.52, -1470.52, -1470.52, null, null], "timing_met": [null, null, null, null, null, null, null, null, null, null, null, null, false, false, null, false, false, false, null, null]}, "RV32_cv32a65x": {"fmax_mhz": [null, null, null, null, null, null, null, null, null, null, null, null, 765.72, 765.72, 781.17, 781.17, 781.17, 781.17, 503.11, 503.11], "stdcell_kgate": [null, null, null, null, null, null, null, null, null, null, null, null, 210.93, 210.93, 182.12, 182.12, 182.12, 182.12, 141.16, 141.16], "worst_setup_slack_ps": [null, null, null, null, null, null, null, null, null, null, null, null, -1111.68, -1111.68, -1051.87, -1051.87, -1051.87, -1051.87, 12.37, 12.37], "timing_met": [null, null, null, null, null, null, null, null, null, null, null, null, false, false, false, false, false, false, true, true]}}, "pass_rates": [0, 0, 0, 0, 0, 0, 0, 0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0], "durations": [91.3, 3.5, 0.5, 6.6, 7.0, 5.7, 113.3, 11.1, 114.6, 180.7, 35.2, 44.2, 4.8, 4.2, 11.8, 35.4, 36.0, 4.2, 181.2, 35.5]}, "grt": {"labels": ["1", "2", "3", "4", "5", "6"], "series": {"RV64_cv64a6_imafdc_sv39_hpdcache": {"fmax_mhz": [null, null, null, null, null, null], "stdcell_kgate": [null, null, null, null, null, null], "worst_setup_slack_ps": [null, null, null, null, null, null], "timing_met": [null, null, null, null, null, null]}, "cv32a65x_base": {"fmax_mhz": [483.35, 483.35, null, null, null, null], "stdcell_kgate": [188.46, 188.46, null, null, null, null], "worst_setup_slack_ps": [-1553.01, -1553.01, null, null, null, null], "timing_met": [false, false, null, null, null, null]}, "RV32_cv32a65x": {"fmax_mhz": [null, null, 522.9, null, 427.28, null], "stdcell_kgate": [null, null, 188.79, null, 138.66, null], "worst_setup_slack_ps": [null, null, -1462.62, null, -340.41, null], "timing_met": [null, null, false, null, false, null]}}, "pass_rates": [100.0, 100.0, 100.0, 0.0, 100.0, 0], "durations": [254.0, 81.4, 94.4, 299.2, 179.0, 3.8]}};
+const chartData = {"flp": {"labels": ["5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"], "series": {"RV32_cv32a65x": {"fmax_mhz": [null, null, null, null, null, null, null, null, null, null, null, 765.72, 765.72, 781.17, 781.17, 781.17, 781.17, 503.11, 503.11, 372.49], "stdcell_kgate": [null, null, null, null, null, null, null, null, null, null, null, 210.93, 210.93, 182.12, 182.12, 182.12, 182.12, 141.16, 141.16, 170.41], "worst_setup_slack_ps": [null, null, null, null, null, null, null, null, null, null, null, -1111.68, -1111.68, -1051.87, -1051.87, -1051.87, -1051.87, 12.37, 12.37, 1315.35], "timing_met": [null, null, null, null, null, null, null, null, null, null, null, false, false, false, false, false, false, true, true, true]}, "RV64_cv64a6_imafdc_sv39_hpdcache_wb": {"fmax_mhz": [null, null, null, null, null, null, null, null, null, null, null, 613.27, 613.27, null, 631.15, 631.15, 631.15, null, null, 366.48], "stdcell_kgate": [null, null, null, null, null, null, null, null, null, null, null, 588.42, 588.42, null, 526.65, 526.65, 526.65, null, null, 499.54], "worst_setup_slack_ps": [null, null, null, null, null, null, null, null, null, null, null, -1525.1, -1525.1, null, -1477.12, -1477.12, -1477.12, null, null, 1271.31], "timing_met": [null, null, null, null, null, null, null, null, null, null, null, false, false, null, false, false, false, null, null, true]}, "cv64a6_imafdc_sv39_hpdcache_base": {"fmax_mhz": [null, null, null, null, null, null, null, 632.19, null, 632.19, 623.0, null, null, null, null, null, null, null, null, null], "stdcell_kgate": [null, null, null, null, null, null, null, 525.95, null, 525.95, 586.11, null, null, null, null, null, null, null, null, null], "worst_setup_slack_ps": [null, null, null, null, null, null, null, -1470.52, null, -1470.52, -1499.65, null, null, null, null, null, null, null, null, null], "timing_met": [null, null, null, null, null, null, null, false, null, false, false, null, null, null, null, null, null, null, null, null]}, "RV64_cv64a6_imafdc_sv39_hpdcache": {"fmax_mhz": [null, null, null, null, null, null, null, null, null, null, null, 623.0, 623.0, null, 632.19, 632.19, 632.19, null, null, 368.44], "stdcell_kgate": [null, null, null, null, null, null, null, null, null, null, null, 586.11, 586.11, null, 525.95, 525.95, 525.95, null, null, 500.13], "worst_setup_slack_ps": [null, null, null, null, null, null, null, null, null, null, null, -1499.65, -1499.65, null, -1470.52, -1470.52, -1470.52, null, null, 1285.88], "timing_met": [null, null, null, null, null, null, null, null, null, null, null, false, false, null, false, false, false, null, null, true]}, "cv32a65x_base": {"fmax_mhz": [null, null, null, null, null, null, null, 781.17, 781.17, 781.17, 765.72, null, null, null, null, null, null, null, null, null], "stdcell_kgate": [null, null, null, null, null, null, null, 182.12, 182.12, 182.12, 210.93, null, null, null, null, null, null, null, null, null], "worst_setup_slack_ps": [null, null, null, null, null, null, null, -1051.87, -1051.87, -1051.87, -1111.68, null, null, null, null, null, null, null, null, null], "timing_met": [null, null, null, null, null, null, null, false, false, false, false, null, null, null, null, null, null, null, null, null]}, "cv64a6_imafdc_sv39_hpdcache_wb_base": {"fmax_mhz": [null, null, null, null, null, null, null, 631.15, null, 631.15, 613.27, null, null, null, null, null, null, null, null, null], "stdcell_kgate": [null, null, null, null, null, null, null, 526.65, null, 526.65, 588.42, null, null, null, null, null, null, null, null, null], "worst_setup_slack_ps": [null, null, null, null, null, null, null, -1477.12, null, -1477.12, -1525.1, null, null, null, null, null, null, null, null, null], "timing_met": [null, null, null, null, null, null, null, false, null, false, false, null, null, null, null, null, null, null, null, null]}}, "pass_rates": [0, 0, 0, 0, 0, 0, 0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0], "durations": [3.5, 0.5, 6.6, 7.0, 5.7, 113.3, 11.1, 114.6, 180.7, 35.2, 44.2, 4.8, 4.2, 11.8, 35.4, 36.0, 4.2, 181.2, 35.5, 68.7]}, "grt": {"labels": ["1", "2", "3", "4", "5", "6"], "series": {"RV32_cv32a65x": {"fmax_mhz": [null, null, 522.9, null, 427.28, null], "stdcell_kgate": [null, null, 188.79, null, 138.66, null], "worst_setup_slack_ps": [null, null, -1462.62, null, -340.41, null], "timing_met": [null, null, false, null, false, null]}, "RV64_cv64a6_imafdc_sv39_hpdcache": {"fmax_mhz": [null, null, null, null, null, null], "stdcell_kgate": [null, null, null, null, null, null], "worst_setup_slack_ps": [null, null, null, null, null, null], "timing_met": [null, null, null, null, null, null]}, "cv32a65x_base": {"fmax_mhz": [483.35, 483.35, null, null, null, null], "stdcell_kgate": [188.46, 188.46, null, null, null, null], "worst_setup_slack_ps": [-1553.01, -1553.01, null, null, null, null], "timing_met": [false, false, null, null, null, null]}}, "pass_rates": [100.0, 100.0, 100.0, 0.0, 100.0, 0], "durations": [254.0, 81.4, 94.4, 299.2, 179.0, 3.8]}};
 
 Object.keys(chartData).forEach(key => {
   const wf = chartData[key];

@@ -13,7 +13,7 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 from collections import defaultdict
-from typing import TypedDict
+from zoneinfo import ZoneInfo
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -39,6 +39,16 @@ WORKFLOWS = [
 
 TREND_COUNT = 20
 
+# Ordered (bazel key, display label) pairs for the build parameters surfaced
+# on the dashboard. Order here controls display order in the UI.
+BUILD_PARAM_LABELS = [
+    ("CORE_UTILIZATION", "Core Utilization (%)"),
+    ("PLACE_DENSITY", "Place Density"),
+    ("ABC_CLOCK_PERIOD_IN_PS", "Target Clock Period (ps)"),
+    ("SYNTH_HIERARCHICAL", "Hierarchical Synthesis"),
+    ("SYNTH_MINIMUM_KEEP_SIZE", "Min Module Keep Size"),
+]
+
 
 def format_duration(seconds: int) -> str:
     """Format seconds into human-readable duration."""
@@ -54,12 +64,15 @@ def format_duration(seconds: int) -> str:
 
 
 def format_datetime(iso_str: str) -> str:
-    """Format ISO datetime to readable string."""
+    """Format ISO datetime to readable string (Paris time)."""
     if not iso_str:
         return "N/A"
     try:
         dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
-        return dt.strftime("%Y-%m-%d %H:%M UTC")
+        # Convert UTC to Paris time
+        paris_tz = ZoneInfo("Europe/Paris")
+        dt_paris = dt.astimezone(paris_tz)
+        return dt_paris.strftime("%Y-%m-%d %H:%M %Z")
     except (ValueError, TypeError):
         return iso_str
 
@@ -191,6 +204,12 @@ def enrich_run(run: dict) -> dict:
     run["created_at_display"] = format_datetime(run.get("created_at", ""))
     for flow in run.get("flows", []):
         flow["duration_display"] = format_duration(flow.get("duration_seconds", 0))
+    build_params = run.get("build_params") or {}
+    run["build_params_display"] = [
+        {"label": label, "value": build_params[key]}
+        for key, label in BUILD_PARAM_LABELS
+        if key in build_params
+    ]
     return run
 
 
@@ -318,7 +337,7 @@ def main():
                 break
 
     context = {
-        "generated_at": now.strftime("%Y-%m-%d %H:%M UTC"),
+        "generated_at": format_datetime(now.isoformat()),
         "year": now.year,
         "repo": args.repo,
         "workflows": workflows,

@@ -137,19 +137,20 @@
               <span class="badge badge-skip">{{ wf.latest.conclusion|upper }}</span>
             {% endif %}
           </div>
-          <!-- {% if wf.latest.flows %}
-            <div style="font-size:0.9rem">
-              <div>
-                <strong>Fmax (MHz):</strong> {{ wf.latest.flows[0].metrics.fmax_mhz }}
-                &middot; <strong>Area (Kgate):</strong> {{ wf.latest.flows[0].metrics.stdcell_kgate }}
-                &middot; <strong>Worst slack (ps):</strong> {{ wf.latest.flows[0].metrics.worst_setup_slack_ps }}
-              </div>
-            </div>
-          {% endif %} -->
           <div class="text-muted" style="font-size:0.8rem">
-            <!-- <div> — </div> -->
             <div>
               <strong>Branch:</strong> {{ wf.latest.head_branch }}
+            </div>
+            <div>
+              <strong>Commit:</strong>
+              {% if wf.latest.commit_subject %}
+                {{ wf.latest.commit_subject }}
+                {% if wf.latest.event == 'workflow_dispatch' %}
+                  <em>(manual trigger)</em>
+                {% endif %}
+              {% else %}
+                <span class="text-muted">N/A</span>
+              {% endif %}
               &middot; <code>{{ wf.latest.head_sha }}</code>
             </div>
             <div>
@@ -168,6 +169,23 @@
               <strong>Created at:</strong> {{ wf.latest.created_at_display }}
             </div>
           </div>
+          {% if wf.latest.build_params_display %}
+          <div class="mt-3">
+            <div class="text-muted mb-1" style="font-size:0.87rem; font-weight:600; text-transform:uppercase; letter-spacing:0.03em">Build parameters</div>
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered mb-0" style="font-size:0.78rem">
+                <tbody>
+                  <tr>
+                    {% for p in wf.latest.build_params_display %}<th class="table-light fw-normal">{{ p.label }}</th>{% endfor %}
+                  </tr>
+                  <tr>
+                    {% for p in wf.latest.build_params_display %}<td><code style="font-size:0.78rem">{{ p.value }}</code></td>{% endfor %}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% endif %}
           {% if wf.latest.flows %}
           <div class="mt-3">
             <div class="text-muted mb-1" style="font-size:0.87rem; font-weight:600; text-transform:uppercase; letter-spacing:0.03em">Latest run results</div>
@@ -178,7 +196,7 @@
                     <th>Arch</th>
                     <th>Config</th>
                     <th>fmax (MHz)</th>
-                    <th>Area (Kgate)</th>
+                    <th>Stdcell Area (Kgate)</th>
                     <th>Worst Slack (ps)</th>
                   </tr>
                 </thead>
@@ -253,7 +271,7 @@
     <div class="col-lg-4">
       <div class="card shadow-sm">
         <div class="card-header py-2" style="font-size:0.85rem">
-          {{ wf.display_name }}.yml - fmax (MHz)
+          {{ wf.display_name }}.yml - <strong>fmax</strong> (MHz)
         </div>
         <div class="card-body p-2">
           <div class="chart-container">
@@ -267,7 +285,7 @@
     <div class="col-lg-4">
       <div class="card shadow-sm">
         <div class="card-header py-2" style="font-size:0.85rem">
-          {{ wf.display_name }}.yml - Area (Kgate)
+          {{ wf.display_name }}.yml - <strong>Stdcell Area</strong> (Kgate)
         </div>
         <div class="card-body p-2">
           <div class="chart-container">
@@ -281,7 +299,7 @@
     <div class="col-lg-4">
       <div class="card shadow-sm">
         <div class="card-header py-2" style="font-size:0.85rem">
-          {{ wf.display_name }}.yml - Worst Slack (ps)
+          {{ wf.display_name }}.yml - <strong>Worst Slack</strong> (ps)
         </div>
         <div class="card-body p-2">
           <div class="chart-container">
@@ -328,9 +346,16 @@
                     <span class="badge badge-skip me-2">{{ run.conclusion|upper }}</span>
                   {% endif %}
                   #{{ run.run_number }}
-                  &middot; {{ run.head_branch }}
-                  &middot; <code>{{ run.head_sha }}</code>
-                  &middot; {{ run.duration_display }}
+                  &middot;&nbsp;
+                  {% if run.commit_subject %}
+                    <span style="font-weight: 600">{{ run.commit_subject }}</span>
+                    {% if run.event == 'workflow_dispatch' %}
+                      &nbsp; <strong class="text-secondary"><em>(manual trigger)</em></strong>
+                    {% endif %}
+                  {% endif %}
+                  &nbsp;&middot;&nbsp; <span class="text-muted">{{ run.head_branch }}</span>
+                  &nbsp;&middot;&nbsp; <code>{{ run.head_sha }}</code>
+                  &nbsp;&middot; {{ run.duration_display }}
                   <span class="ms-auto text-muted" style="font-size:0.75rem">{{ run.created_at_display }}</span>
                 </button>
               </h2>
@@ -338,10 +363,30 @@
                    data-bs-parent="#runsAccordion-{{ wf.key }}">
                 <div class="accordion-body p-2">
                   <div class="mb-2" style="font-size:0.8rem">
+                    {% if run.actor %}
+                    <div class="text-muted mb-1">Authored by: <strong>{{ run.actor }}</strong></div>
+                    {% endif %}
                     <a href="{{ run.html_url }}" target="_blank" rel="noopener">View on GitHub</a>
                     &middot; Event: {{ run.event }}
                     &middot; Flows: {{ run.passed_flows }}/{{ run.total_flows }} passed
                   </div>
+                  {% if run.build_params_display %}
+                  <div class="mb-2">
+                    <div class="text-muted mb-1" style="font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.03em">Build parameters</div>
+                    <div class="table-responsive">
+                      <table class="table table-sm table-bordered mb-0" style="font-size:0.78rem">
+                        <tbody>
+                          <tr>
+                            {% for p in run.build_params_display %}<th class="table-light fw-normal">{{ p.label }}</th>{% endfor %}
+                          </tr>
+                          <tr>
+                            {% for p in run.build_params_display %}<td><code style="font-size:0.78rem">{{ p.value }}</code></td>{% endfor %}
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  {% endif %}
                   {% if run.flows %}
                   <div class="table-responsive">
                     <table class="table table-sm table-hover flow-table mb-0">
@@ -350,7 +395,7 @@
                           <th>Arch</th>
                           <th>Config</th>
                           <th>fmax (MHz)</th>
-                          <th>Area (Kgate)</th>
+                          <th>Stdcell Area (Kgate)</th>
                           <th>Worst Slack (ps)</th>
                           <th>Status</th>
                           <th>Duration</th>
@@ -380,7 +425,7 @@
                               {% if flow.raw_json_path %}
                                 <a href="{{ flow.raw_json_path }}"
                                   class="btn btn-sm btn-outline-primary"
-                                  download="{{ flow.arch }}-{{ flow.config }}.json"
+                                  download="run{{ run.run_number }}_{{ flow.arch }}-{{ flow.config }}.json"
                                   title="Download raw JSON metrics">
                                   📥 JSON
                                 </a>
@@ -388,9 +433,9 @@
                               {% if flow.logs_zip_path %}
                                 <a href="{{ flow.logs_zip_path }}"
                                   class="btn btn-sm btn-outline-secondary"
-                                  download="{{ flow.arch }}-{{ flow.config }}-logs.zip"
-                                  title="Download stage logs (.zip)">
-                                  📋 Logs
+                                  download="run{{ run.run_number }}_{{ flow.arch }}-{{ flow.config }}-logs.zip"
+                                  title="Download stage logs & reports (.zip)">
+                                  📋 Logs & Reports
                                 </a>
                               {% endif %}
                               {% if not flow.raw_json_path and not flow.logs_zip_path %}

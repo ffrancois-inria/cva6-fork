@@ -67,13 +67,25 @@ jobs:
         # explicit disk cache (not the output base); GC limit set to 2 GB in .bazelrc
         # Using fast variant bazel target (macros abstract_stage = place)
         run: |
-          for attempt in 1 2 3; do
-            bazel build \
-              --disk_cache="$HOME/.cache/bazel-disk-cache" \
-              --repository_cache="$HOME/.cache/bazel-repo-cache" \
-              //:${{ matrix.config }}_fast_floorplan && break
-            [ "$attempt" -lt 3 ] && echo "Attempt $attempt failed, retrying in 30s..." && sleep 30
+          bazel run \
+            --disk_cache="$HOME/.cache/bazel-disk-cache" \
+            --repository_cache="$HOME/.cache/bazel-repo-cache" \
+            //:${{ matrix.config }}_fast_floorplan \
+            print-CORE_UTILIZATION print-PLACE_DENSITY print-ABC_CLOCK_PERIOD_IN_PS print-SYNTH_HIERARCHICAL print-SYNTH_MINIMUM_KEEP_SIZE \
+            2>&1 | tee bazel-build-output.log
+
+      - name: Extract build parameters
+        # Parses the print-VAR output captured above to extract bazel build arguments 
+        # that most affect PPA metrics
+        if: always()
+        run: |
+          mkdir -p bazel-bin/logs/asap7/cva6/base
+          json="{}"
+          for var in CORE_UTILIZATION PLACE_DENSITY ABC_CLOCK_PERIOD_IN_PS SYNTH_HIERARCHICAL SYNTH_MINIMUM_KEEP_SIZE; do
+            value=$(grep "^$var:" bazel-build-output.log | tail -n1 | cut -d' ' -f2-) || value=""
+            json=$(echo "$json" | jq --arg k "$var" --arg v "$value" '.[$k] = $v')
           done
+          echo "$json" | tee bazel-bin/logs/asap7/cva6/base/build_params.json
 
       - name: Save Bazel disk cache
         uses: actions/cache/save@v4
@@ -105,4 +117,5 @@ jobs:
           path: |
             bazel-bin/logs/asap7/cva6/base/*.log
             bazel-bin/reports/asap7/cva6/base/*
+            bazel-bin/logs/asap7/cva6/base/build_params.json
           if-no-files-found: warn

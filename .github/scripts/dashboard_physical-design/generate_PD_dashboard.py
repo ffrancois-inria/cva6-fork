@@ -39,6 +39,16 @@ WORKFLOWS = [
 
 TREND_COUNT = 20
 
+# Ordered (bazel key, display label) pairs for the build parameters surfaced
+# on the dashboard. Order here controls display order in the UI.
+BUILD_PARAM_LABELS = [
+    ("CORE_UTILIZATION", "Core Utilization (%)"),
+    ("PLACE_DENSITY", "Place Density"),
+    ("ABC_CLOCK_PERIOD_IN_PS", "Target Clock Period (ps)"),
+    ("SYNTH_HIERARCHICAL", "Hierarchical Synthesis"),
+    ("SYNTH_MINIMUM_KEEP_SIZE", "Min Module Keep Size"),
+]
+
 
 def format_duration(seconds: int) -> str:
     """Format seconds into human-readable duration."""
@@ -194,6 +204,12 @@ def enrich_run(run: dict) -> dict:
     run["created_at_display"] = format_datetime(run.get("created_at", ""))
     for flow in run.get("flows", []):
         flow["duration_display"] = format_duration(flow.get("duration_seconds", 0))
+    build_params = run.get("build_params") or {}
+    run["build_params_display"] = [
+        {"label": label, "value": build_params[key]}
+        for key, label in BUILD_PARAM_LABELS
+        if key in build_params
+    ]
     return run
 
 

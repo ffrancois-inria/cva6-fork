@@ -1,5 +1,63 @@
 [
   {
+    "id": 34588024775,
+    "run_number": 8,
+    "conclusion": "failure",
+    "event": "workflow_dispatch",
+    "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/34588024775",
+    "head_branch": "ffrancois-inria_ORflow-dashboard",
+    "head_sha": "728cd8f5",
+    "commit_subject": "ci/OR-flow: lower build constraints for GRT target",
+    "actor": "ffrancois-inria",
+    "created_at": "2026-09-11T10:11:57Z",
+    "duration_seconds": 4194,
+    "total_flows": 3,
+    "passed_flows": 1,
+    "failed_flows": 2,
+    "flows": [
+      {
+        "arch": "RV64",
+        "config": "cv64a6_imafdc_sv39_hpdcache_wb",
+        "conclusion": "failure",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/34588024775",
+        "duration_seconds": 4188,
+        "raw_json_path": null,
+        "logs_zip_path": "./PD-data/raw/34588024775/RV64_cv64a6_imafdc_sv39_hpdcache_wb_logs.zip",
+        "metrics": {}
+      },
+      {
+        "arch": "RV32",
+        "config": "cv32a65x",
+        "conclusion": "success",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/34588024775",
+        "duration_seconds": 2233,
+        "raw_json_path": "./PD-data/raw/34588024775/RV32_cv32a65x.json",
+        "logs_zip_path": "./PD-data/raw/34588024775/RV32_cv32a65x_logs.zip",
+        "metrics": {
+          "stdcell_area_um2": 14302.6,
+          "macro_area_um2": 21294.6,
+          "total_instance_area_um2": 35597.2,
+          "core_area_um2": 57265,
+          "die_area_um2": 59267.9,
+          "stdcell_kgate": 163.6453,
+          "fmax_mhz": 312.67,
+          "worst_setup_slack_ps": 801.742,
+          "timing_met": true
+        }
+      },
+      {
+        "arch": "RV64",
+        "config": "cv64a6_imafdc_sv39_hpdcache",
+        "conclusion": "failure",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/34588024775",
+        "duration_seconds": 3403,
+        "raw_json_path": null,
+        "logs_zip_path": "./PD-data/raw/34588024775/RV64_cv64a6_imafdc_sv39_hpdcache_logs.zip",
+        "metrics": {}
+      }
+    ]
+  },
+  {
     "id": 34105472990,
     "run_number": 7,
     "conclusion": "failure",

@@ -377,10 +377,15 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
 
         logs_prefix = LOGS_ARTIFACT_PREFIX[artifact_prefix]
         logs_map = download_and_zip_logs(repo, run_id, tmp_path / "logs", logs_prefix, run_raw_dir)
+        
+        json_map = {(arch, config): json_path for arch, config, json_path in json_list}
 
         flows = []
-        for arch, config, json_path in json_list:
+        for arch, config in json_map.keys() | logs_map.keys():
+            json_path = json_map.get((arch, config))
             try:
+                if json_path is None:
+                    raise FileNotFoundError("no metrics artifact (job failed before upload)")
                 with open(json_path) as f:
                     data = json.load(f)
                 metrics    = extractor(data, nand2_area)
@@ -392,12 +397,11 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
                     f"stdcell={metrics['stdcell_area_um2']:.3f} µm²  "
                     f"({metrics['stdcell_kgate']:.2f} Kgate)  [{timing_str}]"
                 )
-            except (json.JSONDecodeError, KeyError, IOError) as exc:
+            except (json.JSONDecodeError, KeyError, IOError, FileNotFoundError) as exc:
                 print(f"    [FAILURE] {arch}/{config}: {exc}", file=sys.stderr)
                 metrics    = {}
                 conclusion = "failure"
 
-            # Job name in the workflow is set to `${{ matrix.config }}`, matching `config`
             flow_dur = job_durations.get(config, 0)
             flows.append({
                 "arch":             arch,
@@ -405,7 +409,7 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
                 "conclusion":       conclusion,
                 "html_url":         run.get("html_url", ""),
                 "duration_seconds": flow_dur,
-                "raw_json_path":    f"./PD-data/raw/{run_id}/{arch}_{config}.json",
+                "raw_json_path":    f"./PD-data/raw/{run_id}/{arch}_{config}.json" if json_path else None,
                 "logs_zip_path":    logs_map.get((arch, config)),
                 "metrics":          metrics,
             })

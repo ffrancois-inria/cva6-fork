@@ -1,5 +1,54 @@
 [
   {
+    "id": 34744620143,
+    "run_number": 10,
+    "conclusion": "success",
+    "event": "schedule",
+    "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/34744620143",
+    "head_branch": "master",
+    "head_sha": "f0ed24d6",
+    "commit_subject": "Merge pull request #8 from ffrancois-inria/ffrancois-inria_ORflow-dashboard",
+    "actor": "ffrancois-inria",
+    "created_at": "2026-09-13T07:11:44Z",
+    "duration_seconds": 115,
+    "total_flows": 3,
+    "passed_flows": 0,
+    "failed_flows": 3,
+    "flows": [
+      {
+        "arch": "RV64",
+        "config": "cv64a6_imafdc_sv39_hpdcache_wb",
+        "conclusion": "failure",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/34744620143",
+        "duration_seconds": 109,
+        "raw_json_path": null,
+        "logs_zip_path": "./PD-data/raw/34744620143/RV64_cv64a6_imafdc_sv39_hpdcache_wb_logs.zip",
+        "metrics": {}
+      },
+      {
+        "arch": "RV64",
+        "config": "cv64a6_imafdc_sv39_hpdcache",
+        "conclusion": "failure",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/34744620143",
+        "duration_seconds": 106,
+        "raw_json_path": null,
+        "logs_zip_path": "./PD-data/raw/34744620143/RV64_cv64a6_imafdc_sv39_hpdcache_logs.zip",
+        "metrics": {}
+      },
+      {
+        "arch": "RV32",
+        "config": "cv32a65x",
+        "conclusion": "failure",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/34744620143",
+        "duration_seconds": 113,
+        "raw_json_path": null,
+        "logs_zip_path": "./PD-data/raw/34744620143/RV32_cv32a65x_logs.zip",
+        "metrics": {}
+      }
+    ],
+    "build_params": {}
+  },
+  {
     "id": 34614271509,
     "run_number": 9,
     "conclusion": "success",

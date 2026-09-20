@@ -1,5 +1,64 @@
 [
   {
+    "id": 35496962695,
+    "run_number": 11,
+    "conclusion": "cancelled",
+    "event": "schedule",
+    "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/35496962695",
+    "head_branch": "master",
+    "head_sha": "f0ed24d6",
+    "commit_subject": "Merge pull request #8 from ffrancois-inria/ffrancois-inria_ORflow-dashboard",
+    "actor": "ffrancois-inria",
+    "created_at": "2026-09-20T07:28:31Z",
+    "duration_seconds": 21657,
+    "total_flows": 3,
+    "passed_flows": 1,
+    "failed_flows": 2,
+    "flows": [
+      {
+        "arch": "RV64",
+        "config": "cv64a6_imafdc_sv39_hpdcache",
+        "conclusion": "failure",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/35496962695",
+        "duration_seconds": 238,
+        "raw_json_path": null,
+        "logs_zip_path": "./PD-data/raw/35496962695/RV64_cv64a6_imafdc_sv39_hpdcache_logs.zip",
+        "metrics": {}
+      },
+      {
+        "arch": "RV32",
+        "config": "cv32a65x",
+        "conclusion": "success",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/35496962695",
+        "duration_seconds": 9440,
+        "raw_json_path": "./PD-data/raw/35496962695/RV32_cv32a65x.json",
+        "logs_zip_path": "./PD-data/raw/35496962695/RV32_cv32a65x_logs.zip",
+        "metrics": {
+          "stdcell_area_um2": 14301.3,
+          "macro_area_um2": 21294.6,
+          "total_instance_area_um2": 35595.9,
+          "core_area_um2": 57265,
+          "die_area_um2": 59267.9,
+          "stdcell_kgate": 163.6304,
+          "fmax_mhz": 311.74,
+          "worst_setup_slack_ps": 792.233,
+          "timing_met": true
+        }
+      },
+      {
+        "arch": "RV64",
+        "config": "cv64a6_imafdc_sv39_hpdcache_wb",
+        "conclusion": "failure",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/35496962695",
+        "duration_seconds": 21653,
+        "raw_json_path": null,
+        "logs_zip_path": "./PD-data/raw/35496962695/RV64_cv64a6_imafdc_sv39_hpdcache_wb_logs.zip",
+        "metrics": {}
+      }
+    ],
+    "build_params": {}
+  },
+  {
     "id": 34744620143,
     "run_number": 10,
     "conclusion": "success",

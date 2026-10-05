@@ -59,9 +59,14 @@ module cva6_mmu
     // Cycle 0
     output logic lsu_dtlb_hit_o,  // sent in same cycle as the request if translation hits in DTLB
     output logic [CVA6Cfg.PPNW-1:0] lsu_dtlb_ppn_o,  // ppn (send same cycle as hit)
-    // Cycle 1
+    // Cycle 1 response
     output logic lsu_valid_o,  // translation is valid
     output logic [CVA6Cfg.PLEN-1:0] lsu_paddr_o,  // translated address
+    // Metadata for the same response transaction as lsu_valid_o, lsu_paddr_o,
+    // and lsu_exception_o.
+    output logic [CVA6Cfg.VLEN-1:0] lsu_vaddr_o,
+    output logic lsu_is_store_o,
+    output logic lsu_hlvx_inst_o,
     output exception_t lsu_exception_o,  // address translation threw an exception
     // General control signals
     input riscv::priv_lvl_t priv_lvl_i,
@@ -91,6 +96,9 @@ module cva6_mmu
     input logic flush_tlb_i,
     input logic flush_tlb_vvma_i,
     input logic flush_tlb_gvma_i,
+
+    // Shared TLB is busy processing a multi-cycle flush
+    output logic shared_tlb_flush_busy_o,
 
     // Performance counters
     output logic itlb_miss_o,
@@ -274,10 +282,14 @@ module cva6_mmu
       .dtlb_hit_i   (dtlb_lu_hit),
       .dtlb_vaddr_i (lsu_vaddr_i),
 
+      .asid_to_be_flushed_i(asid_to_be_flushed_i),
+      .vaddr_to_be_flushed_i(vaddr_to_be_flushed_i),
+      .vmid_to_be_flushed_i(vmid_to_be_flushed_i),
+      .gpaddr_to_be_flushed_i(gpaddr_to_be_flushed_i),
       // to TLBs, update logic
       .itlb_update_o(update_itlb),
       .dtlb_update_o(update_dtlb),
-
+      .flush_busy_o(shared_tlb_flush_busy_o),
       // Performance counters
       .itlb_miss_o(itlb_miss_o),
       .dtlb_miss_o(dtlb_miss_o),
@@ -360,12 +372,15 @@ module cva6_mmu
   // Instruction Interface
   //-----------------------
   localparam int PPNWMin = (CVA6Cfg.PPNW - 1 > 29) ? 29 : CVA6Cfg.PPNW - 1;
+  // Width of the mid-level (2M) superpage PPN substitution for PtLevels == 3.
+  // Evaluates to 9 for Sv39 and (unused but elaboration-legal) 1 for Sv32.
+  localparam int unsigned MegaPageSubstWidth = PPNWMin - (CVA6Cfg.VpnLen / CVA6Cfg.PtLevels) - 8 - CVA6Cfg.PtLevels;
 
   // The instruction interface is a simple request response interface
   always_comb begin : instr_interface
     // MMU disabled: just pass through
     icache_areq_o.fetch_valid = icache_areq_i.fetch_req;
-    icache_areq_o.fetch_paddr  = CVA6Cfg.PLEN'(icache_areq_i.fetch_vaddr[((CVA6Cfg.PLEN > CVA6Cfg.VLEN) ? CVA6Cfg.VLEN -1: CVA6Cfg.PLEN -1 ):0]);
+    icache_areq_o.fetch_paddr = CVA6Cfg.PLEN'(icache_areq_i.fetch_vaddr[((CVA6Cfg.PLEN > CVA6Cfg.VLEN) ? CVA6Cfg.VLEN -1: CVA6Cfg.PLEN -1 ):0]);
     // two potential exception sources:
     // 1. HPTW threw an exception -> signal with a page fault exception
     // 2. We got an access error because of insufficient permissions -> throw an access exception
@@ -382,9 +397,12 @@ module cva6_mmu
     // AXI decode error), or when PTW performs walk due to ITLB miss and raises
     // an error.
     if ((enable_translation_i || enable_g_translation_i)) begin
-      // we work with SV39 or SV32, so if VM is enabled, check that all bits [CVA6Cfg.VLEN-1:CVA6Cfg.SV-1] are equal
-      if (icache_areq_i.fetch_req && !((&icache_areq_i.fetch_vaddr[CVA6Cfg.VLEN-1:CVA6Cfg.SV-1]) == 1'b1 || (|icache_areq_i.fetch_vaddr[CVA6Cfg.VLEN-1:CVA6Cfg.SV-1]) == 1'b0)) begin
-
+      // If second-level address translation is enabled:
+      // - in VS stage, check that all bits [CVA6Cfg.VLEN-1:CVA6Cfg.SV-1] are equal
+      // - in pure G stage (SV39x4 mode), [CVA6Cfg.VLEN-1:CVA6Cfg.GPLEN] must be zero.
+      // - in pure G stage (SV32x4 mode), no check is needed.
+      if ((enable_translation_i && (icache_areq_i.fetch_req && !((&icache_areq_i.fetch_vaddr[CVA6Cfg.VLEN-1:CVA6Cfg.SV-1]) == 1'b1 || (|icache_areq_i.fetch_vaddr[CVA6Cfg.VLEN-1:CVA6Cfg.SV-1]) == 1'b0)))
+          || (enable_g_translation_i && !enable_translation_i && CVA6Cfg.IS_XLEN64 && (|icache_areq_i.fetch_vaddr[CVA6Cfg.VLEN-1:CVA6Cfg.GPLEN] != 1'b0))) begin
         icache_areq_o.fetch_exception.cause = riscv::INSTR_PAGE_FAULT;
         icache_areq_o.fetch_exception.valid = 1'b1;
         if (CVA6Cfg.TvalEn)
@@ -473,7 +491,7 @@ module cva6_mmu
         end else begin
           icache_areq_o.fetch_exception.cause = riscv::INSTR_ACCESS_FAULT;
           icache_areq_o.fetch_exception.valid = 1'b1;
-          if (CVA6Cfg.TvalEn)  //To confirm this is the right TVAL
+          if (CVA6Cfg.TvalEn)  // To confirm this is the right TVAL
             icache_areq_o.fetch_exception.tval = CVA6Cfg.XLEN'(update_vaddr);
           if (CVA6Cfg.RVH) begin
             icache_areq_o.fetch_exception.tval2 = '0;
@@ -493,6 +511,9 @@ module cva6_mmu
   logic [CVA6Cfg.GPLEN-1:0] lsu_gpaddr_n, lsu_gpaddr_q;
   logic [31:0] lsu_tinst_n, lsu_tinst_q;
   logic hs_ld_st_inst_n, hs_ld_st_inst_q;
+  logic hlvx_inst_n, hlvx_inst_q;
+  logic g_load_exec_as_read_ok;
+  logic g_load_access_ok;
   pte_cva6_t dtlb_pte_n, dtlb_pte_q;
   pte_cva6_t dtlb_gpte_n, dtlb_gpte_q;
   logic lsu_req_n, lsu_req_q;
@@ -500,6 +521,10 @@ module cva6_mmu
   logic dtlb_hit_n, dtlb_hit_q;
   logic [CVA6Cfg.PtLevels-2:0] dtlb_is_page_n, dtlb_is_page_q;
   exception_t misaligned_ex_n, misaligned_ex_q;
+
+  assign lsu_vaddr_o = lsu_vaddr_q;
+  assign lsu_is_store_o = lsu_is_store_q;
+  assign lsu_hlvx_inst_o = CVA6Cfg.RVH ? hlvx_inst_q : 1'b0;
 
   // check if we need to do translation or if we are always ready (e.g.: we are not translating anything)
   assign lsu_dtlb_hit_o = (en_ld_st_translation_i || en_ld_st_g_translation_i) ? dtlb_lu_hit : 1'b1;
@@ -523,8 +548,8 @@ module cva6_mmu
     misaligned_ex_n.valid = misaligned_ex_i.valid & lsu_req_i;
 
     // we work with SV39 or SV32, so if VM is enabled, check that all bits [CVA6Cfg.VLEN-1:CVA6Cfg.SV-1] are equal to bit [CVA6Cfg.SV]
-    canonical_addr_check = (lsu_req_i && en_ld_st_translation_i &&
-           !((&lsu_vaddr_i[CVA6Cfg.VLEN-1:CVA6Cfg.SV-1]) == 1'b1 || (|lsu_vaddr_i[CVA6Cfg.VLEN-1:CVA6Cfg.SV-1]) == 1'b0));
+    canonical_addr_check = (lsu_req_q && en_ld_st_translation_i &&
+           !((&lsu_vaddr_q[CVA6Cfg.VLEN-1:CVA6Cfg.SV-1]) == 1'b1 || (|lsu_vaddr_q[CVA6Cfg.VLEN-1:CVA6Cfg.SV-1]) == 1'b0));
 
     // Check if the User flag is set, then we may only access it in supervisor mode
     // if SUM is enabled
@@ -535,9 +560,21 @@ module cva6_mmu
     if (CVA6Cfg.RVH) begin
       lsu_tinst_n = lsu_tinst_i;
       hs_ld_st_inst_n = hs_ld_st_inst_i;
-      lsu_gpaddr_n[(CVA6Cfg.XLEN == 32 ? CVA6Cfg.VLEN: CVA6Cfg.GPLEN)-1:0] = dtlb_gpaddr[(CVA6Cfg.XLEN == 32 ? CVA6Cfg.VLEN: CVA6Cfg.GPLEN)-1:0];
+      hlvx_inst_n = hlvx_inst_i;
+      lsu_gpaddr_n[(CVA6Cfg.IS_XLEN32 ? CVA6Cfg.VLEN: CVA6Cfg.GPLEN)-1:0] = dtlb_gpaddr[(CVA6Cfg.IS_XLEN32 ? CVA6Cfg.VLEN: CVA6Cfg.GPLEN)-1:0];
       csr_hs_ld_st_inst_o = hs_ld_st_inst_i || hs_ld_st_inst_q;
-      d_g_st_access_err = en_ld_st_g_translation_i && !dtlb_gpte_q.u;
+      // The PTW path has its own permission checks while populating translation
+      // state. Once a G-stage translation is cached and a later LSU access hits in
+      // the DTLB, the hit path still has to re-check permissions against the
+      // current access type. In particular, a prior HLVX hit must not cause a
+      // later plain HLV load to inherit execute-only permission.
+      g_load_exec_as_read_ok = dtlb_gpte_q.x && (mxr_i || hlvx_inst_q);
+      g_load_access_ok = dtlb_gpte_q.r || g_load_exec_as_read_ok;
+      d_g_st_access_err = en_ld_st_g_translation_i && (
+                          !dtlb_gpte_q.u ||
+                          !dtlb_gpte_q.a ||
+                          (!lsu_is_store_q && !g_load_access_ok)
+      );
       dtlb_gpte_n = dtlb_g_content;
     end
 
@@ -558,14 +595,19 @@ module cva6_mmu
         // Strange 9+PtLevels to avoid CI errors on (purely syntactic) checks on Sv32, where
         // `PPNWMin-(CVA6Cfg.VpnLen/CVA6Cfg.PtLevels)` equals `11` and would lead to `lsu_paddr_o[11:12]`
         lsu_paddr_o[PPNWMin-(CVA6Cfg.VpnLen/CVA6Cfg.PtLevels):9+CVA6Cfg.PtLevels] = lsu_vaddr_q[PPNWMin-(CVA6Cfg.VpnLen/CVA6Cfg.PtLevels):9+CVA6Cfg.PtLevels];
-        lsu_dtlb_ppn_o[PPNWMin-(CVA6Cfg.VpnLen/CVA6Cfg.PtLevels):9+CVA6Cfg.PtLevels] = lsu_vaddr_n[PPNWMin-(CVA6Cfg.VpnLen/CVA6Cfg.PtLevels):9+CVA6Cfg.PtLevels];
+      end
+      if (CVA6Cfg.PtLevels == 3 && dtlb_is_page_n[CVA6Cfg.PtLevels-2]) begin
+        lsu_dtlb_ppn_o[0+:MegaPageSubstWidth] = lsu_vaddr_n[(9+CVA6Cfg.PtLevels)+:MegaPageSubstWidth];
       end
 
+
       if (dtlb_is_page_q[0]) begin
-        lsu_dtlb_ppn_o[PPNWMin:12] = lsu_vaddr_n[PPNWMin:12];
         lsu_paddr_o[PPNWMin:12] = lsu_vaddr_q[PPNWMin:12];
       end
 
+      if (dtlb_is_page_n[0]) begin
+        lsu_dtlb_ppn_o[PPNWMin-12:0] = lsu_vaddr_n[PPNWMin:12];
+      end
 
 
       // ---------
@@ -590,7 +632,7 @@ module cva6_mmu
                 {CVA6Cfg.XLEN - CVA6Cfg.VLEN{lsu_vaddr_q[CVA6Cfg.VLEN-1]}}, lsu_vaddr_q
               };
             if (CVA6Cfg.RVH) begin
-              lsu_exception_o.tval2 = CVA6Cfg.GPLEN'(lsu_gpaddr_q[(CVA6Cfg.XLEN==32 ? CVA6Cfg.VLEN : CVA6Cfg.GPLEN)-1:0]);
+              lsu_exception_o.tval2 = CVA6Cfg.GPLEN'(lsu_gpaddr_q[(CVA6Cfg.IS_XLEN32 ? CVA6Cfg.VLEN : CVA6Cfg.GPLEN)-1:0]);
               lsu_exception_o.tinst = '0;
               lsu_exception_o.gva = ld_st_v_i;
             end
@@ -617,7 +659,7 @@ module cva6_mmu
                 {CVA6Cfg.XLEN - CVA6Cfg.VLEN{lsu_vaddr_q[CVA6Cfg.VLEN-1]}}, lsu_vaddr_q
               };
             if (CVA6Cfg.RVH) begin
-              lsu_exception_o.tval2 = CVA6Cfg.GPLEN'(lsu_gpaddr_q[(CVA6Cfg.XLEN==32 ? CVA6Cfg.VLEN : CVA6Cfg.GPLEN)-1:0]);
+              lsu_exception_o.tval2 = CVA6Cfg.GPLEN'(lsu_gpaddr_q[(CVA6Cfg.IS_XLEN32 ? CVA6Cfg.VLEN : CVA6Cfg.GPLEN)-1:0]);
               lsu_exception_o.tinst = '0;
               lsu_exception_o.gva = ld_st_v_i;
             end
@@ -747,6 +789,7 @@ module cva6_mmu
       dtlb_is_page_q  <= '0;
       lsu_tinst_q     <= '0;
       hs_ld_st_inst_q <= '0;
+      hlvx_inst_q     <= '0;
       misaligned_ex_q <= '0;
     end else begin
       lsu_vaddr_q     <= lsu_vaddr_n;
@@ -760,6 +803,7 @@ module cva6_mmu
       if (CVA6Cfg.RVH) begin
         lsu_tinst_q     <= lsu_tinst_n;
         hs_ld_st_inst_q <= hs_ld_st_inst_n;
+        hlvx_inst_q     <= hlvx_inst_n;
         dtlb_gpte_q     <= dtlb_gpte_n;
         lsu_gpaddr_q    <= lsu_gpaddr_n;
       end

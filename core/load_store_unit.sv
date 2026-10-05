@@ -41,6 +41,8 @@ module load_store_unit
     input logic stall_st_pending_i,
     // TO_BE_COMPLETED - TO_BE_COMPLETED
     output logic no_st_pending_o,
+    // Shared TLB is busy processing a multi-cycle flush
+    output logic shared_tlb_flush_busy_o,
     // TO_BE_COMPLETED - TO_BE_COMPLETED
     input logic amo_valid_commit_i,
     // TO_BE_COMPLETED - TO_BE_COMPLETED
@@ -168,7 +170,13 @@ module load_store_unit
     // RVFI information - RVFI
     output lsu_ctrl_t                    rvfi_lsu_ctrl_o,
     // RVFI information - RVFI
-    output logic      [CVA6Cfg.PLEN-1:0] rvfi_mem_paddr_o
+    output logic      [CVA6Cfg.PLEN-1:0] rvfi_mem_paddr_o,
+    //Trigger module communication
+    input  logic                         sdtrig_load_stall_i,
+    input  logic                         sdtrig_load_cancel_i,
+    input  logic      [CVA6Cfg.XLEN-1:0] sdtrig_load_action_i,
+    input  logic                         sdtrig_store_stall_i,
+    input  logic      [CVA6Cfg.XLEN-1:0] sdtrig_store_action_i
 );
 
   // data is misaligned
@@ -219,9 +227,12 @@ module load_store_unit
   logic translation_valid, cva6_translation_valid;
   logic [CVA6Cfg.VLEN-1:0] mmu_vaddr, cva6_mmu_vaddr, acc_mmu_vaddr;
   logic [CVA6Cfg.PLEN-1:0] mmu_paddr, cva6_mmu_paddr, acc_mmu_paddr, lsu_paddr;
-  logic [31:0] mmu_tinst;
-  logic        mmu_hs_ld_st_inst;
-  logic        mmu_hlvx_inst;
+  logic [CVA6Cfg.VLEN-1:0] pmp_vaddr_q;
+  logic                    pmp_is_store_q;
+  logic                    pmp_hlvx_inst_q;
+  logic [            31:0] mmu_tinst;
+  logic                    mmu_hs_ld_st_inst;
+  logic                    mmu_hlvx_inst;
   exception_t mmu_exception, cva6_mmu_exception, acc_mmu_exception;
   exception_t   pmp_exception;
   icache_areq_t pmp_icache_areq_i;
@@ -289,6 +300,9 @@ module load_store_unit
 
         .lsu_valid_o    (pmp_translation_valid),
         .lsu_paddr_o    (lsu_paddr),
+        .lsu_vaddr_o    (pmp_vaddr_q),
+        .lsu_is_store_o (pmp_is_store_q),
+        .lsu_hlvx_inst_o(pmp_hlvx_inst_q),
         .lsu_exception_o(pmp_exception),
 
         .priv_lvl_i      (priv_lvl_i),
@@ -319,6 +333,7 @@ module load_store_unit
 
         .itlb_miss_o(itlb_miss_o),
         .dtlb_miss_o(dtlb_miss_o),
+        .shared_tlb_flush_busy_o(shared_tlb_flush_busy_o),
 
         .req_port_i(dcache_req_ports_i[0]),
         .req_port_o(dcache_req_ports_o[0]),
@@ -329,6 +344,7 @@ module load_store_unit
   end else begin : gen_no_mmu
     // icache request without MMU, virtual and physical address are identical
     assign pmp_icache_areq_i.fetch_valid = icache_areq_i.fetch_req;
+    assign shared_tlb_flush_busy_o = 1'b0;  //default 0 for shared_tlb flush
     if (CVA6Cfg.VLEN >= CVA6Cfg.PLEN) begin : gen_virtual_physical_address_instruction_vlen_greater
       assign pmp_icache_areq_i.fetch_paddr = icache_areq_i.fetch_vaddr[CVA6Cfg.PLEN-1:0];
     end else begin : gen_virtual_physical_address_instruction_plen_greater
@@ -340,6 +356,9 @@ module load_store_unit
     always_ff @(posedge clk_i or negedge rst_ni) begin
       if (~rst_ni) begin
         lsu_paddr <= '0;
+        pmp_vaddr_q <= '0;
+        pmp_is_store_q <= 1'b0;
+        pmp_hlvx_inst_q <= 1'b0;
         pmp_exception <= '0;
         pmp_translation_valid <= 1'b0;
       end else begin
@@ -348,6 +367,9 @@ module load_store_unit
         end else begin
           lsu_paddr <= CVA6Cfg.PLEN'(mmu_vaddr);
         end
+        pmp_vaddr_q <= mmu_vaddr;
+        pmp_is_store_q <= st_translation_req;
+        pmp_hlvx_inst_q <= mmu_hlvx_inst;
         pmp_exception <= misaligned_exception;
         pmp_translation_valid <= translation_req;
       end
@@ -388,9 +410,10 @@ module load_store_unit
       .icache_fetch_vaddr_i(icache_areq_i.fetch_vaddr),
       .lsu_valid_i         (pmp_translation_valid),
       .lsu_paddr_i         (lsu_paddr),
-      .lsu_vaddr_i         (mmu_vaddr),
+      .lsu_vaddr_i         (pmp_vaddr_q),
       .lsu_exception_i     (pmp_exception),
-      .lsu_is_store_i      (st_translation_req),
+      .lsu_is_store_i      (pmp_is_store_q),
+      .lsu_hlvx_inst_i     (pmp_hlvx_inst_q),
       .lsu_valid_o         (translation_valid),
       .lsu_paddr_o         (mmu_paddr),
       .lsu_exception_o     (mmu_exception),
@@ -554,7 +577,10 @@ module load_store_unit
       .amo_resp_i,
       // to memory arbiter
       .req_port_i           (dcache_req_ports_i[2]),
-      .req_port_o           (dcache_req_ports_o[2])
+      .req_port_o           (dcache_req_ports_o[2]),
+      //Trigger module
+      .sdtrig_store_stall_i (sdtrig_store_stall_i),
+      .sdtrig_store_action_i(sdtrig_store_action_i)
   );
 
   // ------------------
@@ -597,7 +623,11 @@ module load_store_unit
       // to memory arbiter
       .req_port_i           (dcache_req_ports_i[1]),
       .req_port_o           (dcache_req_ports_o[1]),
-      .dcache_wbuffer_not_ni_i
+      .dcache_wbuffer_not_ni_i,
+      //sdtrig
+      .sdtrig_load_stall_i  (sdtrig_load_stall_i),
+      .sdtrig_load_cancel_i (sdtrig_load_cancel_i),
+      .sdtrig_load_action_i (sdtrig_load_action_i)
   );
 
   // ----------------------------

@@ -118,6 +118,8 @@ module ex_stage
     input logic stall_st_pending_i,
     // TO_BE_COMPLETED - COMMIT_STAGE
     output logic no_st_pending_o,
+    // Shared TLB is busy processing a multi-cycle flush
+    output logic shared_tlb_flush_busy_o,
     // Atomic result is valid - COMMIT_STAGE
     input logic amo_valid_commit_i,
     // FU is ready - ISSUE_STAGE
@@ -246,7 +248,17 @@ module ex_stage
     // Information dedicated to RVFI - RVFI
     output [CVA6Cfg.PLEN-1:0] rvfi_mem_paddr_o,
     // Original instruction AES bits
-    input logic [5:0] orig_instr_aes_i
+    input logic [5:0] orig_instr_aes_i,
+    //Trigger module communication
+    output logic [CVA6Cfg.VLEN-1:0] sdtrig_lsu_inputs_operand_a_o,
+    output logic [CVA6Cfg.XLEN-1:0] sdtrig_lsu_inputs_operand_c_o,
+    output logic sdtrig_lsu_inputs_we_o,
+    output logic sdtrig_lsu_inputs_valid_o,
+    input logic sdtrig_load_stall_i,
+    input logic sdtrig_load_cancel_i,
+    input logic [CVA6Cfg.XLEN-1:0] sdtrig_load_action_i,
+    input logic sdtrig_store_stall_i,
+    input logic [CVA6Cfg.XLEN-1:0] sdtrig_store_action_i
 );
 
   // -------------------------
@@ -552,10 +564,11 @@ module ex_stage
       .flush_i,
       .stall_st_pending_i,
       .no_st_pending_o,
-      .fu_data_i             (lsu_data),
+      .shared_tlb_flush_busy_o(shared_tlb_flush_busy_o),
+      .fu_data_i              (lsu_data),
       .lsu_ready_o,
-      .lsu_valid_i           (|lsu_valid_i),
-      .speculative_load_i    (speculative_load),
+      .lsu_valid_i            (|lsu_valid_i),
+      .speculative_load_i     (speculative_load),
       .load_trans_id_o,
       .load_result_o,
       .load_valid_o,
@@ -564,10 +577,10 @@ module ex_stage
       .store_result_o,
       .store_valid_o,
       .store_exception_o,
-      .commit_i              (lsu_commit_i),
-      .commit_ready_o        (lsu_commit_ready_o),
+      .commit_i               (lsu_commit_i),
+      .commit_ready_o         (lsu_commit_ready_o),
       .commit_tran_id_i,
-      .resolved_branch_i     (resolved_branch),
+      .resolved_branch_i      (resolved_branch),
       .enable_translation_i,
       .enable_g_translation_i,
       .en_ld_st_translation_i,
@@ -591,11 +604,11 @@ module ex_stage
       .hgatp_ppn_i,
       .asid_i,
       .vs_asid_i,
-      .asid_to_be_flushed_i  (asid_to_be_flushed),
+      .asid_to_be_flushed_i   (asid_to_be_flushed),
       .vmid_i,
-      .vmid_to_be_flushed_i  (vmid_to_be_flushed),
-      .vaddr_to_be_flushed_i (vaddr_to_be_flushed),
-      .gpaddr_to_be_flushed_i(gpaddr_to_be_flushed),
+      .vmid_to_be_flushed_i   (vmid_to_be_flushed),
+      .vaddr_to_be_flushed_i  (vaddr_to_be_flushed),
+      .gpaddr_to_be_flushed_i (gpaddr_to_be_flushed),
       .flush_tlb_i,
       .flush_tlb_vvma_i,
       .flush_tlb_gvma_i,
@@ -608,12 +621,31 @@ module ex_stage
       .amo_valid_commit_i,
       .amo_req_o,
       .amo_resp_i,
-      .tinst_i               (lsu_tinst),
+      .tinst_i                (lsu_tinst),
       .pmpcfg_i,
       .pmpaddr_i,
       .rvfi_lsu_ctrl_o,
-      .rvfi_mem_paddr_o
+      .rvfi_mem_paddr_o,
+      //Trigger module command signals
+      .sdtrig_load_stall_i    (sdtrig_load_stall_i),
+      .sdtrig_load_cancel_i   (sdtrig_load_cancel_i),
+      .sdtrig_load_action_i   (sdtrig_load_action_i),
+      .sdtrig_store_stall_i   (sdtrig_store_stall_i),
+      .sdtrig_store_action_i  (sdtrig_store_action_i)
   );
+
+  //Sdtrig
+  if(CVA6Cfg.SdtrigMcontrol6Store || CVA6Cfg.SdtrigMcontrol6LoadAddr || CVA6Cfg.SdtrigMcontrol6LoadData) begin
+    assign sdtrig_lsu_inputs_operand_a_o = CVA6Cfg.VLEN'(lsu_data.operand_a + lsu_data.imm);
+    assign sdtrig_lsu_inputs_operand_c_o = lsu_data.operand_b;
+    assign sdtrig_lsu_inputs_we_o = lsu_data.fu == STORE;
+    assign sdtrig_lsu_inputs_valid_o = |lsu_valid_i;
+  end else begin
+    assign sdtrig_lsu_inputs_operand_a_o = '0;
+    assign sdtrig_lsu_inputs_operand_c_o = '0;
+    assign sdtrig_lsu_inputs_we_o = '0;
+    assign sdtrig_lsu_inputs_valid_o = '0;
+  end
 
   if (CVA6Cfg.CvxifEn) begin : gen_cvxif
     fu_data_t cvxif_data;

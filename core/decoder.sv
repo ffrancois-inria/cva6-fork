@@ -102,7 +102,8 @@ module decoder
     output logic [31:0] orig_instr_o,
     // Is a control flow instruction - ISSUE_STAGE
     output logic is_control_flow_instr_o,
-    input debug_from_trigger_i
+    // Exception request - TRIGGER MODULE
+    input logic [CVA6Cfg.XLEN-1:0] sdtrig_decoder_action_i
 );
   logic illegal_instr;
   logic illegal_instr_bm;
@@ -300,6 +301,7 @@ module decoder
                     // only if S mode is supported
                     // otherwise decode an illegal instruction
                     if (CVA6Cfg.RVH && v_i) begin
+                      illegal_instr = (instr.itype.rd == '0) ? illegal_instr : 1'b1;
                       virtual_illegal_instr = (priv_lvl_i == riscv::PRIV_LVL_S) ? 1'b0 : 1'b1;
                     end else begin
                       illegal_instr    = (CVA6Cfg.RVS && (priv_lvl_i inside {riscv::PRIV_LVL_M, riscv::PRIV_LVL_S}) && instr.itype.rd == '0) ? 1'b0 : 1'b1;
@@ -486,40 +488,55 @@ module decoder
                 endcase
 
                 if (instruction_o.op == ariane_pkg::CBO_INVAL) begin
-                  // permissions checks
-                  if((priv_lvl_i != riscv::PRIV_LVL_M && mcbie_i == riscv::CBIE_ILLEGAL) ||
-                    (CVA6Cfg.RVU && priv_lvl_i == riscv::PRIV_LVL_U && scbie_i == riscv::CBIE_ILLEGAL)) begin
-                    // disabled in M-mode / S-mode
+                  // CBO.INVAL permission checks
+                  if ((priv_lvl_i != riscv::PRIV_LVL_M &&
+                       mcbie_i == riscv::CBIE_ILLEGAL) ||
+                      (!v_i && CVA6Cfg.RVU &&
+                       priv_lvl_i == riscv::PRIV_LVL_U &&
+                       scbie_i == riscv::CBIE_ILLEGAL)) begin
                     illegal_instr = 1'b1;
-                  end
-                  else if((priv_lvl_i == riscv::PRIV_LVL_HS && hcbie_i == riscv::CBIE_ILLEGAL) ||
-                    (priv_lvl_i == riscv::PRIV_LVL_U && hu_i) ) begin
-                    // disabled in HS-mode / H-mode
+                  end else if (
+                      CVA6Cfg.RVH && v_i &&
+                      ((priv_lvl_i == riscv::PRIV_LVL_S &&
+                        hcbie_i == riscv::CBIE_ILLEGAL) ||
+                       (priv_lvl_i == riscv::PRIV_LVL_U &&
+                        (hcbie_i == riscv::CBIE_ILLEGAL ||
+                         scbie_i == riscv::CBIE_ILLEGAL)))) begin
                     virtual_illegal_instr = 1'b1;
-                  end else begin
-                    if((priv_lvl_i != riscv::PRIV_LVL_M && mcbie_i == riscv::CBIE_FLUSH) || 
-                      (priv_lvl_i == riscv::PRIV_LVL_U && scbie_i == riscv::CBIE_FLUSH) ||
-                      (priv_lvl_i == riscv::PRIV_LVL_HS && hcbie_i == riscv::CBIE_FLUSH) ||
-                      (priv_lvl_i == riscv::PRIV_LVL_U && hu_i && (hcbie_i == riscv::CBIE_FLUSH || scbie_i == riscv::CBIE_FLUSH))) begin
-                      // have to flush instead of invalidate
-                      instruction_o.op = ariane_pkg::CBO_FLUSH;
-                    end
+                  end else if (
+                      (priv_lvl_i != riscv::PRIV_LVL_M &&
+                       mcbie_i == riscv::CBIE_FLUSH) ||
+                      (!v_i && CVA6Cfg.RVU &&
+                       priv_lvl_i == riscv::PRIV_LVL_U &&
+                       scbie_i == riscv::CBIE_FLUSH) ||
+                      (CVA6Cfg.RVH && v_i &&
+                       ((priv_lvl_i == riscv::PRIV_LVL_S &&
+                         hcbie_i == riscv::CBIE_FLUSH) ||
+                        (priv_lvl_i == riscv::PRIV_LVL_U &&
+                         (hcbie_i == riscv::CBIE_FLUSH ||
+                          scbie_i == riscv::CBIE_FLUSH))))) begin
+                    // Execute CBO.INVAL as a flush.
+                    instruction_o.op = ariane_pkg::CBO_FLUSH;
                   end
-                  // otherwise: normal invalidate
                 end
 
-                if (instruction_o.op inside {ariane_pkg::CBO_CLEAN, ariane_pkg::CBO_FLUSH}) begin
-                  if((priv_lvl_i != riscv::PRIV_LVL_M && !mcbcfe_i) ||
-                    (priv_lvl_i == riscv::PRIV_LVL_U && !scbcfe_i)) begin
-                    // disabled in m-mode / s-mode
+                // CBCFE controls genuine CBO.CLEAN/CBO.FLUSH instructions.
+                // An original CBO.INVAL remains governed by CBIE even when
+                // CBIE makes the operation perform a flush.
+                if ((instruction_o.op inside {
+                      ariane_pkg::CBO_CLEAN, ariane_pkg::CBO_FLUSH
+                    }) && instr.itype.imm != 12'b000000000000) begin
+                  if ((priv_lvl_i != riscv::PRIV_LVL_M && !mcbcfe_i) ||
+                      (!v_i && CVA6Cfg.RVU &&
+                       priv_lvl_i == riscv::PRIV_LVL_U && !scbcfe_i)) begin
                     illegal_instr = 1'b1;
-                  end
-                  else if((priv_lvl_i == riscv::PRIV_LVL_HS && !hcbcfe_i) ||
-                          (priv_lvl_i == riscv::PRIV_LVL_U && hu_i && !(hcbcfe_i && scbcfe_i))) begin
-                    // disabled in HS-mode / H-mode
+                  end else if (
+                      CVA6Cfg.RVH && v_i &&
+                      ((priv_lvl_i == riscv::PRIV_LVL_S && !hcbcfe_i) ||
+                       (priv_lvl_i == riscv::PRIV_LVL_U &&
+                        !(hcbcfe_i && scbcfe_i)))) begin
                     virtual_illegal_instr = 1'b1;
                   end
-                  // otherwise: normal flush / clean
                 end
               end else begin
                 illegal_instr = 1'b1;
@@ -1134,7 +1151,7 @@ module decoder
             3'b001: begin
               instruction_o.op = ariane_pkg::SLL;  // Shift Left Logical by Immediate
               if (instr.instr[31:26] != 6'b0) illegal_instr_non_bm = 1'b1;
-              if (instr.instr[25] != 1'b0 && CVA6Cfg.XLEN == 32) illegal_instr_non_bm = 1'b1;
+              if (instr.instr[25] != 1'b0 && CVA6Cfg.IS_XLEN32) illegal_instr_non_bm = 1'b1;
             end
 
             3'b101: begin
@@ -1143,7 +1160,7 @@ module decoder
               else if (instr.instr[31:26] == 6'b010_000)
                 instruction_o.op = ariane_pkg::SRA;  // Shift Right Arithmetically by Immediate
               else illegal_instr_non_bm = 1'b1;
-              if (instr.instr[25] != 1'b0 && CVA6Cfg.XLEN == 32) illegal_instr_non_bm = 1'b1;
+              if (instr.instr[25] != 1'b0 && CVA6Cfg.IS_XLEN32) illegal_instr_non_bm = 1'b1;
             end
           endcase
           if (CVA6Cfg.RVB) begin
@@ -1168,7 +1185,7 @@ module decoder
                   instruction_o.op = ariane_pkg::BSETI;
                 else if (CVA6Cfg.IS_XLEN32 && instr.instr[31:25] == 7'b0010100)
                   instruction_o.op = ariane_pkg::BSETI;
-                else if (CVA6Cfg.ZKN && instr.instr[31:20] == 12'b000010001111)
+                else if (CVA6Cfg.ZKN && CVA6Cfg.IS_XLEN32 && instr.instr[31:20] == 12'b000010001111)
                   instruction_o.op = ariane_pkg::ZIP;
                 else if (CVA6Cfg.ZKN && instr.instr[31:24] == 8'b00110001) begin
                   instruction_o.op = ariane_pkg::AES64KS1I;
@@ -1218,7 +1235,7 @@ module decoder
                   instruction_o.op = ariane_pkg::RORI;
                 else if (CVA6Cfg.ZKN && instr.instr[31:20] == 12'b011010000111)
                   instruction_o.op = ariane_pkg::BREV8;
-                else if (CVA6Cfg.ZKN && instr.instr[31:20] == 12'b000010001111)
+                else if (CVA6Cfg.ZKN && CVA6Cfg.IS_XLEN32 && instr.instr[31:20] == 12'b000010001111)
                   instruction_o.op = ariane_pkg::UNZIP;
                 else illegal_instr_bm = 1'b1;
               end
@@ -1293,7 +1310,7 @@ module decoder
             3'b001: instruction_o.op = ariane_pkg::SH;
             3'b010: instruction_o.op = ariane_pkg::SW;
             3'b011:
-            if (CVA6Cfg.XLEN == 64) instruction_o.op = ariane_pkg::SD;
+            if (CVA6Cfg.IS_XLEN64) instruction_o.op = ariane_pkg::SD;
             else illegal_instr = 1'b1;
             default: illegal_instr = 1'b1;
           endcase
@@ -1316,10 +1333,10 @@ module decoder
             3'b100: instruction_o.op = ariane_pkg::LBU;
             3'b101: instruction_o.op = ariane_pkg::LHU;
             3'b110:
-            if (CVA6Cfg.XLEN == 64) instruction_o.op = ariane_pkg::LWU;
+            if (CVA6Cfg.IS_XLEN64) instruction_o.op = ariane_pkg::LWU;
             else illegal_instr = 1'b1;
             3'b011:
-            if (CVA6Cfg.XLEN == 64) instruction_o.op = ariane_pkg::LD;
+            if (CVA6Cfg.IS_XLEN64) instruction_o.op = ariane_pkg::LD;
             else illegal_instr = 1'b1;
             default: illegal_instr = 1'b1;
           endcase
@@ -1530,12 +1547,14 @@ module decoder
                 imm_select       = IIMM;  // rs2 holds part of the instruction
                 if (|instr.rftype.rs2[24:22])
                   illegal_instr = 1'b1;  // bits [21:20] used, other bits must be 0
+                if (CVA6Cfg.IS_XLEN32 && instr.rftype.rs2[21]) illegal_instr = 1'b1;
               end
               5'b11010: begin
                 instruction_o.op = ariane_pkg::FCVT_I2F;  // fcvt.fmt.ifmt - Int to FP Conversion
                 imm_select       = IIMM;  // rs2 holds part of the instruction
                 if (|instr.rftype.rs2[24:22])
                   illegal_instr = 1'b1;  // bits [21:20] used, other bits must be 0
+                if (CVA6Cfg.IS_XLEN32 && instr.rftype.rs2[21]) illegal_instr = 1'b1;
               end
               5'b11100: begin
                 instruction_o.rs2 = instr.rftype.rs1; // set rs2 = rs1 so we can map FMV to SGNJ in the unit
@@ -1841,12 +1860,23 @@ module decoder
     interrupt_cause = '0;
     instruction_o.ex = ex_i;
     orig_instr_o = '0;
-    // look if we didn't already get an exception in any previous
-    // stage - we should not overwrite it as we retain order regarding the exception
-    if (~ex_i.valid) begin
+
+    if ((CVA6Cfg.SdtrigMcontrol6ExecAddr || CVA6Cfg.SdtrigMcontrol6ExecData) && (sdtrig_decoder_action_i != '0)) begin
+      // this exception is valid
+      instruction_o.ex.valid = 1'b1;
+      // set cause
+      instruction_o.ex.cause = sdtrig_decoder_action_i;
+      // set tval
+      instruction_o.ex.tval  = (CVA6Cfg.TvalEn) ? instruction_o.pc : '0;
+      // set gva bit
+      if (CVA6Cfg.RVH) instruction_o.ex.gva = v_i;
+      else instruction_o.ex.gva = 1'b0;
+    end  // look if we didn't already get an exception in any previous
+         // stage - we should not overwrite it as we retain order regarding the exception
+    else if (~ex_i.valid) begin
       // if we didn't already get an exception save the instruction here as we may need it
       // in the commit stage if we got a access exception to one of the CSR registers
-      if (CVA6Cfg.CvxifEn || CVA6Cfg.RVF)
+      if (CVA6Cfg.CvxifEn || CVA6Cfg.RVF || CVA6Cfg.ZKN)
         orig_instr_o = (is_compressed_i) ? {{CVA6Cfg.XLEN-16{1'b0}}, compressed_instr_i} : {{CVA6Cfg.XLEN-32{1'b0}}, instruction_i};
       if (CVA6Cfg.TvalEn)
         instruction_o.ex.tval  = (is_compressed_i) ? {{CVA6Cfg.XLEN-16{1'b0}}, compressed_instr_i} : {{CVA6Cfg.XLEN-32{1'b0}}, instruction_i};
@@ -1888,99 +1918,97 @@ module decoder
         else instruction_o.ex.gva = 1'b0;
         if (CVA6Cfg.TvalEn) instruction_o.ex.tval = pc_i;
       end
-      // -----------------
-      // Interrupt Control
-      // -----------------
-      // we decode an interrupt the same as an exception, hence it will be taken if the instruction did not
-      // throw any previous exception.
-      // we have three interrupt sources: external interrupts, software interrupts, timer interrupts (order of precedence)
-      // for two privilege levels: Supervisor and Machine Mode
-      // Virtual Supervisor Timer Interrupt
-      if (CVA6Cfg.RVH) begin
-        if (irq_ctrl_i.mie[riscv::IRQ_VS_TIMER] && irq_ctrl_i.mip[riscv::IRQ_VS_TIMER]) begin
-          interrupt_cause = INTERRUPTS.VS_TIMER;
-        end
-        // Virtual Supervisor Software Interrupt
-        if (irq_ctrl_i.mie[riscv::IRQ_VS_SOFT] && irq_ctrl_i.mip[riscv::IRQ_VS_SOFT]) begin
-          interrupt_cause = INTERRUPTS.VS_SW;
-        end
-        // Virtual Supervisor External Interrupt
-        if (irq_ctrl_i.mie[riscv::IRQ_VS_EXT] && (irq_ctrl_i.mip[riscv::IRQ_VS_EXT])) begin
-          interrupt_cause = INTERRUPTS.VS_EXT;
-        end
-        // Hypervisor Guest External Interrupts
-        if (irq_ctrl_i.mie[riscv::IRQ_HS_EXT] && irq_ctrl_i.mip[riscv::IRQ_HS_EXT]) begin
-          interrupt_cause = INTERRUPTS.HS_EXT;
-        end
+    end
+    // -----------------
+    // Interrupt Control
+    // -----------------
+    // we decode an interrupt the same as an exception, hence it will be taken if the instruction did not
+    // throw any previous exception.
+    // we have three interrupt sources: external interrupts, software interrupts, timer interrupts (order of precedence)
+    // for two privilege levels: Supervisor and Machine Mode
+    // Virtual Supervisor Timer Interrupt
+    if (CVA6Cfg.RVH) begin
+      if (irq_ctrl_i.mie[riscv::IRQ_VS_TIMER] && irq_ctrl_i.mip[riscv::IRQ_VS_TIMER]) begin
+        interrupt_cause = INTERRUPTS.VS_TIMER;
       end
-      if (CVA6Cfg.RVS) begin
-        // Supervisor Timer Interrupt
-        if (irq_ctrl_i.mie[riscv::IRQ_S_TIMER] && irq_ctrl_i.mip[riscv::IRQ_S_TIMER]) begin
-          interrupt_cause = INTERRUPTS.S_TIMER;
-        end
-        // Supervisor Software Interrupt
-        if (irq_ctrl_i.mie[riscv::IRQ_S_SOFT] && irq_ctrl_i.mip[riscv::IRQ_S_SOFT]) begin
-          interrupt_cause = INTERRUPTS.S_SW;
-        end
-        // Supervisor External Interrupt
-        // The logical-OR of the software-writable bit and the signal from the external interrupt controller is
-        // used to generate external interrupts to the supervisor
-        if (irq_ctrl_i.mie[riscv::IRQ_S_EXT] && (irq_ctrl_i.mip[riscv::IRQ_S_EXT] | irq_i[ariane_pkg::SupervisorIrq])) begin
-          interrupt_cause = INTERRUPTS.S_EXT;
-        end
+      // Virtual Supervisor Software Interrupt
+      if (irq_ctrl_i.mie[riscv::IRQ_VS_SOFT] && irq_ctrl_i.mip[riscv::IRQ_VS_SOFT]) begin
+        interrupt_cause = INTERRUPTS.VS_SW;
       end
-      // Machine Timer Interrupt
-      if (irq_ctrl_i.mip[riscv::IRQ_M_TIMER] && irq_ctrl_i.mie[riscv::IRQ_M_TIMER]) begin
-        interrupt_cause = INTERRUPTS.M_TIMER;
+      // Virtual Supervisor External Interrupt
+      if (irq_ctrl_i.mie[riscv::IRQ_VS_EXT] && (irq_ctrl_i.mip[riscv::IRQ_VS_EXT])) begin
+        interrupt_cause = INTERRUPTS.VS_EXT;
       end
-      if (CVA6Cfg.SoftwareInterruptEn) begin
-        // Machine Mode Software Interrupt
-        if (irq_ctrl_i.mip[riscv::IRQ_M_SOFT] && irq_ctrl_i.mie[riscv::IRQ_M_SOFT]) begin
-          interrupt_cause = INTERRUPTS.M_SW;
-        end
+      // Hypervisor Guest External Interrupts
+      if (irq_ctrl_i.mie[riscv::IRQ_HS_EXT] && irq_ctrl_i.mip[riscv::IRQ_HS_EXT]) begin
+        interrupt_cause = INTERRUPTS.HS_EXT;
       end
-      // Machine Mode External Interrupt
-      if (irq_ctrl_i.mip[riscv::IRQ_M_EXT] && irq_ctrl_i.mie[riscv::IRQ_M_EXT]) begin
-        interrupt_cause = INTERRUPTS.M_EXT;
+    end
+    if (CVA6Cfg.RVS) begin
+      // Supervisor Timer Interrupt
+      if (irq_ctrl_i.mie[riscv::IRQ_S_TIMER] && irq_ctrl_i.mip[riscv::IRQ_S_TIMER]) begin
+        interrupt_cause = INTERRUPTS.S_TIMER;
       end
+      // Supervisor Software Interrupt
+      if (irq_ctrl_i.mie[riscv::IRQ_S_SOFT] && irq_ctrl_i.mip[riscv::IRQ_S_SOFT]) begin
+        interrupt_cause = INTERRUPTS.S_SW;
+      end
+      // Supervisor External Interrupt
+      // The logical-OR of the software-writable bit and the signal from the external interrupt controller is
+      // used to generate external interrupts to the supervisor
+      if (irq_ctrl_i.mie[riscv::IRQ_S_EXT] && (irq_ctrl_i.mip[riscv::IRQ_S_EXT] | irq_i[ariane_pkg::SupervisorIrq])) begin
+        interrupt_cause = INTERRUPTS.S_EXT;
+      end
+    end
+    // Machine Timer Interrupt
+    if (irq_ctrl_i.mip[riscv::IRQ_M_TIMER] && irq_ctrl_i.mie[riscv::IRQ_M_TIMER]) begin
+      interrupt_cause = INTERRUPTS.M_TIMER;
+    end
+    if (CVA6Cfg.SoftwareInterruptEn) begin
+      // Machine Mode Software Interrupt
+      if (irq_ctrl_i.mip[riscv::IRQ_M_SOFT] && irq_ctrl_i.mie[riscv::IRQ_M_SOFT]) begin
+        interrupt_cause = INTERRUPTS.M_SW;
+      end
+    end
+    // Machine Mode External Interrupt
+    if (irq_ctrl_i.mip[riscv::IRQ_M_EXT] && irq_ctrl_i.mie[riscv::IRQ_M_EXT]) begin
+      interrupt_cause = INTERRUPTS.M_EXT;
+    end
 
-      if (interrupt_cause[CVA6Cfg.XLEN-1] && irq_ctrl_i.global_enable) begin
-        // However, if bit i in mideleg is set, interrupts are considered to be globally enabled if the hart’s current privilege
-        // mode equals the delegated privilege mode (S or U) and that mode’s interrupt enable bit
-        // (SIE or UIE in mstatus) is set, or if the current privilege mode is less than the delegated privilege mode.
-        if (irq_ctrl_i.mideleg[interrupt_cause[$clog2(CVA6Cfg.XLEN)-1:0]]) begin
-          if (CVA6Cfg.RVH) begin : hyp_int_gen
-            if (v_i && irq_ctrl_i.hideleg[interrupt_cause[$clog2(CVA6Cfg.XLEN)-1:0]]) begin
-              if ((irq_ctrl_i.sie && priv_lvl_i == riscv::PRIV_LVL_S) || priv_lvl_i == riscv::PRIV_LVL_U) begin
-                instruction_o.ex.valid = 1'b1;
-                instruction_o.ex.cause = interrupt_cause;
-              end
-            end else if (v_i && ~irq_ctrl_i.hideleg[interrupt_cause[$clog2(
-                    CVA6Cfg.XLEN
-                )-1:0]]) begin
-              instruction_o.ex.valid = 1'b1;
-              instruction_o.ex.cause = interrupt_cause;
-            end else if (!v_i && ((irq_ctrl_i.sie && priv_lvl_i == riscv::PRIV_LVL_S) || priv_lvl_i == riscv::PRIV_LVL_U) && ~irq_ctrl_i.hideleg[interrupt_cause[$clog2(
-                    CVA6Cfg.XLEN
-                )-1:0]]) begin
+    if (interrupt_cause[CVA6Cfg.XLEN-1] && irq_ctrl_i.global_enable) begin
+      // However, if bit i in mideleg is set, interrupts are considered to be globally enabled if the hart’s current privilege
+      // mode equals the delegated privilege mode (S or U) and that mode’s interrupt enable bit
+      // (SIE or UIE in mstatus) is set, or if the current privilege mode is less than the delegated privilege mode.
+      if (irq_ctrl_i.mideleg[interrupt_cause[$clog2(CVA6Cfg.XLEN)-1:0]]) begin
+        if (CVA6Cfg.RVH) begin : hyp_int_gen
+          if (v_i && irq_ctrl_i.hideleg[interrupt_cause[$clog2(CVA6Cfg.XLEN)-1:0]]) begin
+            if ((irq_ctrl_i.sie && priv_lvl_i == riscv::PRIV_LVL_S) || priv_lvl_i == riscv::PRIV_LVL_U) begin
               instruction_o.ex.valid = 1'b1;
               instruction_o.ex.cause = interrupt_cause;
             end
-          end else begin
-            if ((CVA6Cfg.RVS && irq_ctrl_i.sie && priv_lvl_i == riscv::PRIV_LVL_S) || (CVA6Cfg.RVU && priv_lvl_i == riscv::PRIV_LVL_U)) begin
-              instruction_o.ex.valid = 1'b1;
-              instruction_o.ex.cause = interrupt_cause;
-            end
+          end else if (v_i && ~irq_ctrl_i.hideleg[interrupt_cause[$clog2(CVA6Cfg.XLEN)-1:0]]) begin
+            instruction_o.ex.valid = 1'b1;
+            instruction_o.ex.cause = interrupt_cause;
+          end else if (!v_i && ((irq_ctrl_i.sie && priv_lvl_i == riscv::PRIV_LVL_S) || priv_lvl_i == riscv::PRIV_LVL_U) && ~irq_ctrl_i.hideleg[interrupt_cause[$clog2(
+                  CVA6Cfg.XLEN
+              )-1:0]]) begin
+            instruction_o.ex.valid = 1'b1;
+            instruction_o.ex.cause = interrupt_cause;
           end
         end else begin
-          instruction_o.ex.valid = 1'b1;
-          instruction_o.ex.cause = interrupt_cause;
+          if ((CVA6Cfg.RVS && irq_ctrl_i.sie && priv_lvl_i == riscv::PRIV_LVL_S) || (CVA6Cfg.RVU && priv_lvl_i == riscv::PRIV_LVL_U)) begin
+            instruction_o.ex.valid = 1'b1;
+            instruction_o.ex.cause = interrupt_cause;
+          end
         end
+      end else begin
+        instruction_o.ex.valid = 1'b1;
+        instruction_o.ex.cause = interrupt_cause;
       end
     end
 
     // a debug request has precendece over everything else
-    if ((CVA6Cfg.DebugEn && debug_req_i && !debug_mode_i) || (CVA6Cfg.SDTRIG && CVA6Cfg.Mcontrol6 && CVA6Cfg.DebugEn && !debug_mode_i && debug_from_trigger_i)) begin
+    if ((CVA6Cfg.DebugEn && debug_req_i && !debug_mode_i)) begin
       instruction_o.ex.valid = 1'b1;
       instruction_o.ex.cause = riscv::DEBUG_REQUEST;
     end

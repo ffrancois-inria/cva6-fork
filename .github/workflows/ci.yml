@@ -14,7 +14,7 @@ jobs:
     env:
       NUM_JOBS: 8
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
 
@@ -26,7 +26,7 @@ jobs:
 
     - name: Cache toolchain
       id: cache-toolchain
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       env:
           cache-name: cache-toolchain
       with:
@@ -35,7 +35,7 @@ jobs:
 
     - name: Cache verilator
       id: cache-verilator
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       env:
           cache-name: cache-verilator
       with:
@@ -44,7 +44,7 @@ jobs:
 
     - name: Cache Spike
       id: cache-spike
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       env:
           cache-name: cache-spike
       with:
@@ -73,10 +73,13 @@ jobs:
           - testcase: dv-riscv-arch-test
             config: cv64a6_imafdc_sv39_hpdcache_wb
             simulator: veri-testharness
+          - testcase: pmp_lsu_transaction
+            config: cv64a6_imafdc_sv39
+            simulator: veri-testharness
     needs:
       build-riscv-tests
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
 
@@ -88,7 +91,7 @@ jobs:
 
     - name: Cache toolchain
       id: cache-toolchain
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       env:
           cache-name: cache-toolchain
       with:
@@ -97,7 +100,7 @@ jobs:
 
     - name: Cache verilator
       id: cache-verilator
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       env:
           cache-name: cache-verilator
       with:
@@ -106,7 +109,7 @@ jobs:
 
     - name: Cache Spike
       id: cache-spike
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       env:
           cache-name: cache-spike
       with:
@@ -142,7 +145,7 @@ jobs:
     needs:
       build-riscv-tests
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
 
@@ -154,7 +157,7 @@ jobs:
 
     - name: Cache toolchain
       id: cache-toolchain
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       env:
           cache-name: cache-toolchain
       with:
@@ -163,7 +166,7 @@ jobs:
 
     - name: Cache verilator
       id: cache-verilator
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       env:
           cache-name: cache-verilator
       with:
@@ -172,7 +175,7 @@ jobs:
 
     - name: Cache Spike
       id: cache-spike
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       env:
           cache-name: cache-spike
       with:

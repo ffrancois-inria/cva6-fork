@@ -1,5 +1,60 @@
 [
   {
+    "id": 37307188782,
+    "source": "github-actions",
+    "simulator": "verilator",
+    "run_number": 12,
+    "status": "completed",
+    "conclusion": "success",
+    "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/37307188782",
+    "head_branch": "ffrancois-inria_ORflow-dashboard",
+    "head_sha": "7b58e63e",
+    "event": "pull_request",
+    "created_at": "2026-10-05T12:05:50Z",
+    "updated_at": "2026-10-05T12:42:06Z",
+    "run_started_at": "2026-10-05T12:05:50Z",
+    "duration_seconds": 2176,
+    "total_jobs": 3,
+    "passed_jobs": 3,
+    "failed_jobs": 0,
+    "skipped_jobs": 0,
+    "jobs": [
+      {
+        "name": "RV64 Tier1 cv64a6_imafdc_sv39_hpdcache_wb / cv64a6_imafdc_tests",
+        "conclusion": "success",
+        "started_at": "2026-10-05T12:36:23Z",
+        "completed_at": "2026-10-05T12:42:06Z",
+        "duration_seconds": 343,
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/37307188782/job/111765065659",
+        "arch": "rv64",
+        "config": "cv64a6_imafdc_sv39_hpdcache_wb",
+        "testcase": "cv64a6_imafdc_tests"
+      },
+      {
+        "name": "RV32 Tier1 cv32a60x / cv32a6_tests",
+        "conclusion": "success",
+        "started_at": "2026-10-05T12:36:23Z",
+        "completed_at": "2026-10-05T12:39:43Z",
+        "duration_seconds": 200,
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/37307188782/job/111765065754",
+        "arch": "rv32",
+        "config": "cv32a60x",
+        "testcase": "cv32a6_tests"
+      },
+      {
+        "name": "RV32 Tier1 cv32a65x / smoke-tests-cv32a65x",
+        "conclusion": "success",
+        "started_at": "2026-10-05T12:36:24Z",
+        "completed_at": "2026-10-05T12:38:58Z",
+        "duration_seconds": 154,
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/37307188782/job/111765065861",
+        "arch": "rv32",
+        "config": "cv32a65x",
+        "testcase": "smoke-tests-cv32a65x"
+      }
+    ]
+  },
+  {
     "id": 34619729687,
     "source": "github-actions",
     "simulator": "verilator",

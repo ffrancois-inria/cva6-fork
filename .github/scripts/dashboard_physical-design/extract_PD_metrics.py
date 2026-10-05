@@ -26,6 +26,10 @@ Artifact layout expected from OR-flow-grt.yml:
     Artifact name:  PD-grt-{arch}-{config}
     Contents:       5_1_grt.json
 
+Both workflows also upload a `PD-{flp,grt}-logs-{arch}-{config}` artifact
+(logs, reports, and build_params.json — the latter produced by a `bazel run
+... -- print-VAR` CI step, giving the exact bazel build arguments used).
+
 The script downloads all artifacts for each run using
 `gh run download` (which handles authentication and zip extraction),
 then processes the extracted JSON files.
@@ -61,6 +65,12 @@ LOGS_ARTIFACT_PREFIX = {
     "PD-flp-": "PD-flp-logs-",
     "PD-grt-": "PD-grt-logs-",
 }
+
+# Filename (written by the `Extract build parameters` CI step, via bazel-orfs'
+# `print-VAR` bazel run target) holding the bazel build arguments that most
+# affect PPA metrics. Read straight from the logs artifact instead of parsing
+# BUILD.bazel, so it stays correct regardless of how that file is organized.
+BUILD_PARAMS_FILENAME = "build_params.json"
 
 
 # ---------------------------------------------------------------------------
@@ -316,8 +326,15 @@ def download_and_zip_logs(
     dest_dir: Path,
     logs_prefix: str,
     run_raw_dir: Path,
-) -> dict:
-    """Download log artifacts, zip them per config, return {(arch, config): site_relative_path}."""
+) -> tuple:
+    """Download log artifacts, zip them per config.
+
+    Returns (logs_map, build_params_map):
+      logs_map:         {(arch, config): site_relative_zip_path}
+      build_params_map: {(arch, config): dict of bazel build params}, read from
+                         build_params.json (written by the `print-VAR` CI step)
+                         when present in the artifact.
+    """
     result = subprocess.run(
         [
             "gh", "run", "download", str(run_id),
@@ -333,14 +350,24 @@ def download_and_zip_logs(
             f"  WARNING: gh run download (logs) failed for run {run_id}: {result.stderr}",
             file=sys.stderr,
         )
-        return {}
+        return {}, {}
 
     logs_map = {}
+    build_params_map = {}
     for arch, config, artifact_dir in iter_artifact_dirs(dest_dir, logs_prefix):
-        log_files = sorted(artifact_dir.rglob("*.log"))
+        # Get all files in the artifact (logs + reports)
+        log_files = sorted([f for f in artifact_dir.rglob("*") if f.is_file()])
         if not log_files:
             print(f"  WARNING: no .log files in artifact {artifact_dir.name}", file=sys.stderr)
             continue
+
+        params_path = artifact_dir / BUILD_PARAMS_FILENAME
+        if params_path.exists():
+            try:
+                with open(params_path) as f:
+                    build_params_map[(arch, config)] = json.load(f)
+            except (json.JSONDecodeError, IOError) as exc:
+                print(f"  WARNING: could not read {params_path}: {exc}", file=sys.stderr)
 
         zip_dest = run_raw_dir / f"{arch}_{config}_logs.zip"
         with zipfile.ZipFile(zip_dest, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -349,7 +376,7 @@ def download_and_zip_logs(
         logs_map[(arch, config)] = f"./PD-data/raw/{run_id}/{arch}_{config}_logs.zip"
         print(f"  Zipped {len(log_files)} log(s) -> {zip_dest.name}")
 
-    return logs_map
+    return logs_map, build_params_map
 
 
 # ---------------------------------------------------------------------------
@@ -375,11 +402,16 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
             shutil.copy2(json_path, run_raw_dir / f"{arch}_{config}.json")
 
         logs_prefix = LOGS_ARTIFACT_PREFIX[artifact_prefix]
-        logs_map = download_and_zip_logs(repo, run_id, tmp_path / "logs", logs_prefix, run_raw_dir)
+        logs_map, build_params_map = download_and_zip_logs(repo, run_id, tmp_path / "logs", logs_prefix, run_raw_dir)
+
+        json_map = {(arch, config): json_path for arch, config, json_path in json_list}
 
         flows = []
-        for arch, config, json_path in json_list:
+        for arch, config in json_map.keys() | logs_map.keys():
+            json_path = json_map.get((arch, config))
             try:
+                if json_path is None:
+                    raise FileNotFoundError("no metrics artifact (job failed before upload)")
                 with open(json_path) as f:
                     data = json.load(f)
                 metrics    = extractor(data, nand2_area)
@@ -391,12 +423,11 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
                     f"stdcell={metrics['stdcell_area_um2']:.3f} µm²  "
                     f"({metrics['stdcell_kgate']:.2f} Kgate)  [{timing_str}]"
                 )
-            except (json.JSONDecodeError, KeyError, IOError) as exc:
+            except (json.JSONDecodeError, KeyError, IOError, FileNotFoundError) as exc:
                 print(f"    [FAILURE] {arch}/{config}: {exc}", file=sys.stderr)
                 metrics    = {}
                 conclusion = "failure"
 
-            # Job name in the workflow is set to `${{ matrix.config }}`, matching `config`
             flow_dur = job_durations.get(config, 0)
             flows.append({
                 "arch":             arch,
@@ -404,10 +435,14 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
                 "conclusion":       conclusion,
                 "html_url":         run.get("html_url", ""),
                 "duration_seconds": flow_dur,
-                "raw_json_path":    f"./PD-data/raw/{run_id}/{arch}_{config}.json",
+                "raw_json_path":    f"./PD-data/raw/{run_id}/{arch}_{config}.json" if json_path else None,
                 "logs_zip_path":    logs_map.get((arch, config)),
                 "metrics":          metrics,
             })
+
+    # Matrix jobs currently share identical bazel arguments; surface the first
+    # available set as a single run-level record for the dashboard.
+    build_params = next(iter(build_params_map.values()), {})
 
     passed_flows = sum(1 for j in flows if j["conclusion"] == "success")
     run_dur     = duration_seconds(
@@ -415,19 +450,28 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
         run.get("updated_at", ""),
     )
 
+    head_commit    = run.get("head_commit") or {}
+    commit_msg     = head_commit.get("message", "")
+    commit_subject = commit_msg.splitlines()[0].strip() if commit_msg else ""
+    actor          = (run.get("actor") or {}).get("login", "")
+
     return {
         "id":               run_id,
         "run_number":       run.get("run_number", 0),
         "conclusion":       run.get("conclusion", "unknown"),
+        "event":            run.get("event", ""),
         "html_url":         run.get("html_url", ""),
         "head_branch":      run.get("head_branch", ""),
         "head_sha":         run.get("head_sha", "")[:8],
+        "commit_subject":   commit_subject,
+        "actor":            actor,
         "created_at":       run.get("created_at", ""),
         "duration_seconds": run_dur,
         "total_flows":       len(flows),
         "passed_flows":      passed_flows,
         "failed_flows":      len(flows) - passed_flows,
         "flows":             flows,
+        "build_params":      build_params,
     }
 
 

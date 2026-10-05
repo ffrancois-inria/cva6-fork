@@ -58,7 +58,7 @@ filegroup(
     abstract_stage = "cts",
     arguments = {
         "SYNTH_HIERARCHICAL": "1",
-        "SYNTH_MINIMUM_KEEP_SIZE": "0",
+        "SYNTH_MINIMUM_KEEP_SIZE": "10000",    # Keep modules >, flatten smaller modules
         "SYNTH_MEMORY_MAX_BITS": "65536",
         "CORE_UTILIZATION": "70",
         "CORE_MARGIN": "2",
@@ -94,9 +94,9 @@ filegroup(
     },
     arguments = {
         # Synthesis 
-        "SYNTH_HIERARCHICAL": "1",             # preserves the module hierarchy
-        "ABC_CLOCK_PERIOD_IN_PS": "2000",      # 500 MHz for Yosys ABC
-        "SYNTH_MINIMUM_KEEP_SIZE": "0",        # no modules flattening
+        "SYNTH_HIERARCHICAL": "1",             # Flat synthesis
+        "SYNTH_MINIMUM_KEEP_SIZE": "10000",    # Keep modules >, flatten smaller modules
+        "ABC_CLOCK_PERIOD_IN_PS": "4000",      # 250 MHz for Yosys ABC
         "SYNTH_MEMORY_MAX_BITS": "65536",
         "SYNTH_HDL_FRONTEND": "slang",         # Modern SV compiler 
         "VERILOG_DEFINES": "-D HPDCACHE_ASSERT_OFF",  # Disables HPDcache asserts 
@@ -109,15 +109,16 @@ filegroup(
             "common/local/util",
         ]),
 
-        # "SYNTH_MOCK_LARGE_MEMORIES": "1",      # SRAM auto mockup
-
         # Floorplan
-        "CORE_UTILIZATION": "70",             # 70% core area
+        # "CORE_UTILIZATION": "70",             # 70% core area
+        "CORE_UTILIZATION": "62",
         "CORE_MARGIN": "2",                   # 2µm margin
         "MACRO_PLACE_HALO": "3 3",            # 3µm around macros 
 
         # Placement
-        "PLACE_DENSITY": "0.73",
+        # "PLACE_DENSITY": "0.73",
+        "PLACE_DENSITY": "0.62",  # Trying lower density for GRT CI to succeed
+        "DETAIL_PLACEMENT_ARGS": "-use_negotiation",
 
         # CTS
         "ASAP7_USE_VT": "RVT LVT SLVT",      # uses the three ASAP7 cell families
@@ -131,10 +132,10 @@ filegroup(
         "SKIP_INCREMENTAL_REPAIR": "1",
         "GND_NETS_VOLTAGES": "",
         "PWR_NETS_VOLTAGES": "",
-        "GPL_ROUTABILITY_DRIVEN": "0",
-        "GPL_TIMING_DRIVEN": "0",
-        "SETUP_SLACK_MARGIN": "-10000",
-        "TNS_END_PERCENT": "0",
+        "GPL_ROUTABILITY_DRIVEN": "1",
+        "GPL_TIMING_DRIVEN": "1",
+        "SETUP_SLACK_MARGIN": "-1000",
+        "TNS_END_PERCENT": "5",
         "SKIP_LAST_GASP": "1",
     },
 
@@ -368,7 +369,7 @@ filegroup(
     abstract_stage = "place",
     arguments = {
         "SYNTH_HIERARCHICAL": "1",
-        "SYNTH_MINIMUM_KEEP_SIZE": "0",
+        "SYNTH_MINIMUM_KEEP_SIZE": "10000",    # Keep modules >, flatten smaller modules
         "SYNTH_MEMORY_MAX_BITS": "65536",
         "CORE_UTILIZATION": "70",
         "CORE_MARGIN": "2",
@@ -404,9 +405,9 @@ filegroup(
     },
     arguments = {
         # Synthesis
-        "SYNTH_HIERARCHICAL": "1",             # preserves the module hierarchy
-        "ABC_CLOCK_PERIOD_IN_PS": "2000",      # 500 MHz for Yosys ABC
-        "SYNTH_MINIMUM_KEEP_SIZE": "0",        # no modules flattening
+        "SYNTH_HIERARCHICAL": "1",             # Flat synthesis
+        "SYNTH_MINIMUM_KEEP_SIZE": "10000",    # Keep modules >, flatten smaller modules
+        "ABC_CLOCK_PERIOD_IN_PS": "4000",      # 250 MHz for Yosys ABC
         "SYNTH_MEMORY_MAX_BITS": "65536",
         "SYNTH_HDL_FRONTEND": "slang",         # Modern SV compiler
         "VERILOG_DEFINES": "-D HPDCACHE_ASSERT_OFF",  # Disables HPDcache asserts

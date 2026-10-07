@@ -203,12 +203,19 @@ contains one log file and one JSON metrics file per stage. The JSON files gather
 
 ## Understanding and editing the `BUILD.bazel` file
 
-The synthesis flow is defined in the repository root `BUILD.bazel` file. It consists of two `orfs_flow()` target generators:
+The synthesis flow is defined in the repository root `BUILD.bazel` file. It is organized in two parts:
 
-* one generating the **SRAM macro targets**,
-* one generating the **top-level CVA6 targets**.
+* a **shared settings** section, holding the flow parameters and the RTL file list common to all targets,
+* four `orfs_flow()` **target generators**, creating the targets for every configuration listed in `TARGET_CFGS`:
 
-In both cases, the targets are generated automatically for every configuration listed in `TARGET_CFGS`.
+| Generator | Targets | Used by |
+|---|---|---|
+| Macro targets, full quality | `{TARGET_CFG}_{sram}` (`abstract_stage = "cts"`) | weekly GRT flow |
+| Top-level targets, full quality | `{TARGET_CFG}` (e.g. `//:cv32a65x_grt`) | weekly GRT flow |
+| Macro targets, fast variant | `{TARGET_CFG}_{sram}_fast` (`abstract_stage = "place"`) | per-push floorplan flow |
+| Top-level targets, fast variant | `{TARGET_CFG}_fast` (e.g. `//:cv32a65x_fast_floorplan`) | per-push floorplan flow |
+
+The full and fast variants use the same shared settings, so both CI flows build the same design and report comparable metrics. They only differ by the stage at which the macro flows stop.
 
 ### The `orfs_flow()` rule
 
@@ -224,49 +231,58 @@ The most important attributes are:
 * `arguments`: OpenROAD flow parameters.
 * `abstract_stage` (macro targets only): stage at which the macro flow stops before generating its abstract view.
 
-Most modifications only require editing the `arguments` dictionary or adding a new entry to `TARGET_CFGS`.
+Most modifications only require editing the shared settings or adding a new entry to `TARGET_CFGS`.
+
+### Shared settings
+
+| Variable | Content | Used by |
+|---|---|---|
+| `CVA6_ARGS` | OpenROAD flow parameters (`arguments`) | top-level targets |
+| `CVA6_SOURCES` | SDC constraints and PDN script (`sources`) | top-level targets |
+| `CVA6_VERILOG_FILES` | CVA6 RTL file list, excerpt from `Flist.cva6_synth` (`verilog_files`) | top-level targets |
+| `SRAM_ARGS` | OpenROAD flow parameters (`arguments`) | macro targets |
+| `SRAM_SOURCES` | SDC constraints and pin placement script (`sources`) | macro targets |
+
+In `CVA6_VERILOG_FILES`, the `{TARGET_CFG}` placeholder is replaced by the configuration name, which selects `core/include/{TARGET_CFG}_config_pkg.sv`. Each target then appends the SRAM wrappers of its configuration, from `bazel/srams/`.
 
 ### Main CVA6 targets
 
-The **MAIN TARGET** section defines the complete CVA6 implementation flow.
-
-Each generated target:
+Each top-level target:
 
 * synthesizes the selected CVA6 configuration,
-* uses the corresponding SRAM macro abstracts,
-* applies the OpenROAD parameters defined in `arguments`,
+* uses the SRAM macro abstracts of its variant (full or fast),
+* applies the OpenROAD parameters defined in `CVA6_ARGS`,
 * and runs the implementation flow to the selected stage.
-
-Most flow customization is performed by editing this section.
 
 ### SRAM macro targets
 
-The **MACROS TARGETS** section generates one implementation flow for every SRAM used by each CVA6 configuration.
+The macro target generators create one implementation flow for every SRAM used by each CVA6 configuration.
 
 These flows are independent from the top-level design and are used only to generate the abstract LEF views required during floorplanning.
 
-The `abstract_stage` parameter specifies how far the macro implementation is run before generating its abstract view. It is currently set to `cts`, which provides sufficiently realistic macro timing, at the cost of being much longer than if set to "place" for example. 
+The `abstract_stage` parameter specifies how far the macro implementation is run before generating its abstract view. It is set to `cts` for the full variant, which provides sufficiently realistic macro timing, and to `place` for the fast variant, which is much quicker and enough when the top level stops at floorplan.
 
-### The `arguments` dictionary
+### The flow parameters
 
-The `arguments` attribute contains the OpenROAD flow parameters passed to `bazel-orfs`.
-
-Typical parameters control:
-
-* synthesis options,
-* floorplan settings,
-* placement density,
-* clock tree synthesis,
-* routing options,
-* and various implementation settings.
-
-These are the parameters most users will tweak when exploring different implementation strategies.
+The `arguments` attribute contains the OpenROAD flow parameters passed to `bazel-orfs`: synthesis options, floorplan settings, placement density, clock tree synthesis, routing options and various implementation settings. They come from `CVA6_ARGS` for the top level and from `SRAM_ARGS` for the macros, where each parameter is briefly commented.
 
 Complete list and doc can be found [**here**](https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/master/flow/scripts/variables.yaml).
 
-The final section of the dictionary contains several **speed-oriented parameters** used to reduce runtime by disabling optional optimization passes. Their exact behavior is documented in the `bazel-orfs` documentation:
+These settings target **commit-to-commit PPA regression tracking**, not the best achievable results:
+
+* **They must stay constant.** Changing any of them, or bumping the ORFS/OpenROAD versions in `MODULE.bazel`, shifts every metric and starts a new baseline on the dashboard.
+* **Timing repair is disabled at every stage**, so that timing metrics reflect the RTL rather than what the optimizer managed to fix.
+* **Steps that do not affect the tracked metrics are skipped** (tap and fill cells, IR drop analysis, etc.). Metrics reporting must stay enabled, since the dashboard reads them.
+
+The speed-oriented parameters are documented in the `bazel-orfs` documentation:
 
 https://github.com/The-OpenROAD-Project/bazel-orfs#speed-up-your-builds
+
+To try a different value on a single target without modifying the shared settings, merge an override into its `arguments`:
+
+```python
+arguments = CVA6_ARGS | {"PLACE_DENSITY": "0.60"},
+```
 
 ### Adding a new CVA6 configuration
 
@@ -277,6 +293,8 @@ The configuration name must exactly match the corresponding configuration packag
 ```text
 core/include/{TARGET_CFG}_config_pkg.sv
 ```
+
+This package is then picked automatically through the `{TARGET_CFG}` placeholder of `CVA6_VERILOG_FILES`.
 
 The SRAM names must also match the corresponding SRAM Verilog module names.
 

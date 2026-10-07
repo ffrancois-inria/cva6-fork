@@ -68,8 +68,7 @@ LOGS_ARTIFACT_PREFIX = {
 
 # Filename (written by the `Extract build parameters` CI step, via bazel-orfs'
 # `print-VAR` bazel run target) holding the bazel build arguments that most
-# affect PPA metrics. Read straight from the logs artifact instead of parsing
-# BUILD.bazel, so it stays correct regardless of how that file is organized.
+# affect PPA metrics.
 BUILD_PARAMS_FILENAME = "build_params.json"
 
 
@@ -361,8 +360,12 @@ def download_and_zip_logs(
             print(f"  WARNING: no .log files in artifact {artifact_dir.name}", file=sys.stderr)
             continue
 
-        params_path = artifact_dir / BUILD_PARAMS_FILENAME
-        if params_path.exists():
+        # upload-artifact roots multi-path artifacts at the paths' common ancestor
+        # (bazel-bin/), so the file sits under logs/asap7/..., not at the root.
+        params_path = next(artifact_dir.rglob(BUILD_PARAMS_FILENAME), None)
+        if params_path is None:
+            print(f"  WARNING: {BUILD_PARAMS_FILENAME} not found in artifact {artifact_dir.name}", file=sys.stderr)
+        else:
             try:
                 with open(params_path) as f:
                     build_params_map[(arch, config)] = json.load(f)

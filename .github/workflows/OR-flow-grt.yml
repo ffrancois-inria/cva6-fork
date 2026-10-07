@@ -59,7 +59,9 @@ jobs:
 
       - name: Run full flow to global routing
         # explicit disk cache (not the output base); GC limit set to 2 GB in .bazelrc
+        # pipefail: otherwise `| tee` masks a bazel failure and the step passes
         run: |
+          set -o pipefail
           bazel run \
             --disk_cache="$HOME/.cache/bazel-disk-cache" \
             --repository_cache="$HOME/.cache/bazel-repo-cache" \

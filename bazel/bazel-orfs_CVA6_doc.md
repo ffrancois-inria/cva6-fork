@@ -167,7 +167,7 @@ The generated design can be inspected with the OpenROAD GUI.
 For example:
 
 ```bash
-bazel run //:cv32a65x_final_gui
+bazel run //:cv32a65x_final gui_final
 ```
 
 This opens the design database corresponding to the selected stage, allowing inspection of the floorplan, placement, routing, timing, and other implementation results.

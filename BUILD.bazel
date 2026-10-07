@@ -94,7 +94,7 @@ filegroup(
     },
     arguments = {
         # Synthesis 
-        "SYNTH_HIERARCHICAL": "1",             # Flat synthesis
+        "SYNTH_HIERARCHICAL": "1",
         "SYNTH_MINIMUM_KEEP_SIZE": "10000",    # Keep modules >, flatten smaller modules
         "ABC_CLOCK_PERIOD_IN_PS": "4000",      # 250 MHz for Yosys ABC
         "SYNTH_MEMORY_MAX_BITS": "65536",

@@ -241,7 +241,7 @@ Most modifications only require editing the shared settings or adding a new entr
 | `CVA6_SOURCES` | SDC constraints and PDN script (`sources`) | top-level targets |
 | `CVA6_VERILOG_FILES` | CVA6 RTL file list, excerpt from `Flist.cva6_synth` (`verilog_files`) | top-level targets |
 | `SRAM_ARGS` | OpenROAD flow parameters (`arguments`) | macro targets |
-| `SRAM_SOURCES` | SDC constraints and pin placement script (`sources`) | macro targets |
+| `SRAM_SOURCES` | SDC constraints, pin placement and PDN scripts (`sources`) | macro targets |
 
 In `CVA6_VERILOG_FILES`, the `{TARGET_CFG}` placeholder is replaced by the configuration name, which selects `core/include/{TARGET_CFG}_config_pkg.sv`. Each target then appends the SRAM wrappers of its configuration, from `bazel/srams/`.
 
@@ -261,6 +261,8 @@ The macro target generators create one implementation flow for every SRAM used b
 These flows are independent from the top-level design and are used only to generate the abstract LEF views required during floorplanning.
 
 The `abstract_stage` parameter specifies how far the macro implementation is run before generating its abstract view. It is set to `cts` for the full variant, which provides sufficiently realistic macro timing, and to `place` for the fast variant, which is much quicker and enough when the top level stops at floorplan.
+
+The macro flows use a dedicated PDN, `bazel/pdn-sram.tcl`, restricted to metal layers M1-M4 like the ASAP7 fakeram macros. The abstract LEF obstructs every layer holding a shape, so this leaves M5-M7 free for the top level to route over the macros. The top-level PDN, `bazel/pdn.tcl`, connects to their M4 power pins.
 
 ### The flow parameters
 

@@ -61,11 +61,13 @@ SRAM_ARGS = {
     "SYNTH_MEMORY_MAX_BITS": "65536",      # Largest memory (bits) Yosys may turn into flip-flops
     "CORE_UTILIZATION": "70",              # Sets the macro .lef size (cell area / 0.70)
     "CORE_MARGIN": "2",                    # 2µm margin
+    "IO_PLACER_V": "M3",                   # Keep any top/bottom pin below M5
 }
 
 SRAM_SOURCES = {
     "SDC_FILE": [":bazel/constraints-sram.sdc"],
     "IO_CONSTRAINTS": [":sram_io_constraints"],  # All pins on the left edge
+    "PDN_TCL": [":bazel/pdn-sram.tcl"],    # M1-M4 only: top level can route over the macro
 }
 
 # CVA6 top level
@@ -121,7 +123,7 @@ CVA6_ARGS = {
 
 CVA6_SOURCES = {
     "SDC_FILE": [":bazel/constraints.sdc"],
-    "PDN_TCL": ["bazel/pdn.tcl"],          # Custom PDN ignoring mock macros
+    "PDN_TCL": ["bazel/pdn.tcl"],          # Custom PDN, connects to the M4 power pins of the macros
 }
 
 # CVA6 RTL, excerpt from Flist.cva6_synth. "{TARGET_CFG}" is replaced by the configuration

@@ -1,5 +1,93 @@
 [
   {
+    "id": 37644357864,
+    "run_number": 37,
+    "conclusion": "success",
+    "event": "push",
+    "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/37644357864",
+    "head_branch": "ffrancois-inria_ORflow-dashboard",
+    "head_sha": "dd9904f9",
+    "commit_subject": "ci/OR-flow: let the top level route over the SRAM macros",
+    "actor": "ffrancois-inria",
+    "created_at": "2026-10-07T15:29:38Z",
+    "duration_seconds": 3634,
+    "total_flows": 3,
+    "passed_flows": 3,
+    "failed_flows": 0,
+    "flows": [
+      {
+        "arch": "RV64",
+        "config": "cv64a6_imafdc_sv39_hpdcache_wb",
+        "conclusion": "success",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/37644357864",
+        "duration_seconds": 3631,
+        "raw_json_path": "./PD-data/raw/37644357864/RV64_cv64a6_imafdc_sv39_hpdcache_wb.json",
+        "logs_zip_path": "./PD-data/raw/37644357864/RV64_cv64a6_imafdc_sv39_hpdcache_wb_logs.zip",
+        "metrics": {
+          "stdcell_area_um2": 43988.7,
+          "macro_area_um2": 366463,
+          "total_instance_area_um2": 410452,
+          "core_area_um2": 743001,
+          "die_area_um2": 750257,
+          "utilization": 0.552424,
+          "stdcell_kgate": 503.3032,
+          "fmax_mhz": 367.42,
+          "worst_setup_slack_ps": 1278.34,
+          "timing_met": true
+        }
+      },
+      {
+        "arch": "RV32",
+        "config": "cv32a65x",
+        "conclusion": "success",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/37644357864",
+        "duration_seconds": 872,
+        "raw_json_path": "./PD-data/raw/37644357864/RV32_cv32a65x.json",
+        "logs_zip_path": "./PD-data/raw/37644357864/RV32_cv32a65x_logs.zip",
+        "metrics": {
+          "stdcell_area_um2": 14934.9,
+          "macro_area_um2": 21294.6,
+          "total_instance_area_um2": 36229.5,
+          "core_area_um2": 64606.4,
+          "die_area_um2": 66744.2,
+          "utilization": 0.560773,
+          "stdcell_kgate": 170.8799,
+          "fmax_mhz": 373.12,
+          "worst_setup_slack_ps": 1319.9,
+          "timing_met": true
+        }
+      },
+      {
+        "arch": "RV64",
+        "config": "cv64a6_imafdc_sv39_hpdcache",
+        "conclusion": "success",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/37644357864",
+        "duration_seconds": 3416,
+        "raw_json_path": "./PD-data/raw/37644357864/RV64_cv64a6_imafdc_sv39_hpdcache.json",
+        "logs_zip_path": "./PD-data/raw/37644357864/RV64_cv64a6_imafdc_sv39_hpdcache_logs.zip",
+        "metrics": {
+          "stdcell_area_um2": 44027.5,
+          "macro_area_um2": 366463,
+          "total_instance_area_um2": 410490,
+          "core_area_um2": 743047,
+          "die_area_um2": 750349,
+          "utilization": 0.552442,
+          "stdcell_kgate": 503.7471,
+          "fmax_mhz": 372.89,
+          "worst_setup_slack_ps": 1318.27,
+          "timing_met": true
+        }
+      }
+    ],
+    "build_params": {
+      "CORE_UTILIZATION": "55",
+      "PLACE_DENSITY": "0.55",
+      "ABC_CLOCK_PERIOD_IN_PS": "4000",
+      "SYNTH_HIERARCHICAL": "1",
+      "SYNTH_MINIMUM_KEEP_SIZE": "10000"
+    }
+  },
+  {
     "id": 37599662141,
     "run_number": 36,
     "conclusion": "success",

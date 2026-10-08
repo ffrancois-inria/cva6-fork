@@ -33,6 +33,11 @@ Both workflows also upload a `PD-{flp,grt}-logs-{arch}-{config}` artifact
 The script downloads all artifacts for each run using
 `gh run download` (which handles authentication and zip extraction),
 then processes the extracted JSON files.
+
+The run's matrix jobs (GitHub API) define the flow list, not the artifacts:
+a job killed before its upload steps (e.g. runner shutdown, where even the
+`if: always()` steps are skipped) leaves no artifact at all, but must still
+show up as failed. Its GitHub job log is then used as the downloadable logs.
 """
 
 import argparse
@@ -219,8 +224,12 @@ def duration_seconds(started_at: str, completed_at: str) -> int:
 # GitHub API helpers  (mirrors collect_data.py)
 # ---------------------------------------------------------------------------
 
-def fetch_job_durations(repo: str, run_id: int) -> dict:
-    """Return {config_name: duration_seconds} for every matrix job in a run."""
+def fetch_jobs(repo: str, run_id: int) -> dict:
+    """Return {config_name: job_info} for every matrix job in a run.
+
+    job_info holds the job "id", "conclusion", "html_url" and "duration_seconds".
+    Matrix jobs are named after their config (`name: ${{ matrix.config }}`).
+    """
     result = subprocess.run(
         ["gh", "api", f"/repos/{repo}/actions/runs/{run_id}/jobs", "--paginate"],
         capture_output=True,
@@ -233,12 +242,36 @@ def fetch_job_durations(repo: str, run_id: int) -> dict:
         )
         return {}
     data = json.loads(result.stdout)
-    durations = {}
+    jobs = {}
     for job in data.get("jobs", []):
-        name = job.get("name", "")
-        dur = duration_seconds(job.get("started_at", ""), job.get("completed_at", ""))
-        durations[name] = dur
-    return durations
+        jobs[job.get("name", "")] = {
+            "id":               job.get("id"),
+            "conclusion":       job.get("conclusion"),
+            "html_url":         job.get("html_url", ""),
+            "duration_seconds": duration_seconds(job.get("started_at", ""), job.get("completed_at", "")),
+        }
+    return jobs
+
+
+def download_job_log(repo: str, job_id: int, zip_dest: Path) -> bool:
+    """Zip the GitHub log of a job into zip_dest; return True on success.
+
+    Fallback for jobs that uploaded no logs artifact: their GitHub job log is
+    then the only log left (requires `actions: read`).
+    """
+    result = subprocess.run(
+        ["gh", "api", f"/repos/{repo}/actions/jobs/{job_id}/logs"],
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        print(
+            f"  WARNING: Could not fetch log of job {job_id}: {result.stderr.decode(errors='replace')}",
+            file=sys.stderr,
+        )
+        return False
+    with zipfile.ZipFile(zip_dest, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("github_job.log", result.stdout)
+    return True
 
 
 def gh_api(endpoint: str, repo: str) -> dict:
@@ -267,6 +300,11 @@ def fetch_runs(repo: str, workflow_file: str, count: int) -> list:
 # ---------------------------------------------------------------------------
 # Artifact download
 # ---------------------------------------------------------------------------
+
+def arch_for_config(config: str) -> str:
+    """Arch of a config, as the OR-flow workflows put it in artifact names."""
+    return "RV32" if config.startswith("cv32") else "RV64"
+
 
 def iter_artifact_dirs(dest_dir: Path, prefix: str):
     """Yield (arch, config, artifact_dir) for each artifact directory matching prefix."""
@@ -400,7 +438,7 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
     run_id = run["id"]
     extractor = extract_flp_metrics if artifact_prefix == "PD-flp-" else extract_grt_metrics
 
-    job_durations = fetch_job_durations(repo, run_id)
+    jobs = fetch_jobs(repo, run_id)
 
     # Persist raw files before the tmpdir is deleted
     run_raw_dir = raw_dir / str(run_id)
@@ -418,9 +456,21 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
 
         json_map = {(arch, config): json_path for arch, config, json_path in json_list}
 
+        # Jobs that left no artifact at all (e.g. runner shutdown) still get a flow
+        flow_keys = json_map.keys() | logs_map.keys()
+        configs_with_artifacts = {config for _, config in flow_keys}
+        flow_keys |= {(arch_for_config(config), config) for config in jobs
+                      if config not in configs_with_artifacts}
+
         flows = []
-        for arch, config in json_map.keys() | logs_map.keys():
+        for arch, config in flow_keys:
             json_path = json_map.get((arch, config))
+            job = jobs.get(config, {})
+            if (arch, config) not in logs_map and job.get("id"):
+                zip_dest = run_raw_dir / f"{arch}_{config}_logs.zip"
+                if download_job_log(repo, job["id"], zip_dest):
+                    logs_map[(arch, config)] = f"./PD-data/raw/{run_id}/{zip_dest.name}"
+                    print(f"  No logs artifact for {arch}/{config}, zipped its GitHub job log instead")
             try:
                 if json_path is None:
                     raise FileNotFoundError("no metrics artifact (job failed before upload)")
@@ -441,13 +491,16 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
                 metrics    = {}
                 conclusion = "failure"
 
-            flow_dur = job_durations.get(config, 0)
+            # A failed/cancelled job overrides the metrics check (e.g. it died after the upload)
+            if job.get("conclusion") not in (None, "success"):
+                conclusion = job["conclusion"]
+
             flows.append({
                 "arch":             arch,
                 "config":           config,
                 "conclusion":       conclusion,
-                "html_url":         run.get("html_url", ""),
-                "duration_seconds": flow_dur,
+                "html_url":         job.get("html_url") or run.get("html_url", ""),
+                "duration_seconds": job.get("duration_seconds", 0),
                 "raw_json_path":    f"./PD-data/raw/{run_id}/{arch}_{config}.json" if json_path else None,
                 "logs_zip_path":    logs_map.get((arch, config)),
                 "metrics":          metrics,

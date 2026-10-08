@@ -26,14 +26,14 @@ WORKFLOWS = [
         "type":          "Floorplan",
         "display_name":  "OR-flow-floorplan",
         "file":          "runs_PD_flp.json",
-        "chart_metrics": ["fmax_mhz", "stdcell_kgate", "worst_setup_slack_ps", "timing_met"],
+        "chart_metrics": ["fmax_mhz", "stdcell_kgate", "worst_setup_slack_ps", "power_mw", "timing_met"],
     },
     {
         "key":           "grt",
         "type":          "GRT",
         "display_name":  "OR-flow-grt",
         "file":          "runs_PD_grt.json",
-        "chart_metrics": ["fmax_mhz", "stdcell_kgate", "worst_setup_slack_ps", "timing_met"],
+        "chart_metrics": ["fmax_mhz", "stdcell_kgate", "worst_setup_slack_ps", "power_mw", "timing_met"],
     },
 ]
 
@@ -267,6 +267,7 @@ def build_workflows_context(all_data: dict) -> list:
                         "fmax_mhz": _delta(m.get("fmax_mhz"), prev.get("fmax_mhz")),
                         "stdcell_kgate": _delta(m.get("stdcell_kgate"), prev.get("stdcell_kgate")),
                         "worst_setup_slack_ps": _delta(m.get("worst_setup_slack_ps"), prev.get("worst_setup_slack_ps")),
+                        "power_mw": _delta(m.get("power_mw"), prev.get("power_mw")),
                     }
 
         workflows.append(

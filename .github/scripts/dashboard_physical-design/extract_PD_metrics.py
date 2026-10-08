@@ -96,6 +96,7 @@ def extract_grt_metrics(data: dict, nand2_area: float) -> dict:
     core_area_um2    = get("globalroute__design__core__area")
     fmax_hz          = get("globalroute__timing__fmax")
     worst_slack_ps   = get("globalroute__timing__setup__ws")
+    power_w          = get("globalroute__power__total")
 
     return {
         "stdcell_area_um2":    round(stdcell_area_um2, 4),
@@ -107,6 +108,7 @@ def extract_grt_metrics(data: dict, nand2_area: float) -> dict:
         "fmax_mhz":            round(fmax_hz / 1e6, 2),
         "worst_setup_slack_ps": round(worst_slack_ps, 3),
         "timing_met":          worst_slack_ps >= 0,
+        "power_mw":            round(power_w * 1e3, 3),
     }
 
 
@@ -126,6 +128,7 @@ def extract_flp_metrics(data: dict, nand2_area: float) -> dict:
     utilization      = get("floorplan__design__instance__utilization")
     fmax_hz          = get("floorplan__timing__fmax")
     worst_slack_ps   = get("floorplan__timing__setup__ws")
+    power_w          = get("floorplan__power__total")
 
     return {
         "stdcell_area_um2":        round(stdcell_area_um2, 4),
@@ -138,6 +141,7 @@ def extract_flp_metrics(data: dict, nand2_area: float) -> dict:
         "fmax_mhz":                round(fmax_hz / 1e6, 2),
         "worst_setup_slack_ps":    round(worst_slack_ps, 3),
         "timing_met":              worst_slack_ps >= 0,
+        "power_mw":                round(power_w * 1e3, 3),
     }
 
 
@@ -429,7 +433,8 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
                     f"    [SUCCESS] {arch}/{config}  "
                     f"fmax={metrics['fmax_mhz']:.1f} MHz  "
                     f"stdcell={metrics['stdcell_area_um2']:.3f} µm²  "
-                    f"({metrics['stdcell_kgate']:.2f} Kgate)  [{timing_str}]"
+                    f"({metrics['stdcell_kgate']:.2f} Kgate)  "
+                    f"power={metrics['power_mw']:.2f} mW  [{timing_str}]"
                 )
             except (json.JSONDecodeError, KeyError, ValueError, IOError, FileNotFoundError) as exc:
                 print(f"    [FAILURE] {arch}/{config}: {exc}", file=sys.stderr)

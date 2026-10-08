@@ -84,6 +84,11 @@ def extract_grt_metrics(data: dict, nand2_area: float) -> dict:
             raise KeyError(f"Key not found in JSON: {key}")
         return v
 
+    # A congested GRT still produces this JSON (bazel-orfs sets GENERATE_ARTIFACTS_ON_FAILURE=1)
+    errors = get("globalroute__flow__errors__count")
+    if errors:
+        raise ValueError(f"global routing finished with {errors} error(s)")
+
     stdcell_area_um2 = get("globalroute__design__instance__area__stdcell")
     macro_area_um2   = get("globalroute__design__instance__area__macros")
     total_area_um2   = get("globalroute__design__instance__area")
@@ -426,7 +431,7 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
                     f"stdcell={metrics['stdcell_area_um2']:.3f} µm²  "
                     f"({metrics['stdcell_kgate']:.2f} Kgate)  [{timing_str}]"
                 )
-            except (json.JSONDecodeError, KeyError, IOError, FileNotFoundError) as exc:
+            except (json.JSONDecodeError, KeyError, ValueError, IOError, FileNotFoundError) as exc:
                 print(f"    [FAILURE] {arch}/{config}: {exc}", file=sys.stderr)
                 metrics    = {}
                 conclusion = "failure"

@@ -114,3 +114,14 @@ jobs:
             bazel-bin/reports/asap7/cva6/base/*
             bazel-bin/logs/asap7/cva6/base/build_params.json
           if-no-files-found: warn
+
+      - name: Check global routing result
+        # bazel-orfs forces GENERATE_ARTIFACTS_ON_FAILURE=1: a congested GRT still writes
+        # its outputs and bazel succeeds, so fail the job on any GRT error instead.
+        # Last step, so that the artifacts above are uploaded anyway.
+        run: |
+          errors=$(jq '.["globalroute__flow__errors__count"]' bazel-bin/logs/asap7/cva6/base/5_1_grt.json)
+          if [ "$errors" != "0" ]; then
+            echo "::error::Global routing finished with $errors error(s), most likely congestion (see 5_1_grt.log and congestion.rpt)"
+            exit 1
+          fi

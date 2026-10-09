@@ -213,14 +213,20 @@ def enrich_run(run: dict) -> dict:
     return run
 
 
-def _delta(current, previous) -> dict | None:
-    """Return signed delta info between two numeric metric values."""
+def _delta(current, previous, relative: bool = False) -> dict | None:
+    """Return signed delta info between two numeric metric values.
+
+    relative: delta in % of the previous value instead of in the metric's unit.
+    """
     if current is None or previous is None:
         return None
     try:
-        d = round(float(current) - float(previous), 2)
+        d = float(current) - float(previous)
+        if relative:
+            d = d / float(previous) * 100
+        d = round(d, 2)
         return {"value": d, "sign": "+" if d >= 0 else ""}
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, ZeroDivisionError):
         return None
 
 
@@ -266,6 +272,9 @@ def build_workflows_context(all_data: dict) -> list:
                     flow_deltas[fk] = {
                         "fmax_mhz": _delta(m.get("fmax_mhz"), prev.get("fmax_mhz")),
                         "stdcell_kgate": _delta(m.get("stdcell_kgate"), prev.get("stdcell_kgate")),
+                        # In %: in µm², it would just repeat the stdcell delta (the macros don't change)
+                        "total_instance_area_um2": _delta(m.get("total_instance_area_um2"),
+                                                          prev.get("total_instance_area_um2"), relative=True),
                         "worst_setup_slack_ps": _delta(m.get("worst_setup_slack_ps"), prev.get("worst_setup_slack_ps")),
                         "power_mw": _delta(m.get("power_mw"), prev.get("power_mw")),
                     }

@@ -1,5 +1,60 @@
 [
   {
+    "id": 37925294657,
+    "source": "github-actions",
+    "simulator": "verilator",
+    "run_number": 13,
+    "status": "completed",
+    "conclusion": "success",
+    "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/37925294657",
+    "head_branch": "ffrancois-inria_ORflow-dashboard",
+    "head_sha": "71fd4d00",
+    "event": "pull_request",
+    "created_at": "2026-10-09T11:41:29Z",
+    "updated_at": "2026-10-09T12:18:30Z",
+    "run_started_at": "2026-10-09T11:41:29Z",
+    "duration_seconds": 2221,
+    "total_jobs": 3,
+    "passed_jobs": 3,
+    "failed_jobs": 0,
+    "skipped_jobs": 0,
+    "jobs": [
+      {
+        "name": "RV32 Tier1 cv32a60x / cv32a6_tests",
+        "conclusion": "success",
+        "started_at": "2026-10-09T12:12:16Z",
+        "completed_at": "2026-10-09T12:16:54Z",
+        "duration_seconds": 278,
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/37925294657/job/113813138223",
+        "arch": "rv32",
+        "config": "cv32a60x",
+        "testcase": "cv32a6_tests"
+      },
+      {
+        "name": "RV32 Tier1 cv32a65x / smoke-tests-cv32a65x",
+        "conclusion": "success",
+        "started_at": "2026-10-09T12:12:16Z",
+        "completed_at": "2026-10-09T12:14:24Z",
+        "duration_seconds": 128,
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/37925294657/job/113813138261",
+        "arch": "rv32",
+        "config": "cv32a65x",
+        "testcase": "smoke-tests-cv32a65x"
+      },
+      {
+        "name": "RV64 Tier1 cv64a6_imafdc_sv39_hpdcache_wb / cv64a6_imafdc_tests",
+        "conclusion": "success",
+        "started_at": "2026-10-09T12:12:16Z",
+        "completed_at": "2026-10-09T12:18:30Z",
+        "duration_seconds": 374,
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/37925294657/job/113813138315",
+        "arch": "rv64",
+        "config": "cv64a6_imafdc_sv39_hpdcache_wb",
+        "testcase": "cv64a6_imafdc_tests"
+      }
+    ]
+  },
+  {
     "id": 37307188782,
     "source": "github-actions",
     "simulator": "verilator",

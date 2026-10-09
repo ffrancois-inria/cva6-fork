@@ -15,6 +15,12 @@ permissions:
   pages: write
   id-token: write
 
+# One run at a time: runs push to the same data branch and deploy the same Pages site.
+# A newer run replaces a pending one, which is harmless: each run collects the latest runs again
+concurrency:
+  group: physical-design-dashboard
+  cancel-in-progress: false
+
 jobs:
   build:
     name: Build PD Dashboard
@@ -158,31 +164,50 @@ jobs:
             exit 1
           fi
 
-      - name: Clean stale data directories
-        # download-artifact only overwrites/adds files; it never removes ones no
-        # longer produced, so stale/nested leftovers would linger forever otherwise.
-        run: rm -rf data/dash-site data/PD
-
+      # Downloaded aside, not into data/: only the PD paths are copied from them (see below)
       - name: Download updated dash-site data
         uses: actions/download-artifact@v4
         with:
           name: cva6-dashboard-site
-          path: data/dash-site
+          path: ${{ runner.temp }}/dash-site
 
       - name: Download updated PD data
         uses: actions/download-artifact@v4
         with:
           name: cva6-PD-dashboard-data
-          path: data/PD
+          path: ${{ runner.temp }}/PD-data
 
       - name: Commit and push PD data
+        # The tier dashboard workflow pushes to this branch too, not synchronized with this one.
+        # Only the PD paths are written: data/PD, and the PD files of data/dash-site. The rest of
+        # data/dash-site holds this run's copy of the tier dashboard, taken when the run started:
+        # writing it back would undo a tier dashboard update pushed since.
+        # A push rejected because the tier workflow pushed in between is redone on top of its commit.
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/
-          if git diff --cached --quiet; then
-            echo "No data changes to commit"
-          else
-            git commit -m "Update cva6 PD dashboard data [skip ci]"
-            git push origin HEAD:gh-pages-cva6-dashboard-data
-          fi
+          # Replaced rather than overwritten: files no longer produced must go too
+          update_pd_paths() {
+            rm -rf data/PD data/dash-site/PD_dashboard.html data/dash-site/PD-data
+            mkdir -p data/PD data/dash-site
+            cp -r "$RUNNER_TEMP/PD-data/." data/PD/
+            cp "$RUNNER_TEMP/dash-site/PD_dashboard.html" data/dash-site/
+            cp -r "$RUNNER_TEMP/dash-site/PD-data" data/dash-site/PD-data
+            git add -A data/PD data/dash-site/PD_dashboard.html data/dash-site/PD-data
+          }
+          for attempt in 1 2 3; do
+            update_pd_paths
+            if git diff --cached --quiet; then
+              echo "No data changes to commit"
+              exit 0
+            fi
+            git commit -q -m "Update cva6 PD dashboard data [skip ci]"
+            if git push origin HEAD:gh-pages-cva6-dashboard-data; then
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt): redoing the commit on top of the updated branch"
+            git fetch origin gh-pages-cva6-dashboard-data --depth=1
+            git reset -q --hard origin/gh-pages-cva6-dashboard-data
+          done
+          echo "::error::Could not push to gh-pages-cva6-dashboard-data after 3 attempts"
+          exit 1

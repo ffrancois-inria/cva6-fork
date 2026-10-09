@@ -17,6 +17,9 @@ from zoneinfo import ZoneInfo
 
 from jinja2 import Environment, FileSystemLoader
 
+# Same run classification as the collected data (script in this directory)
+from extract_PD_metrics import DEFAULT_BRANCH, is_reference_run
+
 # Workflows to load and display (order matters for UI).
 # chart_metrics: metric keys to extract from each flow's metrics dict.
 # type: passed to template to select which charts to render.
@@ -26,14 +29,14 @@ WORKFLOWS = [
         "type":          "Floorplan",
         "display_name":  "OR-flow-floorplan",
         "file":          "runs_PD_flp.json",
-        "chart_metrics": ["fmax_mhz", "stdcell_kgate", "worst_setup_slack_ps", "timing_met"],
+        "chart_metrics": ["fmax_mhz", "stdcell_kgate", "worst_setup_slack_ps", "power_mw", "timing_met"],
     },
     {
         "key":           "grt",
         "type":          "GRT",
         "display_name":  "OR-flow-grt",
         "file":          "runs_PD_grt.json",
-        "chart_metrics": ["fmax_mhz", "stdcell_kgate", "worst_setup_slack_ps", "timing_met"],
+        "chart_metrics": ["fmax_mhz", "stdcell_kgate", "worst_setup_slack_ps", "power_mw", "timing_met"],
     },
 ]
 
@@ -133,6 +136,11 @@ def load_workflow_data(data_dir: Path) -> dict:
     return result
 
 
+def flow_key_of(flow: dict) -> str:
+    """Key identifying a flow across runs, e.g. "RV32_cv32a65x"."""
+    return f"{flow['arch']}_{flow['config']}"
+
+
 def build_chart_data(all_data: dict) -> dict:
     """Build Chart.js data for trend charts."""
     chart_data = {}
@@ -140,7 +148,8 @@ def build_chart_data(all_data: dict) -> dict:
     for wf in WORKFLOWS:
         key          = wf["key"]
         chart_metrics = wf["chart_metrics"]
-        runs = all_data.get(key, [])
+        # Trends follow the reference history: PR runs are not part of it
+        runs = [r for r in all_data.get(key, []) if is_reference_run(r)]
 
         # Take last TREND_COUNT runs, reversed for chronological order
         trend_runs = list(reversed(runs[:TREND_COUNT]))
@@ -156,8 +165,7 @@ def build_chart_data(all_data: dict) -> dict:
         all_flow_keys = set()
         for run in trend_runs:
             for flow in run.get("flows", []):
-                flow_key = f"{flow['arch']}_{flow['config']}"
-                all_flow_keys.add(flow_key)
+                all_flow_keys.add(flow_key_of(flow))
 
         # Process each run (second pass)
         for run in trend_runs:
@@ -173,8 +181,7 @@ def build_chart_data(all_data: dict) -> dict:
             # Build O(1) lookup dict for flows in this run
             flow_dict = {}
             for flow in run.get("flows", []):
-                flow_key = f"{flow['arch']}_{flow['config']}"
-                flow_dict[flow_key] = flow.get("metrics", {})
+                flow_dict[flow_key_of(flow)] = flow.get("metrics", {})
 
             # For each flow_key, append metric or None
             for flow_key in all_flow_keys:
@@ -213,15 +220,62 @@ def enrich_run(run: dict) -> dict:
     return run
 
 
-def _delta(current, previous) -> dict | None:
-    """Return signed delta info between two numeric metric values."""
+def _delta(current, previous, relative: bool = False) -> dict | None:
+    """Return signed delta info between two numeric metric values.
+
+    relative: delta in % of the previous value instead of in the metric's unit.
+    """
     if current is None or previous is None:
         return None
     try:
-        d = round(float(current) - float(previous), 2)
+        d = float(current) - float(previous)
+        if relative:
+            d = d / float(previous) * 100
+        d = round(d, 2)
         return {"value": d, "sign": "+" if d >= 0 else ""}
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, ZeroDivisionError):
         return None
+
+
+def baseline_flow(run: dict, ref_runs: list, flow_key: str) -> tuple:
+    """(reference run, flow) that the `flow_key` flow of `run` is compared to.
+
+    The latest reference run created before `run` (`run` itself excluded) where
+    this flow succeeded: a config failing on the reference branch is compared to
+    its last good metrics. (None, None) when there is no such run.
+    """
+    for ref in ref_runs:  # newest first
+        if ref["id"] == run.get("id") or ref.get("created_at", "") > run.get("created_at", ""):
+            continue
+        for flow in ref.get("flows", []):
+            if flow_key_of(flow) == flow_key and flow.get("conclusion") == "success" and flow.get("metrics"):
+                return ref, flow
+    return None, None
+
+
+def flow_deltas(run: dict, ref_runs: list) -> dict:
+    """{flow key: metric deltas vs its baseline flow} for every flow of `run`.
+
+    Each entry holds the "baseline" reference run (None without one) and one
+    _delta() per metric, None when either side lacks the value.
+    """
+    deltas = {}
+    for flow in run.get("flows", []):
+        flow_key = flow_key_of(flow)
+        ref, ref_flow = baseline_flow(run, ref_runs, flow_key)
+        m = flow.get("metrics") or {}
+        prev = ref_flow["metrics"] if ref_flow else {}
+        deltas[flow_key] = {
+            "baseline": ref,
+            "fmax_mhz": _delta(m.get("fmax_mhz"), prev.get("fmax_mhz")),
+            "stdcell_kgate": _delta(m.get("stdcell_kgate"), prev.get("stdcell_kgate")),
+            # In %: in µm², it would just repeat the stdcell delta (the macros don't change)
+            "total_instance_area_um2": _delta(m.get("total_instance_area_um2"),
+                                              prev.get("total_instance_area_um2"), relative=True),
+            "worst_setup_slack_ps": _delta(m.get("worst_setup_slack_ps"), prev.get("worst_setup_slack_ps")),
+            "power_mw": _delta(m.get("power_mw"), prev.get("power_mw")),
+        }
+    return deltas
 
 
 def build_workflows_context(all_data: dict) -> list:
@@ -235,9 +289,14 @@ def build_workflows_context(all_data: dict) -> list:
         for run in runs:
             enrich_run(run)
 
+        # Reference runs make the history; candidate runs (PRs, other branches)
+        # are each compared to them
+        ref_runs       = [r for r in runs if is_reference_run(r)]
+        candidate_runs = [r for r in runs if not is_reference_run(r)]
+
         # Build latest run summary (or placeholder)
-        if runs:
-            latest = runs[0]
+        if ref_runs:
+            latest = ref_runs[0]
         else:
             latest = {
                 "conclusion": "unknown",
@@ -253,21 +312,12 @@ def build_workflows_context(all_data: dict) -> list:
                 "created_at_display": "N/A"
             }
 
-        # Compute per-flow metric deltas vs previous run
-        flow_deltas = {}
-        if len(runs) >= 2:
-            prev_flows = {f"{f['arch']}_{f['config']}": f.get("metrics", {})
-                         for f in runs[1].get("flows", [])}
-            for flow in latest.get("flows", []):
-                fk = f"{flow['arch']}_{flow['config']}"
-                prev = prev_flows.get(fk)
-                if prev:
-                    m = flow.get("metrics", {})
-                    flow_deltas[fk] = {
-                        "fmax_mhz": _delta(m.get("fmax_mhz"), prev.get("fmax_mhz")),
-                        "stdcell_kgate": _delta(m.get("stdcell_kgate"), prev.get("stdcell_kgate")),
-                        "worst_setup_slack_ps": _delta(m.get("worst_setup_slack_ps"), prev.get("worst_setup_slack_ps")),
-                    }
+        for run in [latest] + candidate_runs:
+            run["flow_deltas"] = flow_deltas(run, ref_runs)
+            # Distinct reference runs compared to, newest first (usually a single one)
+            baselines = {d["baseline"]["id"]: d["baseline"]
+                         for d in run["flow_deltas"].values() if d["baseline"]}
+            run["baselines"] = sorted(baselines.values(), key=lambda r: r.get("created_at", ""), reverse=True)
 
         workflows.append(
             {
@@ -275,8 +325,8 @@ def build_workflows_context(all_data: dict) -> list:
                 "type": wf["type"],
                 "display_name": wf["display_name"],
                 "latest": latest,
-                "flow_deltas": flow_deltas,
-                "runs": runs,
+                "runs": ref_runs,
+                "candidate_runs": candidate_runs,
             }
         )
 
@@ -340,9 +390,10 @@ def main():
         "generated_at": format_datetime(now.isoformat()),
         "year": now.year,
         "repo": args.repo,
+        "default_branch": DEFAULT_BRANCH,
         "workflows": workflows,
         "default_matrix_wf": default_matrix_wf,
-        "chart_data_json": json.dumps(chart_data),
+        "chart_data": chart_data,
         "trend_count": TREND_COUNT
     }
 
@@ -360,7 +411,8 @@ def main():
     print(f"Dashboard generated: {output_file}")
     print(f"  Workflows: {len(workflows)}")
     for wf in workflows:
-        print(f"    - {wf['display_name']}: {len(wf['runs'])} runs")
+        print(f"    - {wf['display_name']}: {len(wf['runs'])} {DEFAULT_BRANCH} runs, "
+              f"{len(wf['candidate_runs'])} PR/branch runs")
     
     return 0
 

@@ -28,16 +28,27 @@ Artifact layout expected from OR-flow-grt.yml:
 
 Both workflows also upload a `PD-{flp,grt}-logs-{arch}-{config}` artifact
 (logs, reports, and build_params.json — the latter produced by a `bazel run
-... -- print-VAR` CI step, giving the exact bazel build arguments used).
+... -- print-VAR` CI step, giving the exact bazel build arguments used, plus
+the PR number for pull_request runs).
 
 The script downloads all artifacts for each run using
 `gh run download` (which handles authentication and zip extraction),
 then processes the extracted JSON files.
+
+The run's matrix jobs (GitHub API) define the flow list, not the artifacts:
+a job killed before its upload steps (e.g. runner shutdown, where even the
+`if: always()` steps are skipped) leaves no artifact at all, but must still
+show up as failed. Its GitHub job log is then used as the downloadable logs.
+
+Runs of DEFAULT_BRANCH are the reference runs (trends, history). PR runs and
+runs of other branches are the candidate runs, which the dashboard compares to
+the reference runs. Both are kept in the same JSON file, trimmed separately.
 """
 
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -52,7 +63,12 @@ import shutil
 # Override with --nand2-area for other PDKs.
 ASAP7_NAND2_AREA_UM2 = 0.0874
 
-MAX_HISTORY = 50
+# Branch whose runs (PR runs excepted) are the reference runs
+DEFAULT_BRANCH = "master"
+
+# Trimmed separately, so that a burst of PR runs cannot push the reference history out
+MAX_REFERENCE_HISTORY = 50
+MAX_CANDIDATE_HISTORY = 30
 
 # Maps artifact prefix to the metrics JSON filename produced inside each artifact.
 METRICS_FILENAME = {
@@ -68,9 +84,13 @@ LOGS_ARTIFACT_PREFIX = {
 
 # Filename (written by the `Extract build parameters` CI step, via bazel-orfs'
 # `print-VAR` bazel run target) holding the bazel build arguments that most
-# affect PPA metrics. Read straight from the logs artifact instead of parsing
-# BUILD.bazel, so it stays correct regardless of how that file is organized.
+# affect PPA metrics. The floorplan workflow also writes the PR number in it
+# (PR_NUMBER key, empty outside pull_request runs), popped into the run record.
 BUILD_PARAMS_FILENAME = "build_params.json"
+
+# Arch and config names go into file paths and into the dashboard page. They come
+# from artifact and job names, which the workflow of a PR run sets freely.
+SAFE_NAME_RE = re.compile(r"[A-Za-z0-9_]+")
 
 
 # ---------------------------------------------------------------------------
@@ -85,6 +105,11 @@ def extract_grt_metrics(data: dict, nand2_area: float) -> dict:
             raise KeyError(f"Key not found in JSON: {key}")
         return v
 
+    # A congested GRT still produces this JSON (bazel-orfs sets GENERATE_ARTIFACTS_ON_FAILURE=1)
+    errors = get("globalroute__flow__errors__count")
+    if errors:
+        raise ValueError(f"global routing finished with {errors} error(s)")
+
     stdcell_area_um2 = get("globalroute__design__instance__area__stdcell")
     macro_area_um2   = get("globalroute__design__instance__area__macros")
     total_area_um2   = get("globalroute__design__instance__area")
@@ -92,6 +117,7 @@ def extract_grt_metrics(data: dict, nand2_area: float) -> dict:
     core_area_um2    = get("globalroute__design__core__area")
     fmax_hz          = get("globalroute__timing__fmax")
     worst_slack_ps   = get("globalroute__timing__setup__ws")
+    power_w          = get("globalroute__power__total")
 
     return {
         "stdcell_area_um2":    round(stdcell_area_um2, 4),
@@ -103,6 +129,7 @@ def extract_grt_metrics(data: dict, nand2_area: float) -> dict:
         "fmax_mhz":            round(fmax_hz / 1e6, 2),
         "worst_setup_slack_ps": round(worst_slack_ps, 3),
         "timing_met":          worst_slack_ps >= 0,
+        "power_mw":            round(power_w * 1e3, 3),
     }
 
 
@@ -122,6 +149,7 @@ def extract_flp_metrics(data: dict, nand2_area: float) -> dict:
     utilization      = get("floorplan__design__instance__utilization")
     fmax_hz          = get("floorplan__timing__fmax")
     worst_slack_ps   = get("floorplan__timing__setup__ws")
+    power_w          = get("floorplan__power__total")
 
     return {
         "stdcell_area_um2":        round(stdcell_area_um2, 4),
@@ -134,6 +162,7 @@ def extract_flp_metrics(data: dict, nand2_area: float) -> dict:
         "fmax_mhz":                round(fmax_hz / 1e6, 2),
         "worst_setup_slack_ps":    round(worst_slack_ps, 3),
         "timing_met":              worst_slack_ps >= 0,
+        "power_mw":                round(power_w * 1e3, 3),
     }
 
 
@@ -152,6 +181,16 @@ def load_existing(path: Path) -> list:
     return []
 
 
+def is_reference_run(run: dict) -> bool:
+    """True for a run of DEFAULT_BRANCH, False for a PR run or a run of another branch.
+
+    Works on both GitHub API runs and the run records of this script. A fork PR
+    opened from a branch named like DEFAULT_BRANCH is a pull_request run: not a
+    reference.
+    """
+    return run.get("event") != "pull_request" and run.get("head_branch") == DEFAULT_BRANCH
+
+
 def merge_runs(existing: list, new_runs: list) -> list:
     """Merge new runs into existing data, deduplicating by run_id."""
     existing_ids = {r["id"] for r in existing}
@@ -165,8 +204,10 @@ def merge_runs(existing: list, new_runs: list) -> list:
     # Sort by created_at descending (newest first)
     merged.sort(key=lambda r: r.get("created_at", ""), reverse=True)
 
-    # Trim to MAX_HISTORY
-    return merged[:MAX_HISTORY]
+    # Trim reference and candidate runs separately, then interleave them back
+    reference  = [r for r in merged if is_reference_run(r)][:MAX_REFERENCE_HISTORY]
+    candidates = [r for r in merged if not is_reference_run(r)][:MAX_CANDIDATE_HISTORY]
+    return sorted(reference + candidates, key=lambda r: r.get("created_at", ""), reverse=True)
 
 def cleanup_old_raw_files(raw_dir: Path, kept_run_ids: set) -> None:
     """Delete raw JSON files for runs no longer in the kept list."""
@@ -211,8 +252,12 @@ def duration_seconds(started_at: str, completed_at: str) -> int:
 # GitHub API helpers  (mirrors collect_data.py)
 # ---------------------------------------------------------------------------
 
-def fetch_job_durations(repo: str, run_id: int) -> dict:
-    """Return {config_name: duration_seconds} for every matrix job in a run."""
+def fetch_jobs(repo: str, run_id: int) -> dict:
+    """Return {config_name: job_info} for every matrix job in a run.
+
+    job_info holds the job "id", "conclusion", "html_url" and "duration_seconds".
+    Matrix jobs are named after their config (`name: ${{ matrix.config }}`).
+    """
     result = subprocess.run(
         ["gh", "api", f"/repos/{repo}/actions/runs/{run_id}/jobs", "--paginate"],
         capture_output=True,
@@ -225,12 +270,40 @@ def fetch_job_durations(repo: str, run_id: int) -> dict:
         )
         return {}
     data = json.loads(result.stdout)
-    durations = {}
+    jobs = {}
     for job in data.get("jobs", []):
         name = job.get("name", "")
-        dur = duration_seconds(job.get("started_at", ""), job.get("completed_at", ""))
-        durations[name] = dur
-    return durations
+        if not SAFE_NAME_RE.fullmatch(name):
+            print(f"  WARNING: ignoring job {name!r} of run {run_id}: not a config name", file=sys.stderr)
+            continue
+        jobs[name] = {
+            "id":               job.get("id"),
+            "conclusion":       job.get("conclusion"),
+            "html_url":         job.get("html_url", ""),
+            "duration_seconds": duration_seconds(job.get("started_at", ""), job.get("completed_at", "")),
+        }
+    return jobs
+
+
+def download_job_log(repo: str, job_id: int, zip_dest: Path) -> bool:
+    """Zip the GitHub log of a job into zip_dest; return True on success.
+
+    Fallback for jobs that uploaded no logs artifact: their GitHub job log is
+    then the only log left (requires `actions: read`).
+    """
+    result = subprocess.run(
+        ["gh", "api", f"/repos/{repo}/actions/jobs/{job_id}/logs"],
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        print(
+            f"  WARNING: Could not fetch log of job {job_id}: {result.stderr.decode(errors='replace')}",
+            file=sys.stderr,
+        )
+        return False
+    with zipfile.ZipFile(zip_dest, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("github_job.log", result.stdout)
+    return True
 
 
 def gh_api(endpoint: str, repo: str) -> dict:
@@ -260,17 +333,30 @@ def fetch_runs(repo: str, workflow_file: str, count: int) -> list:
 # Artifact download
 # ---------------------------------------------------------------------------
 
-def iter_artifact_dirs(dest_dir: Path, prefix: str):
-    """Yield (arch, config, artifact_dir) for each artifact directory matching prefix."""
-        
+def arch_for_config(config: str) -> str:
+    """Arch of a config, as the OR-flow workflows put it in artifact names."""
+    return "RV32" if config.startswith("cv32") else "RV64"
+
+
+def iter_artifact_dirs(dest_dir: Path, prefix: str, skip_prefix: str = ""):
+    """Yield (arch, config, artifact_dir) for each artifact directory matching prefix.
+
+    skip_prefix: artifacts to leave out, e.g. the "PD-flp-logs-" ones that the
+    "PD-flp-*" download pattern also pulls.
+    """
     for artifact_dir in sorted(dest_dir.iterdir()):
         if not artifact_dir.is_dir() or not artifact_dir.name.startswith(prefix):
+            continue
+        if skip_prefix and artifact_dir.name.startswith(skip_prefix):
             continue
         suffix = artifact_dir.name[len(prefix):]
         # rsplit on "-" (last occurrence) so design names containing "-" are preserved.
         parts  = suffix.rsplit("-", 1)
         arch   = parts[0] if len(parts) >= 1 else suffix
         config = parts[1] if len(parts) >= 2 else "base"
+        if not (SAFE_NAME_RE.fullmatch(arch) and SAFE_NAME_RE.fullmatch(config)):
+            print(f"  WARNING: ignoring artifact {artifact_dir.name!r}: unexpected arch/config name", file=sys.stderr)
+            continue
         yield arch, config, artifact_dir
 
 
@@ -301,12 +387,9 @@ def download_run_artifacts(repo: str, run_id: int, dest_dir: Path, artifact_pref
         return []
 
     found = []
+    # "PD-flp-*" also matches the "PD-flp-logs-*" artifacts, handled separately
     logs_prefix = LOGS_ARTIFACT_PREFIX.get(artifact_prefix, "")
-    for arch, config, artifact_dir in iter_artifact_dirs(dest_dir, artifact_prefix):
-        # "PD-flp-*" also matches "PD-flp-logs-*" artifacts pulled by the same
-        # `gh run download` pattern; skip those, they're handled separately.
-        if logs_prefix and artifact_dir.name.startswith(logs_prefix):
-            continue
+    for arch, config, artifact_dir in iter_artifact_dirs(dest_dir, artifact_prefix, skip_prefix=logs_prefix):
         json_path = artifact_dir / metrics_filename
         if json_path.exists():
             found.append((arch, config, json_path))
@@ -361,8 +444,12 @@ def download_and_zip_logs(
             print(f"  WARNING: no .log files in artifact {artifact_dir.name}", file=sys.stderr)
             continue
 
-        params_path = artifact_dir / BUILD_PARAMS_FILENAME
-        if params_path.exists():
+        # upload-artifact roots multi-path artifacts at the paths' common ancestor
+        # (bazel-bin/), so the file sits under logs/asap7/..., not at the root.
+        params_path = next(artifact_dir.rglob(BUILD_PARAMS_FILENAME), None)
+        if params_path is None:
+            print(f"  WARNING: {BUILD_PARAMS_FILENAME} not found in artifact {artifact_dir.name}", file=sys.stderr)
+        else:
             try:
                 with open(params_path) as f:
                     build_params_map[(arch, config)] = json.load(f)
@@ -383,12 +470,29 @@ def download_and_zip_logs(
 # CI run processing
 # ---------------------------------------------------------------------------
 
+def pop_pr_number(run: dict, build_params: dict) -> int | None:
+    """PR number of a pull_request run, None for other runs.
+
+    Taken out of build_params (PR_NUMBER), where the floorplan job writes it.
+    The GitHub API only gives it for PRs opened from this repository
+    (run["pull_requests"], empty for fork PRs): fallback for a job that left no
+    build_params.json.
+    """
+    value = str(build_params.pop("PR_NUMBER", ""))
+    if run.get("event") != "pull_request":
+        return None
+    if re.fullmatch(r"[0-9]+", value):
+        return int(value)
+    prs = run.get("pull_requests") or []
+    return prs[0].get("number") if prs else None
+
+
 def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artifact_prefix: str) -> dict:
     """Fetch artifacts for a PD run, extract metrics, and build a run record."""
     run_id = run["id"]
     extractor = extract_flp_metrics if artifact_prefix == "PD-flp-" else extract_grt_metrics
 
-    job_durations = fetch_job_durations(repo, run_id)
+    jobs = fetch_jobs(repo, run_id)
 
     # Persist raw files before the tmpdir is deleted
     run_raw_dir = raw_dir / str(run_id)
@@ -406,9 +510,21 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
 
         json_map = {(arch, config): json_path for arch, config, json_path in json_list}
 
+        # Jobs that left no artifact at all (e.g. runner shutdown) still get a flow
+        flow_keys = json_map.keys() | logs_map.keys()
+        configs_with_artifacts = {config for _, config in flow_keys}
+        flow_keys |= {(arch_for_config(config), config) for config in jobs
+                      if config not in configs_with_artifacts}
+
         flows = []
-        for arch, config in json_map.keys() | logs_map.keys():
+        for arch, config in flow_keys:
             json_path = json_map.get((arch, config))
+            job = jobs.get(config, {})
+            if (arch, config) not in logs_map and job.get("id"):
+                zip_dest = run_raw_dir / f"{arch}_{config}_logs.zip"
+                if download_job_log(repo, job["id"], zip_dest):
+                    logs_map[(arch, config)] = f"./PD-data/raw/{run_id}/{zip_dest.name}"
+                    print(f"  No logs artifact for {arch}/{config}, zipped its GitHub job log instead")
             try:
                 if json_path is None:
                     raise FileNotFoundError("no metrics artifact (job failed before upload)")
@@ -421,20 +537,24 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
                     f"    [SUCCESS] {arch}/{config}  "
                     f"fmax={metrics['fmax_mhz']:.1f} MHz  "
                     f"stdcell={metrics['stdcell_area_um2']:.3f} µm²  "
-                    f"({metrics['stdcell_kgate']:.2f} Kgate)  [{timing_str}]"
+                    f"({metrics['stdcell_kgate']:.2f} Kgate)  "
+                    f"power={metrics['power_mw']:.2f} mW  [{timing_str}]"
                 )
-            except (json.JSONDecodeError, KeyError, IOError, FileNotFoundError) as exc:
+            except (json.JSONDecodeError, KeyError, ValueError, IOError, FileNotFoundError) as exc:
                 print(f"    [FAILURE] {arch}/{config}: {exc}", file=sys.stderr)
                 metrics    = {}
                 conclusion = "failure"
 
-            flow_dur = job_durations.get(config, 0)
+            # A failed/cancelled job overrides the metrics check (e.g. it died after the upload)
+            if job.get("conclusion") not in (None, "success"):
+                conclusion = job["conclusion"]
+
             flows.append({
                 "arch":             arch,
                 "config":           config,
                 "conclusion":       conclusion,
-                "html_url":         run.get("html_url", ""),
-                "duration_seconds": flow_dur,
+                "html_url":         job.get("html_url") or run.get("html_url", ""),
+                "duration_seconds": job.get("duration_seconds", 0),
                 "raw_json_path":    f"./PD-data/raw/{run_id}/{arch}_{config}.json" if json_path else None,
                 "logs_zip_path":    logs_map.get((arch, config)),
                 "metrics":          metrics,
@@ -443,6 +563,7 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
     # Matrix jobs currently share identical bazel arguments; surface the first
     # available set as a single run-level record for the dashboard.
     build_params = next(iter(build_params_map.values()), {})
+    pr_number = pop_pr_number(run, build_params)
 
     passed_flows = sum(1 for j in flows if j["conclusion"] == "success")
     run_dur     = duration_seconds(
@@ -460,6 +581,9 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
         "run_number":       run.get("run_number", 0),
         "conclusion":       run.get("conclusion", "unknown"),
         "event":            run.get("event", ""),
+        "pr_number":        pr_number,
+        # PR title for a pull_request run, commit subject for a push
+        "display_title":    run.get("display_title", ""),
         "html_url":         run.get("html_url", ""),
         "head_branch":      run.get("head_branch", ""),
         "head_sha":         run.get("head_sha", "")[:8],

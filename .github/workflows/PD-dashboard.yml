@@ -24,18 +24,33 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Restore PD dashboard history from gh-pages-cva6-dashboard-data
+        # Starting fresh makes the persist job commit a new history over the existing
+        # one: only a missing branch or missing data does that, any error fails the step
         run: |
           mkdir -p /tmp/PD-data /tmp/dash-site
-          if git ls-remote --heads origin gh-pages-cva6-dashboard-data | grep -q gh-pages-cva6-dashboard-data; then
-            git fetch origin gh-pages-cva6-dashboard-data --depth=1
-            git checkout origin/gh-pages-cva6-dashboard-data -- data/ 2>/dev/null && \
-              cp -r data/PD/* /tmp/PD-data/ 2>/dev/null || \
-              echo "No existing PD flow data on gh-pages-cva6-dashboard-data, starting fresh"
-            if [ -d data/dash-site ]; then
-              cp -r data/dash-site/* /tmp/dash-site/ 2>/dev/null || true
-            fi
-          else
+          # --exit-code: 2 when the branch does not exist, other codes are errors (network, auth)
+          status=0
+          git ls-remote --exit-code --heads origin gh-pages-cva6-dashboard-data >/dev/null || status=$?
+          if [ "$status" -eq 2 ]; then
             echo "gh-pages-cva6-dashboard-data branch does not exist yet, starting fresh"
+            exit 0
+          elif [ "$status" -ne 0 ]; then
+            echo "::error::Cannot list the branches of origin (git ls-remote exit code $status)"
+            exit 1
+          fi
+          git fetch origin gh-pages-cva6-dashboard-data --depth=1
+          # Empty when the branch has no data/ yet
+          data_tree=$(git ls-tree origin/gh-pages-cva6-dashboard-data data)
+          if [ -n "$data_tree" ]; then
+            git checkout origin/gh-pages-cva6-dashboard-data -- data/
+          fi
+          if [ -d data/PD ]; then
+            cp -r data/PD/. /tmp/PD-data/
+          else
+            echo "No existing PD flow data on gh-pages-cva6-dashboard-data, starting fresh"
+          fi
+          if [ -d data/dash-site ]; then
+            cp -r data/dash-site/. /tmp/dash-site/
           fi
 
       - name: Collect PD Floorplan CI data
@@ -125,16 +140,22 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git ls-remote --exit-code --heads origin gh-pages-cva6-dashboard-data >/dev/null 2>&1; then
+          # --exit-code: 2 when the branch does not exist, other codes are errors (network, auth)
+          status=0
+          git ls-remote --exit-code --heads origin gh-pages-cva6-dashboard-data >/dev/null || status=$?
+          if [ "$status" -eq 0 ]; then
             git fetch origin gh-pages-cva6-dashboard-data --depth=1
             git checkout -B gh-pages-cva6-dashboard-data origin/gh-pages-cva6-dashboard-data
-          else
+          elif [ "$status" -eq 2 ]; then
             git checkout --orphan gh-pages-cva6-dashboard-data
             git rm -rf . >/dev/null 2>&1 || true
             find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
             echo "# CVA6 PD Dashboard Data" > README.md
             git add README.md
             git commit -m "Initialize gh-pages-cva6-dashboard-data branch"
+          else
+            echo "::error::Cannot list the branches of origin (git ls-remote exit code $status)"
+            exit 1
           fi
 
       - name: Clean stale data directories

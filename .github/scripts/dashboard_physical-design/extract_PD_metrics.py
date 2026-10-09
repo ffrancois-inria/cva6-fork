@@ -211,14 +211,24 @@ def read_metrics(json_path: Path | None, extractor, nand2_area: float) -> dict:
 # ---------------------------------------------------------------------------
 
 def load_existing(path: Path) -> list:
-    """Load existing run data from a JSON file."""
-    if path.exists():
-        try:
-            with open(path) as f:
-                return json.load(f)
-        except (json.JSONDecodeError, IOError):
-            print(f"WARNING: Could not read {path}, starting fresh", file=sys.stderr)
-    return []
+    """Load existing run data from a JSON file, [] when it does not exist yet.
+
+    Any other error stops the script: starting fresh would overwrite the history,
+    delete the raw files of its runs, and the dashboard workflow would then commit
+    that over the persisted data.
+    """
+    if not path.exists():
+        return []
+    try:
+        with open(path) as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError) as exc:
+        annotate("error", f"Cannot read {path}: {exc}. Fix it, or delete it to start a new history")
+        sys.exit(1)
+    if not isinstance(data, list):
+        annotate("error", f"{path} holds a {type(data).__name__}, not a list of runs")
+        sys.exit(1)
+    return data
 
 
 def is_reference_run(run: dict) -> bool:

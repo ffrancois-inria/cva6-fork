@@ -75,6 +75,9 @@ CVA6_ARGS = {
     # Synthesis
     "SYNTH_HIERARCHICAL": "1",             # Keeps large modules: per-module area in synth_stat.txt
     "SYNTH_MINIMUM_KEEP_SIZE": "10000",    # Keep modules > 10000 NAND2 (~875µm² in ASAP7), flatten smaller ones
+    # Propagates constants and unused outputs across kept modules, as a flat synthesis would:
+    # removes the logic that only fed the RVFI port. Any non-empty value enables it, even "0"
+    "SYNTH_OPT_HIER": "1",
     "ABC_CLOCK_PERIOD_IN_PS": "4000",      # 250 MHz for Yosys ABC
     "SYNTH_MEMORY_MAX_BITS": "65536",      # Largest memory (bits) Yosys may turn into flip-flops
     "SYNTH_HDL_FRONTEND": "slang",         # Modern SV compiler
@@ -124,6 +127,7 @@ CVA6_ARGS = {
 CVA6_SOURCES = {
     "SDC_FILE": [":bazel/constraints.sdc"],
     "PDN_TCL": ["bazel/pdn.tcl"],          # Custom PDN, connects to the M4 power pins of the macros
+    "SYNTH_CANONICALIZE_TCL": [":bazel/canonicalize.tcl"],  # Removes the RVFI verification port (rvfi_probes_o)
 }
 
 # CVA6 RTL, excerpt from Flist.cva6_synth. "{TARGET_CFG}" is replaced by the configuration

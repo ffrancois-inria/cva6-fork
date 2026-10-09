@@ -238,7 +238,7 @@ Most modifications only require editing the shared settings or adding a new entr
 | Variable | Content | Used by |
 |---|---|---|
 | `CVA6_ARGS` | OpenROAD flow parameters (`arguments`) | top-level targets |
-| `CVA6_SOURCES` | SDC constraints and PDN script (`sources`) | top-level targets |
+| `CVA6_SOURCES` | SDC constraints, PDN script and Yosys canonicalize hook (`sources`) | top-level targets |
 | `CVA6_VERILOG_FILES` | CVA6 RTL file list, excerpt from `Flist.cva6_synth` (`verilog_files`) | top-level targets |
 | `SRAM_ARGS` | OpenROAD flow parameters (`arguments`) | macro targets |
 | `SRAM_SOURCES` | SDC constraints, pin placement and PDN scripts (`sources`) | macro targets |
@@ -253,6 +253,8 @@ Each top-level target:
 * uses the SRAM macro abstracts of its variant (full or fast),
 * applies the OpenROAD parameters defined in `CVA6_ARGS`,
 * and runs the implementation flow to the selected stage.
+
+The RVFI verification port of the core (`rvfi_probes_o`) is removed right after elaboration by `bazel/canonicalize.tcl` (`SYNTH_CANONICALIZE_TCL`), like in the ORFS `asap7/cva6` reference design. This port only feeds testbenches and is left unconnected in a real SoC, but at the top level of this flow it makes up ~80% of the IO pins. `SYNTH_OPT_HIER` then lets Yosys remove the logic that only fed it, including inside the modules kept by the hierarchical synthesis.
 
 ### SRAM macro targets
 

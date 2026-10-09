@@ -84,6 +84,8 @@ jobs:
         # Parses the print-VAR output captured above to extract bazel build arguments 
         # that most affect PPA metrics
         if: always()
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           mkdir -p bazel-bin/logs/asap7/cva6/base
           json="{}"
@@ -95,6 +97,9 @@ jobs:
           # from it (scripts/variables.mk), but only at synthesis: the later stages run here lack the SDC
           value=$(sed -nE 's/^set\s+clk_period\s+(\S+).*|.*-period\s+(\S+).*/\1\2/p' bazel/constraints.sdc | head -1 | awk '{print $1}')
           json=$(echo "$json" | jq --arg v "$value" '.ABC_CLOCK_PERIOD_IN_PS = $v')
+          # Not a build parameter: lets the PD dashboard name the PR, which the GitHub API
+          # leaves out for fork PRs. Empty outside pull_request events
+          json=$(echo "$json" | jq --arg v "$PR_NUMBER" '.PR_NUMBER = $v')
           echo "$json" | tee bazel-bin/logs/asap7/cva6/base/build_params.json
 
       - name: Save Bazel disk cache

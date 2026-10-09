@@ -124,11 +124,120 @@
 {# Hover text explaining what the total area covers #}
 {% set total_area_note = "Standard cells + SRAM macros (flip-flop SRAMs, LEF at 70% utilization)" %}
 
+{% macro status_badge(conclusion) %}
+  {% if conclusion == 'success' %}
+    <span class="badge badge-pass">PASS</span>
+  {% elif conclusion == 'failure' %}
+    <span class="badge badge-fail">FAIL</span>
+  {% else %}
+    <span class="badge badge-skip">{{ conclusion|upper }}</span>
+  {% endif %}
+{% endmacro %}
+
+{# One metric cell: the value (N/A when missing) and its delta vs the baseline run, if any.
+   higher_is_better: an increase is an improvement (fmax, slack) or a regression (area, power).
+   A "," thousands separator in fmt is shown as a space #}
+{% macro metric_cell(value, delta, baseline, higher_is_better, fmt='{}', unit='') %}
+<td>
+  {% if value is defined and value is not none %}
+    {{ fmt.format(value)|replace(',', ' ') }}
+    {% if delta %}
+      <span style="color: {{ '#6c757d' if delta.value == 0 else ('#198754' if (delta.value > 0) == higher_is_better else '#dc3545') }}; font-size:0.78rem; font-weight:600"
+            title="vs {{ default_branch }} run #{{ baseline.run_number }} ({{ baseline.head_sha }})">
+        ({{ delta.sign }}{{ delta.value }}{{ unit }})
+      </span>
+    {% endif %}
+  {% else %}<span class="text-muted">N/A</span>{% endif %}
+</td>
+{% endmacro %}
+
+{# Flows of a run: metrics, with their delta when `deltas` (flow key -> flow_deltas entry) has one,
+   status, duration and downloads #}
+{% macro flows_table(run, wf_key, deltas) %}
+<div class="table-responsive">
+  <table class="table table-sm table-hover flow-table mb-0">
+    <thead class="table-light">
+      <tr>
+        <th>Arch</th>
+        <th>Config</th>
+        <th>fmax (MHz)</th>
+        <th>Stdcell Area (Kgate)</th>
+        <th title="{{ total_area_note }}">Total Area (µm²)</th>
+        <th>Worst Slack (ps)</th>
+        <th title="{{ power_note }}">Power (mW)<br><small class="fw-normal text-muted">10% activity, excl. dcache SRAMs</small></th>
+        <th>Status</th>
+        <th>Duration</th>
+        <th>Downloads</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for flow in run.flows %}
+      {% set d = deltas.get(flow.arch ~ '_' ~ flow.config) or {} %}
+      <tr>
+        <td>{{ flow.arch|upper }}</td>
+        <td><code>{{ flow.config }}</code></td>
+        {{ metric_cell(flow.metrics.fmax_mhz, d.fmax_mhz, d.baseline, true) }}
+        {{ metric_cell(flow.metrics.stdcell_kgate, d.stdcell_kgate, d.baseline, false) }}
+        {{ metric_cell(flow.metrics.total_instance_area_um2, d.total_instance_area_um2, d.baseline, false, '{:,.0f}', '%') }}
+        {{ metric_cell(flow.metrics.worst_setup_slack_ps, d.worst_setup_slack_ps, d.baseline, true) }}
+        {{ metric_cell(flow.metrics.power_mw, d.power_mw, d.baseline, false) }}
+        <td>{{ status_badge(flow.conclusion) }}</td>
+        <td>{{ flow.duration_display }}</td>
+        <td>
+          <div class="d-flex gap-1 flex-wrap">
+            {% if flow.raw_json_path %}
+              <a href="{{ flow.raw_json_path }}"
+                class="btn btn-sm btn-outline-primary"
+                download="run{{ run.run_number }}_{{ wf_key }}_{{ flow.arch }}-{{ flow.config }}.json"
+                title="Download raw JSON metrics">
+                📥 JSON
+              </a>
+            {% endif %}
+            {% if flow.logs_zip_path %}
+              <a href="{{ flow.logs_zip_path }}"
+                class="btn btn-sm btn-outline-secondary"
+                download="run{{ run.run_number }}_{{ wf_key }}_{{ flow.arch }}-{{ flow.config }}-logs.zip"
+                title="Download stage logs & reports (.zip)">
+                📋 Logs & Reports
+              </a>
+            {% endif %}
+            {% if not flow.raw_json_path and not flow.logs_zip_path %}
+              <span class="text-muted" style="font-size:0.75rem">N/A</span>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}
+
+{% macro build_params_table(run) %}
+{% if run.build_params_display %}
+<div class="mb-2">
+  <div class="text-muted mb-1" style="font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.03em">Build parameters</div>
+  <div class="table-responsive">
+    <table class="table table-sm table-bordered mb-0" style="font-size:0.78rem">
+      <tbody>
+        <tr>
+          {% for p in run.build_params_display %}<th class="table-light fw-normal">{{ p.label }}</th>{% endfor %}
+        </tr>
+        <tr>
+          {% for p in run.build_params_display %}<td><code style="font-size:0.78rem">{{ p.value }}</code></td>{% endfor %}
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endmacro %}
+
 <!-- ============================================================ -->
 <!-- Section 2: Overview Cards -->
 <!-- ============================================================ -->
 <section class="mb-4">
-  <h5 class="text-muted mb-3">Latest Run Status</h5>
+  <h5 class="text-muted mb-3">Latest Run Status ({{ default_branch }})</h5>
   <div class="row g-3">
     {% for wf in workflows %}
     <div class="col-md-6">
@@ -139,13 +248,7 @@
               <h6 class="card-title mb-0">{{ wf.display_name }}</h6>
               <small class="text-muted">{{ 'Push-triggered · Floorplan' if wf.key == 'flp' else 'Weekly · Full route (GRT)' }}</small>
             </div>
-            {% if wf.latest.conclusion == 'success' %}
-              <span class="badge badge-pass">PASS</span>
-            {% elif wf.latest.conclusion == 'failure' %}
-              <span class="badge badge-fail">FAIL</span>
-            {% else %}
-              <span class="badge badge-skip">{{ wf.latest.conclusion|upper }}</span>
-            {% endif %}
+            {{ status_badge(wf.latest.conclusion) }}
           </div>
           <div class="text-muted" style="font-size:0.8rem">
             <div>
@@ -214,66 +317,15 @@
                 </thead>
                 <tbody>
                   {% for flow in wf.latest.flows %}
-                  {% set fk = flow.arch ~ '_' ~ flow.config %}
-                  {% set d = wf.flow_deltas.get(fk) %}
+                  {% set d = wf.latest.flow_deltas.get(flow.arch ~ '_' ~ flow.config) or {} %}
                   <tr>
                     <td>{{ flow.arch|upper }}</td>
                     <td><code style="font-size:0.78rem">{{ flow.config }}</code></td>
-                    <td>
-                      {% if flow.metrics.fmax_mhz is not none %}
-                        {{ flow.metrics.fmax_mhz }}
-                        {% if d and d.fmax_mhz %}
-                          {% set dv = d.fmax_mhz %}
-                          <span style="color: {{ '#198754' if dv.value > 0 else ('#dc3545' if dv.value < 0 else '#6c757d') }}; font-size:0.78rem; font-weight:600">
-                            ({{ dv.sign }}{{ dv.value }})
-                          </span>
-                        {% endif %}
-                      {% else %}<span class="text-muted">N/A</span>{% endif %}
-                    </td>
-                    <td>
-                      {% if flow.metrics.stdcell_kgate is not none %}
-                        {{ flow.metrics.stdcell_kgate }}
-                        {% if d and d.stdcell_kgate %}
-                          {% set dv = d.stdcell_kgate %}
-                          <span style="color: {{ '#dc3545' if dv.value > 0 else ('#198754' if dv.value < 0 else '#6c757d') }}; font-size:0.78rem; font-weight:600">
-                            ({{ dv.sign }}{{ dv.value }})
-                          </span>
-                        {% endif %}
-                      {% else %}<span class="text-muted">N/A</span>{% endif %}
-                    </td>
-                    <td>
-                      {% if flow.metrics.total_instance_area_um2|default(none) is not none %}
-                        {{ '{:,.0f}'.format(flow.metrics.total_instance_area_um2)|replace(',', ' ') }}
-                        {% if d and d.total_instance_area_um2 %}
-                          {% set dv = d.total_instance_area_um2 %}
-                          <span style="color: {{ '#dc3545' if dv.value > 0 else ('#198754' if dv.value < 0 else '#6c757d') }}; font-size:0.78rem; font-weight:600">
-                            ({{ dv.sign }}{{ dv.value }}%)
-                          </span>
-                        {% endif %}
-                      {% else %}<span class="text-muted">N/A</span>{% endif %}
-                    </td>
-                    <td>
-                      {% if flow.metrics.worst_setup_slack_ps is not none %}
-                        {{ flow.metrics.worst_setup_slack_ps }}
-                        {% if d and d.worst_setup_slack_ps %}
-                          {% set dv = d.worst_setup_slack_ps %}
-                          <span style="color: {{ '#198754' if dv.value > 0 else ('#dc3545' if dv.value < 0 else '#6c757d') }}; font-size:0.78rem; font-weight:600">
-                            ({{ dv.sign }}{{ dv.value }})
-                          </span>
-                        {% endif %}
-                      {% else %}<span class="text-muted">N/A</span>{% endif %}
-                    </td>
-                    <td>
-                      {% if flow.metrics.power_mw|default(none) is not none %}
-                        {{ flow.metrics.power_mw }}
-                        {% if d and d.power_mw %}
-                          {% set dv = d.power_mw %}
-                          <span style="color: {{ '#dc3545' if dv.value > 0 else ('#198754' if dv.value < 0 else '#6c757d') }}; font-size:0.78rem; font-weight:600">
-                            ({{ dv.sign }}{{ dv.value }})
-                          </span>
-                        {% endif %}
-                      {% else %}<span class="text-muted">N/A</span>{% endif %}
-                    </td>
+                    {{ metric_cell(flow.metrics.fmax_mhz, d.fmax_mhz, d.baseline, true) }}
+                    {{ metric_cell(flow.metrics.stdcell_kgate, d.stdcell_kgate, d.baseline, false) }}
+                    {{ metric_cell(flow.metrics.total_instance_area_um2, d.total_instance_area_um2, d.baseline, false, '{:,.0f}', '%') }}
+                    {{ metric_cell(flow.metrics.worst_setup_slack_ps, d.worst_setup_slack_ps, d.baseline, true) }}
+                    {{ metric_cell(flow.metrics.power_mw, d.power_mw, d.baseline, false) }}
                   </tr>
                   {% endfor %}
                 </tbody>
@@ -294,11 +346,11 @@
 </section>
 
 <!-- ============================================================ -->
-<!-- Section 4: Trend Charts -->
+<!-- Section 3: Trend Charts -->
 <!-- ============================================================ -->
 {% for wf in workflows %}
 <section class="mb-4">
-  <h5 class="text-muted mb-3">{{ wf.type }} Metrics Trends (Last {{ trend_count }} Runs)</h5>
+  <h5 class="text-muted mb-3">{{ wf.type }} Metrics Trends (Last {{ trend_count }} {{ default_branch }} Runs)</h5>
 
   <div class="row g-3 mb-3">
     <!-- Card 1: fmax -->
@@ -365,10 +417,10 @@
 {% endfor %}
 
 <!-- ============================================================ -->
-<!-- Section 5: Run History Accordions -->
+<!-- Section 4: Run History Accordions -->
 <!-- ============================================================ -->
 <section class="mb-4">
-  <h5 class="text-muted mb-3">Run History</h5>
+  <h5 class="text-muted mb-3">Run History ({{ default_branch }})</h5>
   <div class="accordion" id="historyAccordion">
     {% for wf in workflows %}
     <div class="accordion-item">
@@ -390,13 +442,7 @@
                 <button class="accordion-button collapsed py-2" type="button"
                         data-bs-toggle="collapse" data-bs-target="#run-{{ wf.key }}-{{ run.id }}"
                         style="font-size:0.85rem">
-                  {% if run.conclusion == 'success' %}
-                    <span class="badge badge-pass me-2">PASS</span>
-                  {% elif run.conclusion == 'failure' %}
-                    <span class="badge badge-fail me-2">FAIL</span>
-                  {% else %}
-                    <span class="badge badge-skip me-2">{{ run.conclusion|upper }}</span>
-                  {% endif %}
+                  <span class="me-2">{{ status_badge(run.conclusion) }}</span>
                   #{{ run.run_number }}
                   &middot;&nbsp;
                   {% if run.commit_subject %}
@@ -422,92 +468,9 @@
                     &middot; Event: {{ run.event }}
                     &middot; Flows: {{ run.passed_flows }}/{{ run.total_flows }} passed
                   </div>
-                  {% if run.build_params_display %}
-                  <div class="mb-2">
-                    <div class="text-muted mb-1" style="font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.03em">Build parameters</div>
-                    <div class="table-responsive">
-                      <table class="table table-sm table-bordered mb-0" style="font-size:0.78rem">
-                        <tbody>
-                          <tr>
-                            {% for p in run.build_params_display %}<th class="table-light fw-normal">{{ p.label }}</th>{% endfor %}
-                          </tr>
-                          <tr>
-                            {% for p in run.build_params_display %}<td><code style="font-size:0.78rem">{{ p.value }}</code></td>{% endfor %}
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                  {% endif %}
+                  {{ build_params_table(run) }}
                   {% if run.flows %}
-                  <div class="table-responsive">
-                    <table class="table table-sm table-hover flow-table mb-0">
-                      <thead class="table-light">
-                        <tr>
-                          <th>Arch</th>
-                          <th>Config</th>
-                          <th>fmax (MHz)</th>
-                          <th>Stdcell Area (Kgate)</th>
-                          <th title="{{ total_area_note }}">Total Area (µm²)</th>
-                          <th>Worst Slack (ps)</th>
-                          <th title="{{ power_note }}">Power (mW)<br><small class="fw-normal text-muted">10% activity, excl. dcache SRAMs</small></th>
-                          <th>Status</th>
-                          <th>Duration</th>
-                          <th>Downloads</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {% for flow in run.flows %}
-                        <tr>
-                          <td>{{ flow.arch|upper }}</td>
-                          <td><code>{{ flow.config }}</code></td>
-                          <td>{{ flow.metrics.fmax_mhz }}</td>
-                          <td>{{ flow.metrics.stdcell_kgate }}</td>
-                          <td>
-                            {% if flow.metrics.total_instance_area_um2|default(none) is not none %}
-                              {{ '{:,.0f}'.format(flow.metrics.total_instance_area_um2)|replace(',', ' ') }}
-                            {% endif %}
-                          </td>
-                          <td>{{ flow.metrics.worst_setup_slack_ps }}</td>
-                          <td>{{ flow.metrics.power_mw }}</td>
-                          <td>
-                            {% if flow.conclusion == 'success' %}
-                              <span class="badge badge-pass">PASS</span>
-                            {% elif flow.conclusion == 'failure' %}
-                              <span class="badge badge-fail">FAIL</span>
-                            {% else %}
-                              <span class="badge badge-skip">{{ flow.conclusion|upper }}</span>
-                            {% endif %}
-                          </td>
-                          <td>{{ flow.duration_display }}</td>
-                          <td>
-                            <div class="d-flex gap-1 flex-wrap">
-                              {% if flow.raw_json_path %}
-                                <a href="{{ flow.raw_json_path }}"
-                                  class="btn btn-sm btn-outline-primary"
-                                  download="run{{ run.run_number }}_{{ wf.key }}_{{ flow.arch }}-{{ flow.config }}.json"
-                                  title="Download raw JSON metrics">
-                                  📥 JSON
-                                </a>
-                              {% endif %}
-                              {% if flow.logs_zip_path %}
-                                <a href="{{ flow.logs_zip_path }}"
-                                  class="btn btn-sm btn-outline-secondary"
-                                  download="run{{ run.run_number }}_{{ wf.key }}_{{ flow.arch }}-{{ flow.config }}-logs.zip"
-                                  title="Download stage logs & reports (.zip)">
-                                  📋 Logs & Reports
-                                </a>
-                              {% endif %}
-                              {% if not flow.raw_json_path and not flow.logs_zip_path %}
-                                <span class="text-muted" style="font-size:0.75rem">N/A</span>
-                              {% endif %}
-                            </div>
-                          </td>
-                        </tr>
-                        {% endfor %}
-                      </tbody>
-                    </table>
-                  </div>
+                  {{ flows_table(run, wf.key, {}) }}
                   {% else %}
                   <div class="text-muted">No flow data available.</div>
                   {% endif %}
@@ -518,6 +481,98 @@
           </div>
           {% else %}
           <div class="text-muted">No run history available.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- Section 5: Pull Requests & Branches, compared to the reference branch -->
+<!-- ============================================================ -->
+<section class="mb-4">
+  <h5 class="text-muted mb-1">Pull Requests &amp; Branches</h5>
+  <p class="text-muted mb-3" style="font-size:0.8rem">
+    Each flow is compared to the latest {{ default_branch }} run started before it where this flow passed:
+    hover a delta to see which one.
+  </p>
+  <div class="accordion" id="candidatesAccordion">
+    {% for wf in workflows %}
+    <div class="accordion-item">
+      <h2 class="accordion-header">
+        <button class="accordion-button {{ '' if loop.first else 'collapsed' }}" type="button"
+                data-bs-toggle="collapse" data-bs-target="#candidates-{{ wf.key }}">
+          {{ wf.display_name }}
+          <span class="badge bg-secondary ms-2">{{ wf.candidate_runs|length }} runs</span>
+        </button>
+      </h2>
+      <div id="candidates-{{ wf.key }}" class="accordion-collapse collapse {{ 'show' if loop.first else '' }}"
+           data-bs-parent="#candidatesAccordion">
+        <div class="accordion-body p-2">
+          {% if wf.candidate_runs %}
+          <div class="accordion" id="candidateRunsAccordion-{{ wf.key }}">
+            {% for run in wf.candidate_runs %}
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#candidate-{{ wf.key }}-{{ run.id }}"
+                        style="font-size:0.85rem">
+                  <span class="me-2">{{ status_badge(run.conclusion) }}</span>
+                  <strong>{{ 'PR #' ~ run.pr_number if run.pr_number else run.head_branch }}</strong>
+                  &nbsp;&middot;&nbsp;
+                  {# PR title for a pull_request run, commit subject otherwise #}
+                  {% set title = run.display_title if run.event == 'pull_request' and run.display_title else run.commit_subject %}
+                  {% if title %}
+                    <span style="font-weight: 600">{{ title }}</span>
+                  {% endif %}
+                  {% if run.event == 'workflow_dispatch' %}
+                    &nbsp; <strong class="text-secondary"><em>(manual trigger)</em></strong>
+                  {% endif %}
+                  &nbsp;&middot;&nbsp; #{{ run.run_number }}
+                  &nbsp;&middot;&nbsp; <code>{{ run.head_sha }}</code>
+                  &nbsp;&middot; {{ run.duration_display }}
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">{{ run.created_at_display }}</span>
+                </button>
+              </h2>
+              <div id="candidate-{{ wf.key }}-{{ run.id }}" class="accordion-collapse collapse"
+                   data-bs-parent="#candidateRunsAccordion-{{ wf.key }}">
+                <div class="accordion-body p-2">
+                  <div class="mb-2" style="font-size:0.8rem">
+                    {% if run.actor %}
+                    <div class="text-muted mb-1">Authored by: <strong>{{ run.actor }}</strong></div>
+                    {% endif %}
+                    {% if run.pr_number %}
+                    <a href="https://github.com/{{ repo }}/pull/{{ run.pr_number }}" target="_blank" rel="noopener">Pull request #{{ run.pr_number }}</a>
+                    &middot;
+                    {% endif %}
+                    <a href="{{ run.html_url }}" target="_blank" rel="noopener">View run on GitHub</a>
+                    &middot; Branch: <code>{{ run.head_branch }}</code>
+                    &middot; Flows: {{ run.passed_flows }}/{{ run.total_flows }} passed
+                    <div class="mt-1">
+                      Compared to:
+                      {% for b in run.baselines %}
+                        <a href="{{ b.html_url }}" target="_blank" rel="noopener">{{ default_branch }} #{{ b.run_number }}</a>
+                        (<code>{{ b.head_sha }}</code>){{ ',' if not loop.last }}
+                      {% else %}
+                        <span class="text-muted">no passing {{ default_branch }} run before this one</span>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  {{ build_params_table(run) }}
+                  {% if run.flows %}
+                  {{ flows_table(run, wf.key, run.flow_deltas) }}
+                  {% else %}
+                  <div class="text-muted">No flow data available.</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-muted">No pull request or branch runs.</div>
           {% endif %}
         </div>
       </div>

@@ -28,7 +28,8 @@ Artifact layout expected from OR-flow-grt.yml:
 
 Both workflows also upload a `PD-{flp,grt}-logs-{arch}-{config}` artifact
 (logs, reports, and build_params.json — the latter produced by a `bazel run
-... -- print-VAR` CI step, giving the exact bazel build arguments used).
+... -- print-VAR` CI step, giving the exact bazel build arguments used, plus
+the PR number for pull_request runs).
 
 The script downloads all artifacts for each run using
 `gh run download` (which handles authentication and zip extraction),
@@ -38,6 +39,10 @@ The run's matrix jobs (GitHub API) define the flow list, not the artifacts:
 a job killed before its upload steps (e.g. runner shutdown, where even the
 `if: always()` steps are skipped) leaves no artifact at all, but must still
 show up as failed. Its GitHub job log is then used as the downloadable logs.
+
+Runs of DEFAULT_BRANCH are the reference runs (trends, history). PR runs and
+runs of other branches are the candidate runs, which the dashboard compares to
+the reference runs. Both are kept in the same JSON file, trimmed separately.
 """
 
 import argparse
@@ -58,7 +63,12 @@ import shutil
 # Override with --nand2-area for other PDKs.
 ASAP7_NAND2_AREA_UM2 = 0.0874
 
-MAX_HISTORY = 50
+# Branch whose runs (PR runs excepted) are the reference runs
+DEFAULT_BRANCH = "master"
+
+# Trimmed separately, so that a burst of PR runs cannot push the reference history out
+MAX_REFERENCE_HISTORY = 50
+MAX_CANDIDATE_HISTORY = 30
 
 # Maps artifact prefix to the metrics JSON filename produced inside each artifact.
 METRICS_FILENAME = {
@@ -74,7 +84,8 @@ LOGS_ARTIFACT_PREFIX = {
 
 # Filename (written by the `Extract build parameters` CI step, via bazel-orfs'
 # `print-VAR` bazel run target) holding the bazel build arguments that most
-# affect PPA metrics.
+# affect PPA metrics. The floorplan workflow also writes the PR number in it
+# (PR_NUMBER key, empty outside pull_request runs), popped into the run record.
 BUILD_PARAMS_FILENAME = "build_params.json"
 
 # Arch and config names go into file paths and into the dashboard page. They come
@@ -170,6 +181,16 @@ def load_existing(path: Path) -> list:
     return []
 
 
+def is_reference_run(run: dict) -> bool:
+    """True for a run of DEFAULT_BRANCH, False for a PR run or a run of another branch.
+
+    Works on both GitHub API runs and the run records of this script. A fork PR
+    opened from a branch named like DEFAULT_BRANCH is a pull_request run: not a
+    reference.
+    """
+    return run.get("event") != "pull_request" and run.get("head_branch") == DEFAULT_BRANCH
+
+
 def merge_runs(existing: list, new_runs: list) -> list:
     """Merge new runs into existing data, deduplicating by run_id."""
     existing_ids = {r["id"] for r in existing}
@@ -183,8 +204,10 @@ def merge_runs(existing: list, new_runs: list) -> list:
     # Sort by created_at descending (newest first)
     merged.sort(key=lambda r: r.get("created_at", ""), reverse=True)
 
-    # Trim to MAX_HISTORY
-    return merged[:MAX_HISTORY]
+    # Trim reference and candidate runs separately, then interleave them back
+    reference  = [r for r in merged if is_reference_run(r)][:MAX_REFERENCE_HISTORY]
+    candidates = [r for r in merged if not is_reference_run(r)][:MAX_CANDIDATE_HISTORY]
+    return sorted(reference + candidates, key=lambda r: r.get("created_at", ""), reverse=True)
 
 def cleanup_old_raw_files(raw_dir: Path, kept_run_ids: set) -> None:
     """Delete raw JSON files for runs no longer in the kept list."""
@@ -447,6 +470,23 @@ def download_and_zip_logs(
 # CI run processing
 # ---------------------------------------------------------------------------
 
+def pop_pr_number(run: dict, build_params: dict) -> int | None:
+    """PR number of a pull_request run, None for other runs.
+
+    Taken out of build_params (PR_NUMBER), where the floorplan job writes it.
+    The GitHub API only gives it for PRs opened from this repository
+    (run["pull_requests"], empty for fork PRs): fallback for a job that left no
+    build_params.json.
+    """
+    value = str(build_params.pop("PR_NUMBER", ""))
+    if run.get("event") != "pull_request":
+        return None
+    if re.fullmatch(r"[0-9]+", value):
+        return int(value)
+    prs = run.get("pull_requests") or []
+    return prs[0].get("number") if prs else None
+
+
 def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artifact_prefix: str) -> dict:
     """Fetch artifacts for a PD run, extract metrics, and build a run record."""
     run_id = run["id"]
@@ -523,6 +563,7 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
     # Matrix jobs currently share identical bazel arguments; surface the first
     # available set as a single run-level record for the dashboard.
     build_params = next(iter(build_params_map.values()), {})
+    pr_number = pop_pr_number(run, build_params)
 
     passed_flows = sum(1 for j in flows if j["conclusion"] == "success")
     run_dur     = duration_seconds(
@@ -540,6 +581,9 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
         "run_number":       run.get("run_number", 0),
         "conclusion":       run.get("conclusion", "unknown"),
         "event":            run.get("event", ""),
+        "pr_number":        pr_number,
+        # PR title for a pull_request run, commit subject for a push
+        "display_title":    run.get("display_title", ""),
         "html_url":         run.get("html_url", ""),
         "head_branch":      run.get("head_branch", ""),
         "head_sha":         run.get("head_sha", "")[:8],

@@ -18,28 +18,29 @@ from zoneinfo import ZoneInfo
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-# Same run classification as the collected data (script in this directory)
-from extract_PD_metrics import DEFAULT_BRANCH, is_reference_run
+# Same flows and run classification as the collected data (script in this directory)
+from extract_PD_metrics import DEFAULT_BRANCH, PD_FLOWS, is_reference_run
 
-# Workflows to load and display (order matters for UI).
+# Presentation of the PD_FLOWS flows, in display order.
 # chart_metrics: metric keys to extract from each flow's metrics dict.
 # type: passed to template to select which charts to render.
 WORKFLOWS = [
     {
         "key":           "flp",
         "type":          "Floorplan",
-        "display_name":  "OR-flow-floorplan",
-        "file":          "runs_PD_flp.json",
         "chart_metrics": ["fmax_mhz", "stdcell_kgate", "worst_setup_slack_ps", "power_mw", "timing_met"],
     },
     {
         "key":           "grt",
         "type":          "GRT",
-        "display_name":  "OR-flow-grt",
-        "file":          "runs_PD_grt.json",
         "chart_metrics": ["fmax_mhz", "stdcell_kgate", "worst_setup_slack_ps", "power_mw", "timing_met"],
     },
 ]
+if {wf["key"] for wf in WORKFLOWS} != set(PD_FLOWS):
+    raise SystemExit("WORKFLOWS must list the flows of PD_FLOWS (extract_PD_metrics.py)")
+for wf in WORKFLOWS:
+    wf["file"] = PD_FLOWS[wf["key"]]["runs_file"]
+    wf["display_name"] = Path(PD_FLOWS[wf["key"]]["workflow"]).stem  # e.g. "OR-flow-floorplan"
 
 TREND_COUNT = 20
 
@@ -161,7 +162,7 @@ def flow_key_of(flow: dict) -> str:
     return f"{flow['arch']}_{flow['config']}"
 
 
-def build_chart_data(all_data: dict) -> dict:
+def build_chart_data(all_data: dict, default_branch: str) -> dict:
     """Build Chart.js data for trend charts."""
     chart_data = {}
     
@@ -169,7 +170,7 @@ def build_chart_data(all_data: dict) -> dict:
         key          = wf["key"]
         chart_metrics = wf["chart_metrics"]
         # Trends follow the reference history: PR runs are not part of it
-        runs = [r for r in all_data.get(key, []) if is_reference_run(r)]
+        runs = [r for r in all_data.get(key, []) if is_reference_run(r, default_branch)]
 
         # Take last TREND_COUNT runs, reversed for chronological order
         trend_runs = list(reversed(runs[:TREND_COUNT]))
@@ -311,7 +312,7 @@ def flow_deltas(run: dict, ref_runs: list) -> dict:
     return deltas
 
 
-def build_workflows_context(all_data: dict) -> list:
+def build_workflows_context(all_data: dict, default_branch: str) -> list:
     """Build the workflows list for the template context."""
     workflows = []
     for wf in WORKFLOWS:
@@ -324,8 +325,8 @@ def build_workflows_context(all_data: dict) -> list:
 
         # Reference runs make the history; candidate runs (PRs, other branches)
         # are each compared to them
-        ref_runs       = [r for r in runs if is_reference_run(r)]
-        candidate_runs = [r for r in runs if not is_reference_run(r)]
+        ref_runs       = [r for r in runs if is_reference_run(r, default_branch)]
+        candidate_runs = [r for r in runs if not is_reference_run(r, default_branch)]
 
         # Build latest run summary (or placeholder)
         if ref_runs:
@@ -382,7 +383,14 @@ def main():
         default=os.environ.get("GITHUB_REPOSITORY", "openhwgroup/cva6"),
         help="GitHub repository (owner/name)",
     )
+    parser.add_argument(
+        "--default-branch",
+        default=DEFAULT_BRANCH,
+        help=f"Branch whose runs are the reference runs (default: {DEFAULT_BRANCH})",
+    )
     args = parser.parse_args()
+    if not args.default_branch:
+        parser.error("--default-branch is empty")
 
     data_dir = Path(args.data_dir)
     output_dir = Path(args.output_dir)
@@ -406,8 +414,8 @@ def main():
 
     # Build template context
     now = datetime.now(timezone.utc)
-    workflows = build_workflows_context(all_data)
-    chart_data = build_chart_data(all_data)
+    workflows = build_workflows_context(all_data, args.default_branch)
+    chart_data = build_chart_data(all_data, args.default_branch)
 
     default_matrix_wf = "flp"
     if not all_data.get("flp"):
@@ -420,7 +428,7 @@ def main():
         "generated_at": format_datetime(now.isoformat()),
         "year": now.year,
         "repo": args.repo,
-        "default_branch": DEFAULT_BRANCH,
+        "default_branch": args.default_branch,
         "no_deltas": NO_DELTAS,
         "workflows": workflows,
         "default_matrix_wf": default_matrix_wf,
@@ -444,7 +452,7 @@ def main():
     print(f"Dashboard generated: {output_file}")
     print(f"  Workflows: {len(workflows)}")
     for wf in workflows:
-        print(f"    - {wf['display_name']}: {len(wf['runs'])} {DEFAULT_BRANCH} runs, "
+        print(f"    - {wf['display_name']}: {len(wf['runs'])} {args.default_branch} runs, "
               f"{len(wf['candidate_runs'])} PR/branch runs")
     
     return 0

@@ -12,9 +12,11 @@ workflow_run on OR-flow-floorplan.yml & OR-flow-grt.yml.
 
 E.g. for OR-flow-floorplan.yml:
 
-    python3 extract_PD_metrics.py \
-        --artifact-prefix PD-flp- --workflow OR-flow-floorplan.yml \
-        --output-file runs_PD_flp.json --data-dir /tmp/PD-data
+    python3 extract_PD_metrics.py --flow flp --data-dir /tmp/PD-data \
+        --default-branch master
+
+PD_FLOWS defines each tracked flow ("flp", "grt"): its workflow, artifact names,
+metrics file and runs file.
 
 Artifact layout expected from OR-flow-flp.yml:
 
@@ -45,9 +47,10 @@ a job killed before its upload steps (e.g. runner shutdown, where even the
 `if: always()` steps are skipped) leaves no artifact at all, but must still
 show up as failed. Its GitHub job log is then used as the downloadable logs.
 
-Runs of DEFAULT_BRANCH are the reference runs (trends, history). PR runs and
-runs of other branches are the candidate runs, which the dashboard compares to
-the reference runs. Both are kept in the same JSON file, trimmed separately.
+Runs of the default branch (--default-branch) are the reference runs (trends,
+history). PR runs and runs of other branches are the candidate runs, which the
+dashboard compares to the reference runs. Both are kept in the same JSON file,
+trimmed separately.
 """
 
 import argparse
@@ -68,24 +71,15 @@ import shutil
 # Override with --nand2-area for other PDKs.
 ASAP7_NAND2_AREA_UM2 = 0.0874
 
-# Branch whose runs (PR runs excepted) are the reference runs
+# --default-branch value when run by hand: the CI passes the repository's default branch,
+# whose runs (PR runs excepted) are the reference runs
 DEFAULT_BRANCH = "master"
 
 # Trimmed separately, so that a burst of PR runs cannot push the reference history out
 MAX_REFERENCE_HISTORY = 50
 MAX_CANDIDATE_HISTORY = 30
 
-# Maps artifact prefix to the metrics JSON filename produced inside each artifact.
-METRICS_FILENAME = {
-    "PD-flp-": "2_1_floorplan.json",
-    "PD-grt-": "5_1_grt.json",
-}
-
-# Maps metrics artifact prefix to its corresponding logs artifact prefix.
-LOGS_ARTIFACT_PREFIX = {
-    "PD-flp-": "PD-flp-logs-",
-    "PD-grt-": "PD-grt-logs-",
-}
+# The tracked flows are defined by PD_FLOWS, after the metric extractors it refers to
 
 # Filename (written by the `Extract build parameters` CI step, via bazel-orfs'
 # `print-VAR` bazel run target) holding the bazel build arguments that most
@@ -221,6 +215,33 @@ def read_metrics(json_path: Path | None, extractor, nand2_area: float) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Tracked flows
+# ---------------------------------------------------------------------------
+
+# The only definition of each flow: PD-dashboard.yml passes the key (--flow), and
+# generate_PD_dashboard.py reads the runs file from here. The artifact names must
+# match those of the workflow's upload steps.
+PD_FLOWS = {
+    "flp": {
+        "workflow":        "OR-flow-floorplan.yml",
+        "artifact_prefix": "PD-flp-",       # PD-flp-{arch}-{config}, holding metrics_file
+        "logs_prefix":     "PD-flp-logs-",  # PD-flp-logs-{arch}-{config}
+        "metrics_file":    "2_1_floorplan.json",
+        "extractor":       extract_flp_metrics,
+        "runs_file":       "runs_PD_flp.json",
+    },
+    "grt": {
+        "workflow":        "OR-flow-grt.yml",
+        "artifact_prefix": "PD-grt-",
+        "logs_prefix":     "PD-grt-logs-",
+        "metrics_file":    "5_1_grt.json",
+        "extractor":       extract_grt_metrics,
+        "runs_file":       "runs_PD_grt.json",
+    },
+}
+
+
+# ---------------------------------------------------------------------------
 # JSON persistence helpers  (mirrors .github/scripts/dashboard_tiers/collect_data.py)
 # ---------------------------------------------------------------------------
 
@@ -245,17 +266,17 @@ def load_existing(path: Path) -> list:
     return data
 
 
-def is_reference_run(run: dict) -> bool:
-    """True for a run of DEFAULT_BRANCH, False for a PR run or a run of another branch.
+def is_reference_run(run: dict, default_branch: str) -> bool:
+    """True for a run of default_branch, False for a PR run or a run of another branch.
 
     Works on both GitHub API runs and the run records of this script. A fork PR
-    opened from a branch named like DEFAULT_BRANCH is a pull_request run: not a
+    opened from a branch named like default_branch is a pull_request run: not a
     reference.
     """
-    return run.get("event") != "pull_request" and run.get("head_branch") == DEFAULT_BRANCH
+    return run.get("event") != "pull_request" and run.get("head_branch") == default_branch
 
 
-def merge_runs(existing: list, new_runs: list) -> list:
+def merge_runs(existing: list, new_runs: list, default_branch: str) -> list:
     """Merge new runs into existing data.
 
     A new record replaces the existing one of the same run (processed again
@@ -268,8 +289,8 @@ def merge_runs(existing: list, new_runs: list) -> list:
     merged = sorted(by_id.values(), key=lambda r: r.get("created_at", ""), reverse=True)
 
     # Trim reference and candidate runs separately, then interleave them back
-    reference  = [r for r in merged if is_reference_run(r)][:MAX_REFERENCE_HISTORY]
-    candidates = [r for r in merged if not is_reference_run(r)][:MAX_CANDIDATE_HISTORY]
+    reference  = [r for r in merged if is_reference_run(r, default_branch)][:MAX_REFERENCE_HISTORY]
+    candidates = [r for r in merged if not is_reference_run(r, default_branch)][:MAX_CANDIDATE_HISTORY]
     return sorted(reference + candidates, key=lambda r: r.get("created_at", ""), reverse=True)
 
 def cleanup_old_raw_files(raw_dir: Path, kept_run_ids: set) -> None:
@@ -288,14 +309,20 @@ def cleanup_old_raw_files(raw_dir: Path, kept_run_ids: set) -> None:
 
 
 def all_kept_run_ids(data_dir: Path) -> set:
-    """Union of run ids across every runs_PD_*.json file in data_dir.
+    """Union of run ids across the runs files of every PD_FLOWS flow in data_dir.
 
     raw/ is shared between the flp and grt invocations of this script, so
     cleanup must keep ids from both JSON files, not just the one just written.
     """
+    runs_files = {flow["runs_file"] for flow in PD_FLOWS.values()}
+    for path in sorted(data_dir.glob("*.json")):
+        if path.name not in runs_files:
+            # e.g. the runs file of a flow renamed in PD_FLOWS: its history is no longer shown
+            annotate("warning", f"{path} is not the runs file of a PD_FLOWS flow: "
+                                f"the raw files of its runs are deleted")
     ids = set()
-    for path in data_dir.glob("runs_PD_*.json"):
-        ids.update(runs_file["id"] for runs_file in load_existing(path))
+    for name in runs_files:
+        ids.update(run["id"] for run in load_existing(data_dir / name))
     return ids
 
 
@@ -434,9 +461,9 @@ def iter_artifact_dirs(dest_dir: Path, prefix: str, skip_prefix: str = ""):
         yield arch, config, artifact_dir
 
 
-def download_run_artifacts(repo: str, run_id: int, dest_dir: Path, artifact_prefix: str,
+def download_run_artifacts(repo: str, run_id: int, dest_dir: Path, flow: dict,
                            artifact_names: set) -> list:
-    """Download all artifacts matching artifact_prefix for a run into dest_dir.
+    """Download the metrics artifacts of a PD_FLOWS flow for a run into dest_dir.
 
     Uses `gh run download` which handles authentication and zip extraction.
     Each artifact lands at dest_dir/{artifact_name}/{metrics_json}.
@@ -444,9 +471,10 @@ def download_run_artifacts(repo: str, run_id: int, dest_dir: Path, artifact_pref
 
     Returns a list of (arch, config, json_path) tuples. Raises FetchError.
     """
-    metrics_filename = METRICS_FILENAME[artifact_prefix]
+    metrics_filename = flow["metrics_file"]
+    artifact_prefix  = flow["artifact_prefix"]
     # "PD-flp-*" also matches the "PD-flp-logs-*" artifacts, handled separately
-    logs_prefix = LOGS_ARTIFACT_PREFIX[artifact_prefix]
+    logs_prefix = flow["logs_prefix"]
     if not any(n.startswith(artifact_prefix) and not n.startswith(logs_prefix) for n in artifact_names):
         return []
     result = subprocess.run(
@@ -559,13 +587,13 @@ def pop_pr_number(run: dict, build_params: dict) -> int | None:
     return prs[0].get("number") if prs else None
 
 
-def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artifact_prefix: str) -> dict:
+def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, flow: dict) -> dict:
     """Fetch artifacts for a PD run, extract metrics, and build a run record.
 
     Raises FetchError, leaving raw_dir untouched.
     """
     run_id = run["id"]
-    extractor = extract_flp_metrics if artifact_prefix == "PD-flp-" else extract_grt_metrics
+    extractor = flow["extractor"]
 
     jobs = fetch_jobs(repo, run_id)
     artifact_names = list_run_artifacts(repo, run_id)
@@ -577,13 +605,12 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
         run_raw_dir = tmp_path / "raw"
         run_raw_dir.mkdir()
 
-        json_list = download_run_artifacts(repo, run_id, tmp_path / "artifacts", artifact_prefix, artifact_names)
+        json_list = download_run_artifacts(repo, run_id, tmp_path / "artifacts", flow, artifact_names)
 
         for arch, config, json_path in json_list:
             shutil.copy2(json_path, run_raw_dir / f"{arch}_{config}.json")
 
-        logs_prefix = LOGS_ARTIFACT_PREFIX[artifact_prefix]
-        logs_map, build_params_map = download_and_zip_logs(repo, run_id, tmp_path / "logs", logs_prefix,
+        logs_map, build_params_map = download_and_zip_logs(repo, run_id, tmp_path / "logs", flow["logs_prefix"],
                                                            run_raw_dir, artifact_names)
 
         json_map = {(arch, config): json_path for arch, config, json_path in json_list}
@@ -714,9 +741,15 @@ def main() -> None:
         help="Number of recent physical design runs to fetch (default: 20)",
     )
     parser.add_argument(
-        "--workflow",
-        default="OR-flow-floorplan.yml",
-        help="Workflow filename to track (default: OR-flow-floorplan.yml)",
+        "--flow",
+        required=True,
+        choices=list(PD_FLOWS),
+        help="Flow to collect, a key of PD_FLOWS",
+    )
+    parser.add_argument(
+        "--default-branch",
+        default=DEFAULT_BRANCH,
+        help=f"Branch whose runs are the reference runs (default: {DEFAULT_BRANCH})",
     )
     parser.add_argument(
         "--nand2-area",
@@ -728,18 +761,10 @@ def main() -> None:
             f"(default: {ASAP7_NAND2_AREA_UM2} for ASAP7 RVT)"
         ),
     )
-    parser.add_argument(
-        "--artifact-prefix",
-        default="PD-flp-",
-        choices=list(METRICS_FILENAME),
-        help="Artifact name prefix to download (default: PD-flp-)",
-    )
-    parser.add_argument(
-        "--output-file",
-        default="runs_PD_flp.json",
-        help="Output JSON filename within --data-dir (default: runs_PD_flp.json)",
-    )
     args = parser.parse_args()
+    if not args.default_branch:
+        parser.error("--default-branch is empty")
+    flow = PD_FLOWS[args.flow]
 
     data_dir = Path(args.data_dir)
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -747,14 +772,14 @@ def main() -> None:
     raw_dir = data_dir / "raw" # To store raw PD flow source files 
     raw_dir.mkdir(parents=True, exist_ok=True)
 
-    json_path = data_dir / args.output_file
+    json_path = data_dir / flow["runs_file"]
     existing  = load_existing(json_path)
     print(f"Existing records: {len(existing)}")
 
-    print(f"\nFetching runs for {args.workflow} from {args.repo}")
+    print(f"\nFetching runs for {flow['workflow']} from {args.repo}")
     # Records written before run_attempt was stored are attempt 1
     existing_attempts = {r["id"]: r.get("run_attempt", 1) for r in existing}
-    runs_raw     = fetch_runs(args.repo, args.workflow, args.fetch_count)
+    runs_raw     = fetch_runs(args.repo, flow["workflow"], args.fetch_count)
     print(f"Fetched {len(runs_raw)} runs from API")
 
     new_runs = []
@@ -766,7 +791,7 @@ def main() -> None:
 
         print(f"  Processing run #{run['run_number']} (id={run['id']}, attempt {attempt})...")
         try:
-            processed = process_ci_run(args.repo, run, args.nand2_area, raw_dir, args.artifact_prefix)
+            processed = process_ci_run(args.repo, run, args.nand2_area, raw_dir, flow)
         except FetchError as exc:
             annotate("warning", f"Run {run['run_number']} (id={run['id']}) left out of this update, "
                                 f"processed again by the next one: {exc}")
@@ -778,7 +803,7 @@ def main() -> None:
             f"{processed['failed_flows']} failed"
         )
 
-    merged = merge_runs(existing, new_runs)
+    merged = merge_runs(existing, new_runs, args.default_branch)
 
     with open(json_path, "w") as f:
         json.dump(merged, f, indent=2)
@@ -786,7 +811,7 @@ def main() -> None:
     print(f"\nSaved {len(merged)} records to {json_path}")
 
     # raw/ is shared with the sibling flp/grt invocation; cleanup must keep ids
-    # referenced by ANY runs_PD_*.json, not just the one just written above.
+    # referenced by any PD_FLOWS runs file, not just the one just written above.
     cleanup_old_raw_files(raw_dir, all_kept_run_ids(data_dir))
 
 

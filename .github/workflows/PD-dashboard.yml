@@ -21,6 +21,12 @@ concurrency:
   group: physical-design-dashboard
   cancel-in-progress: false
 
+env:
+  # Branch persisting the dashboard data, shared with openhw-cva6-tier-dashboard.yml
+  DATA_BRANCH: gh-pages-cva6-dashboard-data
+  # Its runs are the reference runs of the dashboard, the others are compared to them
+  DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+
 jobs:
   build:
     name: Build PD Dashboard
@@ -29,31 +35,31 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Restore PD dashboard history from gh-pages-cva6-dashboard-data
+      - name: Restore PD dashboard history from the data branch
         # Starting fresh makes the persist job commit a new history over the existing
         # one: only a missing branch or missing data does that, any error fails the step
         run: |
           mkdir -p /tmp/PD-data /tmp/dash-site
           # --exit-code: 2 when the branch does not exist, other codes are errors (network, auth)
           status=0
-          git ls-remote --exit-code --heads origin gh-pages-cva6-dashboard-data >/dev/null || status=$?
+          git ls-remote --exit-code --heads origin "$DATA_BRANCH" >/dev/null || status=$?
           if [ "$status" -eq 2 ]; then
-            echo "gh-pages-cva6-dashboard-data branch does not exist yet, starting fresh"
+            echo "$DATA_BRANCH branch does not exist yet, starting fresh"
             exit 0
           elif [ "$status" -ne 0 ]; then
             echo "::error::Cannot list the branches of origin (git ls-remote exit code $status)"
             exit 1
           fi
-          git fetch origin gh-pages-cva6-dashboard-data --depth=1
+          git fetch origin "$DATA_BRANCH" --depth=1
           # Empty when the branch has no data/ yet
-          data_tree=$(git ls-tree origin/gh-pages-cva6-dashboard-data data)
+          data_tree=$(git ls-tree "origin/$DATA_BRANCH" data)
           if [ -n "$data_tree" ]; then
-            git checkout origin/gh-pages-cva6-dashboard-data -- data/
+            git checkout "origin/$DATA_BRANCH" -- data/
           fi
           if [ -d data/PD ]; then
             cp -r data/PD/. /tmp/PD-data/
           else
-            echo "No existing PD flow data on gh-pages-cva6-dashboard-data, starting fresh"
+            echo "No existing PD flow data on $DATA_BRANCH, starting fresh"
           fi
           if [ -d data/dash-site ]; then
             cp -r data/dash-site/. /tmp/dash-site/
@@ -64,11 +70,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 .github/scripts/dashboard_physical-design/extract_PD_metrics.py \
-            --artifact-prefix PD-flp- \
-            --workflow OR-flow-floorplan.yml \
+            --flow flp \
             --data-dir /tmp/PD-data \
-            --output-file runs_PD_flp.json \
             --repo "${{ github.repository }}" \
+            --default-branch "$DEFAULT_BRANCH" \
             --fetch-count 20
 
       - name: Collect PD GRT CI data
@@ -76,11 +81,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 .github/scripts/dashboard_physical-design/extract_PD_metrics.py \
-            --artifact-prefix PD-grt- \
-            --workflow OR-flow-grt.yml \
+            --flow grt \
             --data-dir /tmp/PD-data \
-            --output-file runs_PD_grt.json \
             --repo "${{ github.repository }}" \
+            --default-branch "$DEFAULT_BRANCH" \
             --fetch-count 20
 
       - name: Install Jinja2
@@ -91,7 +95,8 @@ jobs:
           python3 .github/scripts/dashboard_physical-design/generate_PD_dashboard.py \
             --data-dir /tmp/PD-data \
             --output-dir /tmp/dash-site \
-            --repo "${{ github.repository }}"
+            --repo "${{ github.repository }}" \
+            --default-branch "$DEFAULT_BRANCH"
 
       - name: Prepare Pages artifact
         run: |
@@ -142,23 +147,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Prepare gh-pages-cva6-dashboard-data branch
+      - name: Prepare the data branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           # --exit-code: 2 when the branch does not exist, other codes are errors (network, auth)
           status=0
-          git ls-remote --exit-code --heads origin gh-pages-cva6-dashboard-data >/dev/null || status=$?
+          git ls-remote --exit-code --heads origin "$DATA_BRANCH" >/dev/null || status=$?
           if [ "$status" -eq 0 ]; then
-            git fetch origin gh-pages-cva6-dashboard-data --depth=1
-            git checkout -B gh-pages-cva6-dashboard-data origin/gh-pages-cva6-dashboard-data
+            git fetch origin "$DATA_BRANCH" --depth=1
+            git checkout -B "$DATA_BRANCH" "origin/$DATA_BRANCH"
           elif [ "$status" -eq 2 ]; then
-            git checkout --orphan gh-pages-cva6-dashboard-data
+            git checkout --orphan "$DATA_BRANCH"
             git rm -rf . >/dev/null 2>&1 || true
             find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
             echo "# CVA6 PD Dashboard Data" > README.md
             git add README.md
-            git commit -m "Initialize gh-pages-cva6-dashboard-data branch"
+            git commit -m "Initialize $DATA_BRANCH branch"
           else
             echo "::error::Cannot list the branches of origin (git ls-remote exit code $status)"
             exit 1
@@ -202,12 +207,12 @@ jobs:
               exit 0
             fi
             git commit -q -m "Update cva6 PD dashboard data [skip ci]"
-            if git push origin HEAD:gh-pages-cva6-dashboard-data; then
+            if git push origin "HEAD:$DATA_BRANCH"; then
               exit 0
             fi
             echo "Push rejected (attempt $attempt): redoing the commit on top of the updated branch"
-            git fetch origin gh-pages-cva6-dashboard-data --depth=1
-            git reset -q --hard origin/gh-pages-cva6-dashboard-data
+            git fetch origin "$DATA_BRANCH" --depth=1
+            git reset -q --hard "origin/$DATA_BRANCH"
           done
-          echo "::error::Could not push to gh-pages-cva6-dashboard-data after 3 attempts"
+          echo "::error::Could not push to $DATA_BRANCH after 3 attempts"
           exit 1

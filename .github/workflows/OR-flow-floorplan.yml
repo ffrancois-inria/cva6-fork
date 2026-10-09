@@ -5,6 +5,8 @@ on:
   # branch, a PR opened from a branch of this repository ran the flow twice per push
   push:
     branches:
+      # The default branch, whose runs are the PD dashboard's reference runs. Written out:
+      # a trigger filter cannot use github.event.repository.default_branch
       - master
     # Whatever changes the metrics, not only the RTL: otherwise a shift caused by e.g.
     # an ORFS bump is attributed to the next RTL commit

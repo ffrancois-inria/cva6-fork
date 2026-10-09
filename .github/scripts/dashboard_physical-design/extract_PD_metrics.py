@@ -94,16 +94,42 @@ SAFE_NAME_RE = re.compile(r"[A-Za-z0-9_]+")
 
 
 # ---------------------------------------------------------------------------
+# Problem reporting
+# ---------------------------------------------------------------------------
+
+def annotate(level: str, message: str) -> None:
+    """Report a problem the dashboard workflow keeps running through.
+
+    level: "warning" or "error". In GitHub Actions, prints a workflow command:
+    the message shows on the run's summary page, not only deep in the step log
+    of a workflow that passes. Elsewhere, a plain stderr line.
+    """
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        # Workflow commands are single-line: escaped as the runner expects
+        escaped = message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+        print(f"::{level}::{escaped}")
+    else:
+        print(f"{level.upper()}: {message}", file=sys.stderr)
+
+
+# ---------------------------------------------------------------------------
 # Metric extraction
 # ---------------------------------------------------------------------------
+
+def require_number(data: dict, key: str) -> float:
+    """data[key], checked to be a number: ValueError naming the key otherwise."""
+    value = data.get(key)
+    if value is None:
+        raise ValueError(f"key not found in the metrics JSON: {key}")
+    if not isinstance(value, (int, float)):
+        raise ValueError(f"non-numeric {key} in the metrics JSON: {value!r}")
+    return value
+
 
 def extract_grt_metrics(data: dict, nand2_area: float) -> dict:
     """Extract PPA metrics from a GRT-stage JSON report."""
     def get(key):
-        v = data.get(key)
-        if v is None:
-            raise KeyError(f"Key not found in JSON: {key}")
-        return v
+        return require_number(data, key)
 
     # A congested GRT still produces this JSON (bazel-orfs sets GENERATE_ARTIFACTS_ON_FAILURE=1)
     errors = get("globalroute__flow__errors__count")
@@ -136,10 +162,7 @@ def extract_grt_metrics(data: dict, nand2_area: float) -> dict:
 def extract_flp_metrics(data: dict, nand2_area: float) -> dict:
     """Extract PPA metrics from a floorplan-stage JSON report."""
     def get(key):
-        v = data.get(key)
-        if v is None:
-            raise KeyError(f"Key not found in JSON: {key}")
-        return v
+        return require_number(data, key)
 
     stdcell_area_um2 = get("floorplan__design__instance__area__stdcell")
     macro_area_um2   = get("floorplan__design__instance__area__macros")
@@ -164,6 +187,23 @@ def extract_flp_metrics(data: dict, nand2_area: float) -> dict:
         "timing_met":              worst_slack_ps >= 0,
         "power_mw":                round(power_w * 1e3, 3),
     }
+
+
+def read_metrics(json_path: Path | None, extractor, nand2_area: float) -> dict:
+    """Metrics of a flow, read from its metrics JSON by `extractor`.
+
+    Raises OSError or ValueError, whose message says why the flow has no metrics.
+    """
+    if json_path is None:
+        raise FileNotFoundError("no metrics artifact (job failed before upload)")
+    try:
+        with open(json_path) as f:
+            data = json.load(f)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"invalid metrics JSON: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ValueError(f"the metrics JSON holds a {type(data).__name__}, not an object")
+    return extractor(data, nand2_area)
 
 
 # ---------------------------------------------------------------------------
@@ -264,17 +304,14 @@ def fetch_jobs(repo: str, run_id: int) -> dict:
         text=True,
     )
     if result.returncode != 0:
-        print(
-            f"  WARNING: Could not fetch jobs for run {run_id}: {result.stderr}",
-            file=sys.stderr,
-        )
+        annotate("warning", f"Could not fetch the jobs of run {run_id}: {result.stderr.strip()}")
         return {}
     data = json.loads(result.stdout)
     jobs = {}
     for job in data.get("jobs", []):
         name = job.get("name", "")
         if not SAFE_NAME_RE.fullmatch(name):
-            print(f"  WARNING: ignoring job {name!r} of run {run_id}: not a config name", file=sys.stderr)
+            annotate("warning", f"Ignoring job {name!r} of run {run_id}: not a config name")
             continue
         jobs[name] = {
             "id":               job.get("id"),
@@ -296,10 +333,7 @@ def download_job_log(repo: str, job_id: int, zip_dest: Path) -> bool:
         capture_output=True,
     )
     if result.returncode != 0:
-        print(
-            f"  WARNING: Could not fetch log of job {job_id}: {result.stderr.decode(errors='replace')}",
-            file=sys.stderr,
-        )
+        annotate("warning", f"Could not fetch the log of job {job_id}: {result.stderr.decode(errors='replace').strip()}")
         return False
     with zipfile.ZipFile(zip_dest, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("github_job.log", result.stdout)
@@ -315,7 +349,7 @@ def gh_api(endpoint: str, repo: str) -> dict:
         text=True,
     )
     if result.returncode != 0:
-        print(f"ERROR: gh api {url} failed: {result.stderr}", file=sys.stderr)
+        annotate("error", f"gh api {url} failed: {result.stderr.strip()}")
         sys.exit(1)
     return json.loads(result.stdout)
 
@@ -355,7 +389,7 @@ def iter_artifact_dirs(dest_dir: Path, prefix: str, skip_prefix: str = ""):
         arch   = parts[0] if len(parts) >= 1 else suffix
         config = parts[1] if len(parts) >= 2 else "base"
         if not (SAFE_NAME_RE.fullmatch(arch) and SAFE_NAME_RE.fullmatch(config)):
-            print(f"  WARNING: ignoring artifact {artifact_dir.name!r}: unexpected arch/config name", file=sys.stderr)
+            annotate("warning", f"Ignoring artifact {artifact_dir.name!r}: unexpected arch/config name")
             continue
         yield arch, config, artifact_dir
 
@@ -380,10 +414,7 @@ def download_run_artifacts(repo: str, run_id: int, dest_dir: Path, artifact_pref
         text=True,
     )
     if result.returncode != 0:
-        print(
-            f"  WARNING: gh run download failed for run {run_id}: {result.stderr}",
-            file=sys.stderr,
-        )
+        annotate("warning", f"gh run download failed for run {run_id}: {result.stderr.strip()}")
         return []
 
     found = []
@@ -395,10 +426,7 @@ def download_run_artifacts(repo: str, run_id: int, dest_dir: Path, artifact_pref
             found.append((arch, config, json_path))
             print(f"  Downloaded: {artifact_dir.name} -> {arch}/{config}")
         else:
-            print(
-                f"  WARNING: {metrics_filename} not found in artifact {artifact_dir.name}",
-                file=sys.stderr,
-            )
+            annotate("warning", f"{metrics_filename} not found in artifact {artifact_dir.name} of run {run_id}")
 
     return found
 
@@ -429,10 +457,7 @@ def download_and_zip_logs(
         text=True,
     )
     if result.returncode != 0:
-        print(
-            f"  WARNING: gh run download (logs) failed for run {run_id}: {result.stderr}",
-            file=sys.stderr,
-        )
+        annotate("warning", f"gh run download (logs) failed for run {run_id}: {result.stderr.strip()}")
         return {}, {}
 
     logs_map = {}
@@ -441,20 +466,20 @@ def download_and_zip_logs(
         # Get all files in the artifact (logs + reports)
         log_files = sorted([f for f in artifact_dir.rglob("*") if f.is_file()])
         if not log_files:
-            print(f"  WARNING: no .log files in artifact {artifact_dir.name}", file=sys.stderr)
+            annotate("warning", f"Artifact {artifact_dir.name} of run {run_id} holds no file")
             continue
 
         # upload-artifact roots multi-path artifacts at the paths' common ancestor
         # (bazel-bin/), so the file sits under logs/asap7/..., not at the root.
         params_path = next(artifact_dir.rglob(BUILD_PARAMS_FILENAME), None)
         if params_path is None:
-            print(f"  WARNING: {BUILD_PARAMS_FILENAME} not found in artifact {artifact_dir.name}", file=sys.stderr)
+            annotate("warning", f"{BUILD_PARAMS_FILENAME} not found in artifact {artifact_dir.name} of run {run_id}")
         else:
             try:
                 with open(params_path) as f:
                     build_params_map[(arch, config)] = json.load(f)
             except (json.JSONDecodeError, IOError) as exc:
-                print(f"  WARNING: could not read {params_path}: {exc}", file=sys.stderr)
+                annotate("warning", f"Could not read {BUILD_PARAMS_FILENAME} of artifact {artifact_dir.name} of run {run_id}: {exc}")
 
         zip_dest = run_raw_dir / f"{arch}_{config}_logs.zip"
         with zipfile.ZipFile(zip_dest, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -525,12 +550,10 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
                 if download_job_log(repo, job["id"], zip_dest):
                     logs_map[(arch, config)] = f"./PD-data/raw/{run_id}/{zip_dest.name}"
                     print(f"  No logs artifact for {arch}/{config}, zipped its GitHub job log instead")
+            # error: why the flow has no metrics, shown on the dashboard
+            error = None
             try:
-                if json_path is None:
-                    raise FileNotFoundError("no metrics artifact (job failed before upload)")
-                with open(json_path) as f:
-                    data = json.load(f)
-                metrics    = extractor(data, nand2_area)
+                metrics    = read_metrics(json_path, extractor, nand2_area)
                 conclusion = "success"
                 timing_str = "timing met" if metrics["timing_met"] else "timing NOT met"
                 print(
@@ -540,10 +563,16 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
                     f"({metrics['stdcell_kgate']:.2f} Kgate)  "
                     f"power={metrics['power_mw']:.2f} mW  [{timing_str}]"
                 )
-            except (json.JSONDecodeError, KeyError, ValueError, IOError, FileNotFoundError) as exc:
-                print(f"    [FAILURE] {arch}/{config}: {exc}", file=sys.stderr)
+            except (OSError, ValueError) as exc:
+                error      = str(exc)
                 metrics    = {}
                 conclusion = "failure"
+                if job.get("conclusion") in (None, "success"):
+                    # Not explained by a failed job: the run looks fine on GitHub
+                    annotate("warning", f"Run {run['run_number']} (id={run_id}), {arch}/{config}: "
+                                        f"no metrics although the job passed: {error}")
+                else:
+                    print(f"    [FAILURE] {arch}/{config}: {error}")
 
             # A failed/cancelled job overrides the metrics check (e.g. it died after the upload)
             if job.get("conclusion") not in (None, "success"):
@@ -558,6 +587,7 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
                 "raw_json_path":    f"./PD-data/raw/{run_id}/{arch}_{config}.json" if json_path else None,
                 "logs_zip_path":    logs_map.get((arch, config)),
                 "metrics":          metrics,
+                "error":            error,
             })
 
     # Matrix jobs currently share identical bazel arguments; surface the first

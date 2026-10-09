@@ -8,13 +8,13 @@ on:
       - 'common/**'
       - 'BUILD.bazel'
       - 'bazel/**'
+  pull_request:
   workflow_dispatch:
 
 jobs:
   design-flow:
     name: ${{ matrix.config }}
     runs-on: ubuntu-24.04
-    # timeout-minutes: 90
     timeout-minutes: 180
 
     permissions:
@@ -73,7 +73,7 @@ jobs:
             --disk_cache="$HOME/.cache/bazel-disk-cache" \
             --repository_cache="$HOME/.cache/bazel-repo-cache" \
             //:${{ matrix.config }}_fast_floorplan \
-            print-CORE_UTILIZATION print-PLACE_DENSITY print-ABC_CLOCK_PERIOD_IN_PS print-SYNTH_HIERARCHICAL print-SYNTH_MINIMUM_KEEP_SIZE \
+            print-CORE_UTILIZATION print-PLACE_DENSITY print-SYNTH_HIERARCHICAL print-SYNTH_MINIMUM_KEEP_SIZE \
             2>&1 | tee bazel-build-output.log
 
       - name: Extract build parameters
@@ -83,10 +83,14 @@ jobs:
         run: |
           mkdir -p bazel-bin/logs/asap7/cva6/base
           json="{}"
-          for var in CORE_UTILIZATION PLACE_DENSITY ABC_CLOCK_PERIOD_IN_PS SYNTH_HIERARCHICAL SYNTH_MINIMUM_KEEP_SIZE; do
+          for var in CORE_UTILIZATION PLACE_DENSITY SYNTH_HIERARCHICAL SYNTH_MINIMUM_KEEP_SIZE; do
             value=$(grep "^$var:" bazel-build-output.log | tail -n1 | cut -d' ' -f2-) || value=""
             json=$(echo "$json" | jq --arg k "$var" --arg v "$value" '.[$k] = $v')
           done
+          # The SDC is the only source of the clock period: ORFS derives ABC_CLOCK_PERIOD_IN_PS
+          # from it (scripts/variables.mk), but only at synthesis: the later stages run here lack the SDC
+          value=$(sed -nE 's/^set\s+clk_period\s+(\S+).*|.*-period\s+(\S+).*/\1\2/p' bazel/constraints.sdc | head -1 | awk '{print $1}')
+          json=$(echo "$json" | jq --arg v "$value" '.ABC_CLOCK_PERIOD_IN_PS = $v')
           echo "$json" | tee bazel-bin/logs/asap7/cva6/base/build_params.json
 
       - name: Save Bazel disk cache

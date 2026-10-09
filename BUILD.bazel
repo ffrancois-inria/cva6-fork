@@ -78,7 +78,6 @@ CVA6_ARGS = {
     # Propagates constants and unused outputs across kept modules, as a flat synthesis would:
     # removes the logic that only fed the RVFI port. Any non-empty value enables it, even "0"
     "SYNTH_OPT_HIER": "1",
-    "ABC_CLOCK_PERIOD_IN_PS": "4000",      # 250 MHz for Yosys ABC
     "SYNTH_MEMORY_MAX_BITS": "65536",      # Largest memory (bits) Yosys may turn into flip-flops
     "SYNTH_HDL_FRONTEND": "slang",         # Modern SV compiler
     "VERILOG_DEFINES": "-D HPDCACHE_ASSERT_OFF",  # Disables HPDcache asserts
@@ -92,7 +91,7 @@ CVA6_ARGS = {
     ]),
 
     # Floorplan
-    # Die sized so that std cells + macros fill 55% of the core. Macros are 37% (cv32)
+    # Die sized so that std cells + macros fill 55% of the core. Macros are 59% (cv32)
     # to ~90% (cv64) of the cell area: the spare room goes to halos and routing channels.
     "CORE_UTILIZATION": "55",
     "CORE_MARGIN": "2",                    # 2µm margin

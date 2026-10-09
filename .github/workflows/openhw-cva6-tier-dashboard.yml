@@ -27,8 +27,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Restore tier dashboard history from gh-pages-cva6-dashboard-data
         run: |
@@ -112,8 +110,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Prepare gh-pages-cva6-dashboard-data branch
         run: |

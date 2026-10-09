@@ -20,13 +20,11 @@ jobs:
     name: Build PD Dashboard
     runs-on: ubuntu-latest
     steps:
+      # No `ref:`: workflow_run checks out the default branch, so the scripts run here
+      # never come from a PR. This job has a write token, and PR runs (fork PRs included)
+      # trigger it: their runs must only provide data, never code.
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          # workflow_run always evaluates this YAML from the default branch, but pin
-          # checked-out scripts to the triggering run's commit (falls back to github.ref
-          # for workflow_dispatch, where workflow_run context is unset).
-          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Restore PD dashboard history from gh-pages-cva6-dashboard-data
         run: |
@@ -125,8 +123,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Prepare gh-pages-cva6-dashboard-data branch
         run: |

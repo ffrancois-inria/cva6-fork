@@ -43,6 +43,7 @@ show up as failed. Its GitHub job log is then used as the downloadable logs.
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -75,6 +76,10 @@ LOGS_ARTIFACT_PREFIX = {
 # `print-VAR` bazel run target) holding the bazel build arguments that most
 # affect PPA metrics.
 BUILD_PARAMS_FILENAME = "build_params.json"
+
+# Arch and config names go into file paths and into the dashboard page. They come
+# from artifact and job names, which the workflow of a PR run sets freely.
+SAFE_NAME_RE = re.compile(r"[A-Za-z0-9_]+")
 
 
 # ---------------------------------------------------------------------------
@@ -244,7 +249,11 @@ def fetch_jobs(repo: str, run_id: int) -> dict:
     data = json.loads(result.stdout)
     jobs = {}
     for job in data.get("jobs", []):
-        jobs[job.get("name", "")] = {
+        name = job.get("name", "")
+        if not SAFE_NAME_RE.fullmatch(name):
+            print(f"  WARNING: ignoring job {name!r} of run {run_id}: not a config name", file=sys.stderr)
+            continue
+        jobs[name] = {
             "id":               job.get("id"),
             "conclusion":       job.get("conclusion"),
             "html_url":         job.get("html_url", ""),
@@ -306,17 +315,25 @@ def arch_for_config(config: str) -> str:
     return "RV32" if config.startswith("cv32") else "RV64"
 
 
-def iter_artifact_dirs(dest_dir: Path, prefix: str):
-    """Yield (arch, config, artifact_dir) for each artifact directory matching prefix."""
-        
+def iter_artifact_dirs(dest_dir: Path, prefix: str, skip_prefix: str = ""):
+    """Yield (arch, config, artifact_dir) for each artifact directory matching prefix.
+
+    skip_prefix: artifacts to leave out, e.g. the "PD-flp-logs-" ones that the
+    "PD-flp-*" download pattern also pulls.
+    """
     for artifact_dir in sorted(dest_dir.iterdir()):
         if not artifact_dir.is_dir() or not artifact_dir.name.startswith(prefix):
+            continue
+        if skip_prefix and artifact_dir.name.startswith(skip_prefix):
             continue
         suffix = artifact_dir.name[len(prefix):]
         # rsplit on "-" (last occurrence) so design names containing "-" are preserved.
         parts  = suffix.rsplit("-", 1)
         arch   = parts[0] if len(parts) >= 1 else suffix
         config = parts[1] if len(parts) >= 2 else "base"
+        if not (SAFE_NAME_RE.fullmatch(arch) and SAFE_NAME_RE.fullmatch(config)):
+            print(f"  WARNING: ignoring artifact {artifact_dir.name!r}: unexpected arch/config name", file=sys.stderr)
+            continue
         yield arch, config, artifact_dir
 
 
@@ -347,12 +364,9 @@ def download_run_artifacts(repo: str, run_id: int, dest_dir: Path, artifact_pref
         return []
 
     found = []
+    # "PD-flp-*" also matches the "PD-flp-logs-*" artifacts, handled separately
     logs_prefix = LOGS_ARTIFACT_PREFIX.get(artifact_prefix, "")
-    for arch, config, artifact_dir in iter_artifact_dirs(dest_dir, artifact_prefix):
-        # "PD-flp-*" also matches "PD-flp-logs-*" artifacts pulled by the same
-        # `gh run download` pattern; skip those, they're handled separately.
-        if logs_prefix and artifact_dir.name.startswith(logs_prefix):
-            continue
+    for arch, config, artifact_dir in iter_artifact_dirs(dest_dir, artifact_prefix, skip_prefix=logs_prefix):
         json_path = artifact_dir / metrics_filename
         if json_path.exists():
             found.append((arch, config, json_path))

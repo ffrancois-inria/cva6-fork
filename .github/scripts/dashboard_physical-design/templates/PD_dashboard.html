@@ -556,7 +556,9 @@
 // ============================================================
 // Chart.js Trend Charts
 // ============================================================
-const chartData = {{ chart_data_json|safe }};
+// tojson (not |safe) escapes < and >: flow names come from the job names of PR runs,
+// which must not be able to close this <script>
+const chartData = {{ chart_data|tojson }};
 
 const colors = ['#198754', '#0d6efd', '#dc3545', '#fd7e14', '#6f42c1', '#20c997', '#e83e8c'];
 

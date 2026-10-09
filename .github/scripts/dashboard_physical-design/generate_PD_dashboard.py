@@ -352,7 +352,7 @@ def main():
         "repo": args.repo,
         "workflows": workflows,
         "default_matrix_wf": default_matrix_wf,
-        "chart_data_json": json.dumps(chart_data),
+        "chart_data": chart_data,
         "trend_count": TREND_COUNT
     }
 

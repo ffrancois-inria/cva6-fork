@@ -1,5 +1,93 @@
 [
   {
+    "id": 37905004087,
+    "run_number": 17,
+    "conclusion": "success",
+    "event": "workflow_dispatch",
+    "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/37905004087",
+    "head_branch": "ffrancois-inria_ORflow-dashboard",
+    "head_sha": "0f7365bb",
+    "commit_subject": "ci/OR-flow: define the target clock period in the SDC only",
+    "actor": "ffrancois-inria",
+    "created_at": "2026-10-09T08:26:54Z",
+    "duration_seconds": 8775,
+    "total_flows": 3,
+    "passed_flows": 3,
+    "failed_flows": 0,
+    "flows": [
+      {
+        "arch": "RV32",
+        "config": "cv32a65x",
+        "conclusion": "success",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/37905004087/job/113736244948",
+        "duration_seconds": 2212,
+        "raw_json_path": "./PD-data/raw/37905004087/RV32_cv32a65x.json",
+        "logs_zip_path": "./PD-data/raw/37905004087/RV32_cv32a65x_logs.zip",
+        "metrics": {
+          "stdcell_area_um2": 13247.1,
+          "macro_area_um2": 21294.6,
+          "total_instance_area_um2": 34541.7,
+          "core_area_um2": 61234,
+          "die_area_um2": 63340.3,
+          "stdcell_kgate": 151.5686,
+          "fmax_mhz": 316.56,
+          "worst_setup_slack_ps": 841.073,
+          "timing_met": true,
+          "power_mw": 12.961
+        }
+      },
+      {
+        "arch": "RV64",
+        "config": "cv64a6_imafdc_sv39_hpdcache",
+        "conclusion": "success",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/37905004087/job/113736244696",
+        "duration_seconds": 6372,
+        "raw_json_path": "./PD-data/raw/37905004087/RV64_cv64a6_imafdc_sv39_hpdcache.json",
+        "logs_zip_path": "./PD-data/raw/37905004087/RV64_cv64a6_imafdc_sv39_hpdcache_logs.zip",
+        "metrics": {
+          "stdcell_area_um2": 43274.6,
+          "macro_area_um2": 366463,
+          "total_instance_area_um2": 409738,
+          "core_area_um2": 737890,
+          "die_area_um2": 745140,
+          "stdcell_kgate": 495.1327,
+          "fmax_mhz": 230.94,
+          "worst_setup_slack_ps": -330.136,
+          "timing_met": false,
+          "power_mw": 44.2
+        }
+      },
+      {
+        "arch": "RV64",
+        "config": "cv64a6_imafdc_sv39_hpdcache_wb",
+        "conclusion": "success",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/37905004087/job/113736245033",
+        "duration_seconds": 8770,
+        "raw_json_path": "./PD-data/raw/37905004087/RV64_cv64a6_imafdc_sv39_hpdcache_wb.json",
+        "logs_zip_path": "./PD-data/raw/37905004087/RV64_cv64a6_imafdc_sv39_hpdcache_wb_logs.zip",
+        "metrics": {
+          "stdcell_area_um2": 43085.5,
+          "macro_area_um2": 366463,
+          "total_instance_area_um2": 409548,
+          "core_area_um2": 737890,
+          "die_area_um2": 745152,
+          "stdcell_kgate": 492.9691,
+          "fmax_mhz": 225.55,
+          "worst_setup_slack_ps": -433.65,
+          "timing_met": false,
+          "power_mw": 42.148
+        }
+      }
+    ],
+    "build_params": {
+      "CORE_UTILIZATION": "55",
+      "PLACE_DENSITY": "0.55",
+      "SYNTH_HIERARCHICAL": "1",
+      "SYNTH_MINIMUM_KEEP_SIZE": "10000",
+      "ABC_CLOCK_PERIOD_IN_PS": "4000"
+    }
+  },
+  {
     "id": 37775324794,
     "run_number": 16,
     "conclusion": "failure",

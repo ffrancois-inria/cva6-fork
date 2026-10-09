@@ -58,6 +58,7 @@ jobs:
             bazel-orfs-${{ runner.os }}-repo-
 
       - name: Run full flow to global routing
+        id: bazel
         # explicit disk cache (not the output base); GC limit set to 2 GB in .bazelrc
         # pipefail: otherwise `| tee` masks a bazel failure and the step passes
         run: |
@@ -73,16 +74,27 @@ jobs:
         # Parses the print-VAR output captured above to extract bazel build arguments 
         # that most affect PPA metrics
         if: always()
+        env:
+          BAZEL_OUTCOME: ${{ steps.bazel.outcome }}
         run: |
           mkdir -p bazel-bin/logs/asap7/cva6/base
           json="{}"
           for var in CORE_UTILIZATION PLACE_DENSITY SYNTH_HIERARCHICAL SYNTH_MINIMUM_KEEP_SIZE; do
-            value=$(grep "^$var:" bazel-build-output.log | tail -n1 | cut -d' ' -f2-) || value=""
+            line=$(grep "^$var:" bazel-build-output.log | tail -n1)
+            # Expected to be missing when bazel failed. Otherwise, the print-VAR output changed
+            if [ -z "$line" ] && [ "$BAZEL_OUTCOME" = success ]; then
+              echo "::warning::$var not found in the bazel output (print-$var): empty on the PD dashboard"
+            fi
+            value=$(echo "$line" | cut -d' ' -f2-)
             json=$(echo "$json" | jq --arg k "$var" --arg v "$value" '.[$k] = $v')
           done
           # The SDC is the only source of the clock period: ORFS derives ABC_CLOCK_PERIOD_IN_PS
           # from it (scripts/variables.mk), but only at synthesis: the later stages run here lack the SDC
           value=$(sed -nE 's/^set\s+clk_period\s+(\S+).*|.*-period\s+(\S+).*/\1\2/p' bazel/constraints.sdc | head -1 | awk '{print $1}')
+          # Also what ORFS gets: not a number when the SDC computes the period, e.g. with [expr]
+          if ! [[ "$value" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+            echo "::warning::Clock period of bazel/constraints.sdc not found or not a number: '$value'"
+          fi
           json=$(echo "$json" | jq --arg v "$value" '.ABC_CLOCK_PERIOD_IN_PS = $v')
           echo "$json" | tee bazel-bin/logs/asap7/cva6/base/build_params.json
 
@@ -106,7 +118,9 @@ jobs:
         with:
           name: PD-grt-${{ startsWith(matrix.config, 'cv32') && 'RV32' || 'RV64' }}-${{ matrix.config }}
           path: bazel-bin/logs/asap7/cva6/base/5_1_grt.json
-          if-no-files-found: warn  # the job result already reflects build success/failure
+          # Only runs when the flow passed: a missing file then means that its path or the
+          # flow changed. Fail the job, instead of passing it with no metrics for the dashboard
+          if-no-files-found: error
 
       - name: Upload logs & reports artifact
         if: always()

@@ -8,6 +8,7 @@ a self-contained static HTML file.
 """
 
 import argparse
+import copy
 import json
 import os
 from datetime import datetime, timezone
@@ -15,7 +16,7 @@ from pathlib import Path
 from collections import defaultdict
 from zoneinfo import ZoneInfo
 
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 # Same run classification as the collected data (script in this directory)
 from extract_PD_metrics import DEFAULT_BRANCH, is_reference_run
@@ -51,6 +52,25 @@ BUILD_PARAM_LABELS = [
     ("SYNTH_HIERARCHICAL", "Hierarchical Synthesis"),
     ("SYNTH_MINIMUM_KEEP_SIZE", "Min Module Keep Size"),
 ]
+
+# Optional fields of the run and flow records, with their value when missing:
+# records written before a field existed lack it. The template is rendered with
+# StrictUndefined, so that a misspelled or removed field fails the generation
+# instead of rendering empty: a field it reads must be in every record, or here.
+RUN_DEFAULTS = {
+    "event":          "",
+    "actor":          "",
+    "commit_subject": "",
+    "display_title":  "",
+    "pr_number":      None,
+    "build_params":   {},
+    "flows":          [],
+}
+FLOW_DEFAULTS = {
+    "raw_json_path": None,
+    "logs_zip_path": None,
+    "error":         None,
+}
 
 
 def format_duration(seconds: int) -> str:
@@ -206,10 +226,14 @@ def build_chart_data(all_data: dict) -> dict:
 
 
 def enrich_run(run: dict) -> dict:
-    """Add display-friendly fields to a run dict."""
+    """Add display-friendly fields to a run dict, and the missing optional ones."""
+    for key, default in RUN_DEFAULTS.items():
+        run.setdefault(key, copy.copy(default))
     run["duration_display"] = format_duration(run.get("duration_seconds", 0))
     run["created_at_display"] = format_datetime(run.get("created_at", ""))
-    for flow in run.get("flows", []):
+    for flow in run["flows"]:
+        for key, default in FLOW_DEFAULTS.items():
+            flow.setdefault(key, default)
         flow["duration_display"] = format_duration(flow.get("duration_seconds", 0))
     build_params = run.get("build_params") or {}
     run["build_params_display"] = [
@@ -253,28 +277,37 @@ def baseline_flow(run: dict, ref_runs: list, flow_key: str) -> tuple:
     return None, None
 
 
-def flow_deltas(run: dict, ref_runs: list) -> dict:
-    """{flow key: metric deltas vs its baseline flow} for every flow of `run`.
+def metric_deltas(m: dict, prev: dict, baseline) -> dict:
+    """Deltas of metrics `m` vs `prev`, the metrics of the `baseline` run.
 
-    Each entry holds the "baseline" reference run (None without one) and one
-    _delta() per metric, None when either side lacks the value.
+    Holds the "baseline" run and one _delta() per metric, None when either side
+    lacks the value.
     """
+    return {
+        "baseline": baseline,
+        "fmax_mhz": _delta(m.get("fmax_mhz"), prev.get("fmax_mhz")),
+        "stdcell_kgate": _delta(m.get("stdcell_kgate"), prev.get("stdcell_kgate")),
+        # In %: in µm², it would just repeat the stdcell delta (the macros don't change)
+        "total_instance_area_um2": _delta(m.get("total_instance_area_um2"),
+                                          prev.get("total_instance_area_um2"), relative=True),
+        "worst_setup_slack_ps": _delta(m.get("worst_setup_slack_ps"), prev.get("worst_setup_slack_ps")),
+        "power_mw": _delta(m.get("power_mw"), prev.get("power_mw")),
+    }
+
+
+# For flows shown without deltas (run history): every key of a metric_deltas() entry, all None
+NO_DELTAS = metric_deltas({}, {}, None)
+
+
+def flow_deltas(run: dict, ref_runs: list) -> dict:
+    """{flow key: metric_deltas() vs its baseline flow} for every flow of `run`."""
     deltas = {}
     for flow in run.get("flows", []):
         flow_key = flow_key_of(flow)
         ref, ref_flow = baseline_flow(run, ref_runs, flow_key)
         m = flow.get("metrics") or {}
         prev = ref_flow["metrics"] if ref_flow else {}
-        deltas[flow_key] = {
-            "baseline": ref,
-            "fmax_mhz": _delta(m.get("fmax_mhz"), prev.get("fmax_mhz")),
-            "stdcell_kgate": _delta(m.get("stdcell_kgate"), prev.get("stdcell_kgate")),
-            # In %: in µm², it would just repeat the stdcell delta (the macros don't change)
-            "total_instance_area_um2": _delta(m.get("total_instance_area_um2"),
-                                              prev.get("total_instance_area_um2"), relative=True),
-            "worst_setup_slack_ps": _delta(m.get("worst_setup_slack_ps"), prev.get("worst_setup_slack_ps")),
-            "power_mw": _delta(m.get("power_mw"), prev.get("power_mw")),
-        }
+        deltas[flow_key] = metric_deltas(m, prev, ref)
     return deltas
 
 
@@ -298,19 +331,16 @@ def build_workflows_context(all_data: dict) -> list:
         if ref_runs:
             latest = ref_runs[0]
         else:
-            latest = {
+            latest = enrich_run({
                 "conclusion": "unknown",
                 "head_branch": "N/A",
                 "head_sha": "N/A",
                 "passed_flows": 0,
                 "failed_flows": 0,
-                "skipped_flows": 0,
                 "total_flows": 0,
-                "duration_display": "N/A",
                 "run_number": 0,
                 "html_url": "#",
-                "created_at_display": "N/A"
-            }
+            })
 
         for run in [latest] + candidate_runs:
             run["flow_deltas"] = flow_deltas(run, ref_runs)
@@ -391,6 +421,7 @@ def main():
         "year": now.year,
         "repo": args.repo,
         "default_branch": DEFAULT_BRANCH,
+        "no_deltas": NO_DELTAS,
         "workflows": workflows,
         "default_matrix_wf": default_matrix_wf,
         "chart_data": chart_data,
@@ -399,7 +430,9 @@ def main():
 
     # Render template
     template_dir = Path(__file__).parent / "templates"
-    env = Environment(loader=FileSystemLoader(str(template_dir)), autoescape=True)
+    # StrictUndefined: a missing variable or field is an error, not an empty string
+    env = Environment(loader=FileSystemLoader(str(template_dir)), autoescape=True,
+                      undefined=StrictUndefined)
     template = env.get_template("PD_dashboard.html")
     html = template.render(**context)
 

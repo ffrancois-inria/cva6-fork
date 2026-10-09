@@ -154,7 +154,7 @@
 {% endmacro %}
 
 {# Flows of a run: metrics, with their delta when `deltas` (flow key -> flow_deltas entry) has one,
-   status, duration and downloads #}
+   status, duration and downloads. no_deltas: the entry of a flow without deltas #}
 {% macro flows_table(run, wf_key, deltas) %}
 <div class="table-responsive">
   <table class="table table-sm table-hover flow-table mb-0">
@@ -174,7 +174,7 @@
     </thead>
     <tbody>
       {% for flow in run.flows %}
-      {% set d = deltas.get(flow.arch ~ '_' ~ flow.config) or {} %}
+      {% set d = deltas.get(flow.arch ~ '_' ~ flow.config) or no_deltas %}
       <tr>
         <td>{{ flow.arch|upper }}</td>
         <td><code>{{ flow.config }}</code></td>
@@ -319,7 +319,7 @@
                 </thead>
                 <tbody>
                   {% for flow in wf.latest.flows %}
-                  {% set d = wf.latest.flow_deltas.get(flow.arch ~ '_' ~ flow.config) or {} %}
+                  {% set d = wf.latest.flow_deltas.get(flow.arch ~ '_' ~ flow.config) or no_deltas %}
                   <tr>
                     <td>{{ flow.arch|upper }}</td>
                     <td>

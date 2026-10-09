@@ -6,12 +6,18 @@ on:
   push:
     branches:
       - master
+    # Whatever changes the metrics, not only the RTL: otherwise a shift caused by e.g.
+    # an ORFS bump is attributed to the next RTL commit
     paths:
       - 'core/**'
       - 'vendor/**'
       - 'common/**'
       - 'BUILD.bazel'
+      - 'MODULE.bazel'  # ORFS, OpenROAD, yosys versions
+      - '.bazelrc'
+      - '.bazelversion'
       - 'bazel/**'
+      - '.github/workflows/OR-flow-floorplan.yml'
   pull_request:
   workflow_dispatch:
 

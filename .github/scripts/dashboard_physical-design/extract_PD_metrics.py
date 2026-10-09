@@ -35,6 +35,11 @@ The script downloads all artifacts for each run using
 `gh run download` (which handles authentication and zip extraction),
 then processes the extracted JSON files.
 
+A run whose jobs or artifacts cannot be fetched (FetchError, e.g. a network
+error or a rate limit) is left out, and processed again by the next update
+instead of being recorded with failed flows. So is a re-run: same run id, new
+run_attempt, whose record replaces the previous one.
+
 The run's matrix jobs (GitHub API) define the flow list, not the artifacts:
 a job killed before its upload steps (e.g. runner shutdown, where even the
 `if: always()` steps are skipped) leaves no artifact at all, but must still
@@ -110,6 +115,15 @@ def annotate(level: str, message: str) -> None:
         print(f"::{level}::{escaped}")
     else:
         print(f"{level.upper()}: {message}", file=sys.stderr)
+
+
+class FetchError(Exception):
+    """The jobs or artifacts of a run could not be fetched, likely a transient error.
+
+    The run is left out of this update, to be processed again by the next one:
+    recording it would show flows failing for a reason other than the design, for
+    good, since recorded runs are not processed again.
+    """
 
 
 # ---------------------------------------------------------------------------
@@ -242,17 +256,16 @@ def is_reference_run(run: dict) -> bool:
 
 
 def merge_runs(existing: list, new_runs: list) -> list:
-    """Merge new runs into existing data, deduplicating by run_id."""
-    existing_ids = {r["id"] for r in existing}
-    merged = list(existing)
+    """Merge new runs into existing data.
 
-    for run in new_runs:
-        if run["id"] not in existing_ids:
-            merged.append(run)
-            existing_ids.add(run["id"])
+    A new record replaces the existing one of the same run (processed again
+    after a re-run).
+    """
+    by_id = {r["id"]: r for r in existing}
+    by_id.update((r["id"], r) for r in new_runs)
 
     # Sort by created_at descending (newest first)
-    merged.sort(key=lambda r: r.get("created_at", ""), reverse=True)
+    merged = sorted(by_id.values(), key=lambda r: r.get("created_at", ""), reverse=True)
 
     # Trim reference and candidate runs separately, then interleave them back
     reference  = [r for r in merged if is_reference_run(r)][:MAX_REFERENCE_HISTORY]
@@ -307,6 +320,7 @@ def fetch_jobs(repo: str, run_id: int) -> dict:
 
     job_info holds the job "id", "conclusion", "html_url" and "duration_seconds".
     Matrix jobs are named after their config (`name: ${{ matrix.config }}`).
+    Raises FetchError when the jobs cannot be fetched.
     """
     result = subprocess.run(
         ["gh", "api", f"/repos/{repo}/actions/runs/{run_id}/jobs", "--paginate"],
@@ -314,8 +328,7 @@ def fetch_jobs(repo: str, run_id: int) -> dict:
         text=True,
     )
     if result.returncode != 0:
-        annotate("warning", f"Could not fetch the jobs of run {run_id}: {result.stderr.strip()}")
-        return {}
+        raise FetchError(f"could not fetch its jobs: {result.stderr.strip()}")
     data = json.loads(result.stdout)
     jobs = {}
     for job in data.get("jobs", []):
@@ -377,6 +390,23 @@ def fetch_runs(repo: str, workflow_file: str, count: int) -> list:
 # Artifact download
 # ---------------------------------------------------------------------------
 
+def list_run_artifacts(repo: str, run_id: int) -> set:
+    """Names of the unexpired artifacts of a run. Raises FetchError.
+
+    Tells a run without artifacts (e.g. jobs that failed before their upload)
+    from a failed download: `gh run download` fails in both cases.
+    """
+    result = subprocess.run(
+        ["gh", "api", f"/repos/{repo}/actions/runs/{run_id}/artifacts", "--paginate",
+         "--jq", ".artifacts[] | select(.expired | not) | .name"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise FetchError(f"could not list its artifacts: {result.stderr.strip()}")
+    return set(result.stdout.splitlines())
+
+
 def arch_for_config(config: str) -> str:
     """Arch of a config, as the OR-flow workflows put it in artifact names."""
     return "RV32" if config.startswith("cv32") else "RV64"
@@ -404,15 +434,21 @@ def iter_artifact_dirs(dest_dir: Path, prefix: str, skip_prefix: str = ""):
         yield arch, config, artifact_dir
 
 
-def download_run_artifacts(repo: str, run_id: int, dest_dir: Path, artifact_prefix: str) -> list:
+def download_run_artifacts(repo: str, run_id: int, dest_dir: Path, artifact_prefix: str,
+                           artifact_names: set) -> list:
     """Download all artifacts matching artifact_prefix for a run into dest_dir.
 
     Uses `gh run download` which handles authentication and zip extraction.
     Each artifact lands at dest_dir/{artifact_name}/{metrics_json}.
+    artifact_names: from list_run_artifacts(), to skip a run without any.
 
-    Returns a list of (arch, config, json_path) tuples.
+    Returns a list of (arch, config, json_path) tuples. Raises FetchError.
     """
     metrics_filename = METRICS_FILENAME[artifact_prefix]
+    # "PD-flp-*" also matches the "PD-flp-logs-*" artifacts, handled separately
+    logs_prefix = LOGS_ARTIFACT_PREFIX[artifact_prefix]
+    if not any(n.startswith(artifact_prefix) and not n.startswith(logs_prefix) for n in artifact_names):
+        return []
     result = subprocess.run(
         [
             "gh", "run", "download", str(run_id),
@@ -424,12 +460,9 @@ def download_run_artifacts(repo: str, run_id: int, dest_dir: Path, artifact_pref
         text=True,
     )
     if result.returncode != 0:
-        annotate("warning", f"gh run download failed for run {run_id}: {result.stderr.strip()}")
-        return []
+        raise FetchError(f"gh run download failed: {result.stderr.strip()}")
 
     found = []
-    # "PD-flp-*" also matches the "PD-flp-logs-*" artifacts, handled separately
-    logs_prefix = LOGS_ARTIFACT_PREFIX.get(artifact_prefix, "")
     for arch, config, artifact_dir in iter_artifact_dirs(dest_dir, artifact_prefix, skip_prefix=logs_prefix):
         json_path = artifact_dir / metrics_filename
         if json_path.exists():
@@ -447,8 +480,11 @@ def download_and_zip_logs(
     dest_dir: Path,
     logs_prefix: str,
     run_raw_dir: Path,
+    artifact_names: set,
 ) -> tuple:
-    """Download log artifacts, zip them per config.
+    """Download log artifacts, zip them per config. Raises FetchError.
+
+    artifact_names: from list_run_artifacts(), to skip a run without any.
 
     Returns (logs_map, build_params_map):
       logs_map:         {(arch, config): site_relative_zip_path}
@@ -456,6 +492,8 @@ def download_and_zip_logs(
                          build_params.json (written by the `print-VAR` CI step)
                          when present in the artifact.
     """
+    if not any(n.startswith(logs_prefix) for n in artifact_names):
+        return {}, {}
     result = subprocess.run(
         [
             "gh", "run", "download", str(run_id),
@@ -467,8 +505,7 @@ def download_and_zip_logs(
         text=True,
     )
     if result.returncode != 0:
-        annotate("warning", f"gh run download (logs) failed for run {run_id}: {result.stderr.strip()}")
-        return {}, {}
+        raise FetchError(f"gh run download (logs) failed: {result.stderr.strip()}")
 
     logs_map = {}
     build_params_map = {}
@@ -523,25 +560,31 @@ def pop_pr_number(run: dict, build_params: dict) -> int | None:
 
 
 def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artifact_prefix: str) -> dict:
-    """Fetch artifacts for a PD run, extract metrics, and build a run record."""
+    """Fetch artifacts for a PD run, extract metrics, and build a run record.
+
+    Raises FetchError, leaving raw_dir untouched.
+    """
     run_id = run["id"]
     extractor = extract_flp_metrics if artifact_prefix == "PD-flp-" else extract_grt_metrics
 
     jobs = fetch_jobs(repo, run_id)
-
-    # Persist raw files before the tmpdir is deleted
-    run_raw_dir = raw_dir / str(run_id)
-    run_raw_dir.mkdir(parents=True, exist_ok=True)
+    artifact_names = list_run_artifacts(repo, run_id)
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
-        json_list = download_run_artifacts(repo, run_id, tmp_path / "artifacts", artifact_prefix)
+        # Raw files are staged, and moved to raw_dir once the run is processed: a
+        # FetchError leaves no partial files, nor overwrites those of a previous attempt
+        run_raw_dir = tmp_path / "raw"
+        run_raw_dir.mkdir()
+
+        json_list = download_run_artifacts(repo, run_id, tmp_path / "artifacts", artifact_prefix, artifact_names)
 
         for arch, config, json_path in json_list:
             shutil.copy2(json_path, run_raw_dir / f"{arch}_{config}.json")
 
         logs_prefix = LOGS_ARTIFACT_PREFIX[artifact_prefix]
-        logs_map, build_params_map = download_and_zip_logs(repo, run_id, tmp_path / "logs", logs_prefix, run_raw_dir)
+        logs_map, build_params_map = download_and_zip_logs(repo, run_id, tmp_path / "logs", logs_prefix,
+                                                           run_raw_dir, artifact_names)
 
         json_map = {(arch, config): json_path for arch, config, json_path in json_list}
 
@@ -600,6 +643,11 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
                 "error":            error,
             })
 
+        final_raw_dir = raw_dir / str(run_id)
+        if final_raw_dir.exists():
+            shutil.rmtree(final_raw_dir)
+        shutil.move(run_raw_dir, final_raw_dir)
+
     # Matrix jobs currently share identical bazel arguments; surface the first
     # available set as a single run-level record for the dashboard.
     build_params = next(iter(build_params_map.values()), {})
@@ -618,6 +666,8 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, artif
 
     return {
         "id":               run_id,
+        # Processed again when a later attempt (re-run) completes
+        "run_attempt":      run.get("run_attempt", 1),
         "run_number":       run.get("run_number", 0),
         "conclusion":       run.get("conclusion", "unknown"),
         "event":            run.get("event", ""),
@@ -702,18 +752,25 @@ def main() -> None:
     print(f"Existing records: {len(existing)}")
 
     print(f"\nFetching runs for {args.workflow} from {args.repo}")
-    existing_ids = {r["id"] for r in existing}
+    # Records written before run_attempt was stored are attempt 1
+    existing_attempts = {r["id"]: r.get("run_attempt", 1) for r in existing}
     runs_raw     = fetch_runs(args.repo, args.workflow, args.fetch_count)
     print(f"Fetched {len(runs_raw)} runs from API")
 
     new_runs = []
     for run in runs_raw:
-        if run["id"] in existing_ids:
+        attempt = run.get("run_attempt", 1)
+        if existing_attempts.get(run["id"], 0) >= attempt:
             print(f"  Skipping run #{run['run_number']} (id={run['id']}) - already exists")
             continue
 
-        print(f"  Processing run #{run['run_number']} (id={run['id']})...")
-        processed = process_ci_run(args.repo, run, args.nand2_area, raw_dir, args.artifact_prefix)
+        print(f"  Processing run #{run['run_number']} (id={run['id']}, attempt {attempt})...")
+        try:
+            processed = process_ci_run(args.repo, run, args.nand2_area, raw_dir, args.artifact_prefix)
+        except FetchError as exc:
+            annotate("warning", f"Run {run['run_number']} (id={run['id']}) left out of this update, "
+                                f"processed again by the next one: {exc}")
+            continue
         new_runs.append(processed)
         print(
             f"    -> {processed['total_flows']} flows: "

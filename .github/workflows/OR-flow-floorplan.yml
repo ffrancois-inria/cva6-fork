@@ -1,7 +1,11 @@
 name: OR-flow-floorplan
 
 on:
+  # Other branches go through pull_request (or workflow_dispatch): with push on every
+  # branch, a PR opened from a branch of this repository ran the flow twice per push
   push:
+    branches:
+      - master
     paths:
       - 'core/**'
       - 'vendor/**'

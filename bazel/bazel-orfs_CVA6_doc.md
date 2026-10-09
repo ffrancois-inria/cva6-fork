@@ -238,7 +238,7 @@ Most modifications only require editing the shared settings or adding a new entr
 | Variable | Content | Used by |
 |---|---|---|
 | `CVA6_ARGS` | OpenROAD flow parameters (`arguments`) | top-level targets |
-| `CVA6_SOURCES` | SDC constraints, PDN script and Yosys canonicalize hook (`sources`) | top-level targets |
+| `CVA6_SOURCES` | SDC constraints, PDN script, Yosys canonicalize hook and power activity hook (`sources`) | top-level targets |
 | `CVA6_VERILOG_FILES` | CVA6 RTL file list, excerpt from `Flist.cva6_synth` (`verilog_files`) | top-level targets |
 | `SRAM_ARGS` | OpenROAD flow parameters (`arguments`) | macro targets |
 | `SRAM_SOURCES` | SDC constraints, pin placement and PDN scripts (`sources`) | macro targets |
@@ -276,6 +276,7 @@ These settings target **commit-to-commit PPA regression tracking**, not the best
 
 * **They must stay constant.** Changing any of them, or bumping the ORFS/OpenROAD versions in `MODULE.bazel`, shifts every metric and starts a new baseline on the dashboard.
 * **Timing repair is disabled at every stage**, so that timing metrics reflect the RTL rather than what the optimizer managed to fix.
+* **Power is reported at a fixed switching activity** (`bazel/power-activity.tcl`, sourced before the floorplan and global route metrics): OpenSTA's default activity propagation does not converge on CVA6, and made the power jump between unrelated netlists. The file explains what the metric tracks and the long-term alternative (activity from simulation).
 * **Steps that do not affect the tracked metrics are skipped** (tap and fill cells, IR drop analysis, etc.). Metrics reporting must stay enabled, since the dashboard reads them.
 
 The speed-oriented parameters are documented in the `bazel-orfs` documentation:

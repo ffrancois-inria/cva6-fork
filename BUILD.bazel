@@ -128,6 +128,9 @@ CVA6_SOURCES = {
     "SDC_FILE": [":bazel/constraints.sdc"],
     "PDN_TCL": ["bazel/pdn.tcl"],          # Custom PDN, connects to the M4 power pins of the macros
     "SYNTH_CANONICALIZE_TCL": [":bazel/canonicalize.tcl"],  # Removes the RVFI verification port (rvfi_probes_o)
+    # Fixed switching activity for the power metric (OpenSTA's propagation does not converge on CVA6)
+    "PRE_FLOORPLAN_TCL": [":bazel/power-activity.tcl"],
+    "PRE_GLOBAL_ROUTE_TCL": [":bazel/power-activity.tcl"],
 }
 
 # CVA6 RTL, excerpt from Flist.cva6_synth. "{TARGET_CFG}" is replaced by the configuration

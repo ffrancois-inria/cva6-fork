@@ -143,7 +143,7 @@
     {{ fmt.format(value)|replace(',', ' ') }}
     {% if delta %}
       <span style="color: {{ '#6c757d' if delta.value == 0 else ('#198754' if (delta.value > 0) == higher_is_better else '#dc3545') }}; font-size:0.78rem; font-weight:600"
-            title="vs {{ default_branch }} run #{{ baseline.run_number }} ({{ baseline.head_sha }})">
+            title="vs {{ default_branch }} run {{ baseline.run_number }} ({{ baseline.head_sha }})">
         ({{ delta.sign }}{{ delta.value }}{{ unit }})
       </span>
     {% endif %}
@@ -276,7 +276,7 @@
             </div>
             <div>
               <strong>Duration:</strong> {{ wf.latest.duration_display }}
-              &middot; <strong>Run:</strong> #{{ wf.latest.run_number }}
+              &middot; <strong>Run:</strong> {{ wf.latest.run_number }}
             </div>
             <div>
               <strong>Created at:</strong> {{ wf.latest.created_at_display }}
@@ -443,7 +443,7 @@
                         data-bs-toggle="collapse" data-bs-target="#run-{{ wf.key }}-{{ run.id }}"
                         style="font-size:0.85rem">
                   <span class="me-2">{{ status_badge(run.conclusion) }}</span>
-                  #{{ run.run_number }}
+                  Run {{ run.run_number }}
                   &middot;&nbsp;
                   {% if run.commit_subject %}
                     <span style="font-weight: 600">{{ run.commit_subject }}</span>
@@ -530,7 +530,7 @@
                   {% if run.event == 'workflow_dispatch' %}
                     &nbsp; <strong class="text-secondary"><em>(manual trigger)</em></strong>
                   {% endif %}
-                  &nbsp;&middot;&nbsp; #{{ run.run_number }}
+                  &nbsp;&middot;&nbsp; Run {{ run.run_number }}
                   &nbsp;&middot;&nbsp; <code>{{ run.head_sha }}</code>
                   &nbsp;&middot; {{ run.duration_display }}
                   <span class="ms-auto text-muted" style="font-size:0.75rem">{{ run.created_at_display }}</span>
@@ -553,7 +553,7 @@
                     <div class="mt-1">
                       Compared to:
                       {% for b in run.baselines %}
-                        <a href="{{ b.html_url }}" target="_blank" rel="noopener">{{ default_branch }} #{{ b.run_number }}</a>
+                        <a href="{{ b.html_url }}" target="_blank" rel="noopener">{{ default_branch }} run {{ b.run_number }}</a>
                         (<code>{{ b.head_sha }}</code>){{ ',' if not loop.last }}
                       {% else %}
                         <span class="text-muted">no passing {{ default_branch }} run before this one</span>
@@ -651,7 +651,7 @@ function trendChart(ctx, wf, metric, yTitle, subtitle) {
         legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
         tooltip: {
           callbacks: {
-            title: function(items) { return 'Run #' + items[0].label; }
+            title: function(items) { return 'Run ' + items[0].label; }
           }
         }
       },
@@ -662,6 +662,7 @@ function trendChart(ctx, wf, metric, yTitle, subtitle) {
           ticks: { font: { size: 10 } }
         },
         x: {
+          title: { display: true, text: 'Run number', font: { size: 11 } },
           ticks: { font: { size: 10 }, maxRotation: 45 }
         }
       }

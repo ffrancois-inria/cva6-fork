@@ -19,7 +19,7 @@ from zoneinfo import ZoneInfo
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 # Same flows and run classification as the collected data (script in this directory)
-from extract_PD_metrics import DEFAULT_BRANCH, PD_FLOWS, is_reference_run
+from extract_PD_metrics import BUILD_PARAM_LABELS, DEFAULT_BRANCH, PD_FLOWS, is_reference_run
 
 # Presentation of the PD_FLOWS flows, in display order.
 # chart_metrics: metric keys to extract from each flow's metrics dict.
@@ -43,16 +43,6 @@ for wf in WORKFLOWS:
     wf["display_name"] = Path(PD_FLOWS[wf["key"]]["workflow"]).stem  # e.g. "OR-flow-floorplan"
 
 TREND_COUNT = 20
-
-# Ordered (bazel key, display label) pairs for the build parameters surfaced
-# on the dashboard. Order here controls display order in the UI.
-BUILD_PARAM_LABELS = [
-    ("CORE_UTILIZATION", "Core Utilization (%)"),
-    ("PLACE_DENSITY", "Place Density"),
-    ("ABC_CLOCK_PERIOD_IN_PS", "Target Clock Period (ps)"),
-    ("SYNTH_HIERARCHICAL", "Hierarchical Synthesis"),
-    ("SYNTH_MINIMUM_KEEP_SIZE", "Min Module Keep Size"),
-]
 
 # Optional fields of the run and flow records, with their value when missing:
 # records written before a field existed lack it. The template is rendered with

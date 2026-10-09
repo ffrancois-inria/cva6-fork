@@ -58,36 +58,19 @@ jobs:
             bazel-orfs-${{ runner.os }}-repo-
 
       - name: Run full flow to global routing
-        id: bazel
         # explicit disk cache (not the output base); GC limit set to 2 GB in .bazelrc
-        # pipefail: otherwise `| tee` masks a bazel failure and the step passes
         run: |
-          set -o pipefail
-          bazel run \
+          bazel build \
             --disk_cache="$HOME/.cache/bazel-disk-cache" \
             --repository_cache="$HOME/.cache/bazel-repo-cache" \
-            //:${{ matrix.config }}_grt \
-            print-CORE_UTILIZATION print-PLACE_DENSITY print-SYNTH_HIERARCHICAL print-SYNTH_MINIMUM_KEEP_SIZE \
-            2>&1 | tee bazel-build-output.log
+            //:${{ matrix.config }}_grt
 
       - name: Extract build parameters
-        # Parses the print-VAR output captured above to extract bazel build arguments 
-        # that most affect PPA metrics
+        # The build arguments come from the *.args.json files that bazel-orfs writes for each
+        # stage, uploaded with the logs. build_params.json adds what they lack
         if: always()
-        env:
-          BAZEL_OUTCOME: ${{ steps.bazel.outcome }}
         run: |
           mkdir -p bazel-bin/logs/asap7/cva6/base
-          json="{}"
-          for var in CORE_UTILIZATION PLACE_DENSITY SYNTH_HIERARCHICAL SYNTH_MINIMUM_KEEP_SIZE; do
-            line=$(grep "^$var:" bazel-build-output.log | tail -n1)
-            # Expected to be missing when bazel failed. Otherwise, the print-VAR output changed
-            if [ -z "$line" ] && [ "$BAZEL_OUTCOME" = success ]; then
-              echo "::warning::$var not found in the bazel output (print-$var): empty on the PD dashboard"
-            fi
-            value=$(echo "$line" | cut -d' ' -f2-)
-            json=$(echo "$json" | jq --arg k "$var" --arg v "$value" '.[$k] = $v')
-          done
           # The SDC is the only source of the clock period: ORFS derives ABC_CLOCK_PERIOD_IN_PS
           # from it (scripts/variables.mk), but only at synthesis: the later stages run here lack the SDC
           value=$(sed -nE 's/^set\s+clk_period\s+(\S+).*|.*-period\s+(\S+).*/\1\2/p' bazel/constraints.sdc | head -1 | awk '{print $1}')
@@ -95,7 +78,7 @@ jobs:
           if ! [[ "$value" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
             echo "::warning::Clock period of bazel/constraints.sdc not found or not a number: '$value'"
           fi
-          json=$(echo "$json" | jq --arg v "$value" '.ABC_CLOCK_PERIOD_IN_PS = $v')
+          json=$(jq -n --arg v "$value" '{ABC_CLOCK_PERIOD_IN_PS: $v}')
           echo "$json" | tee bazel-bin/logs/asap7/cva6/base/build_params.json
 
       - name: Save Bazel disk cache
@@ -130,6 +113,7 @@ jobs:
           path: |
             bazel-bin/logs/asap7/cva6/base/*.log
             bazel-bin/reports/asap7/cva6/base/*
+            bazel-bin/results/asap7/cva6/base/*.args.json
             bazel-bin/logs/asap7/cva6/base/build_params.json
           if-no-files-found: warn
 

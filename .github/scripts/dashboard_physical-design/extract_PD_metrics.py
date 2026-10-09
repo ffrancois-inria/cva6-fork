@@ -28,10 +28,10 @@ Artifact layout expected from OR-flow-grt.yml:
     Artifact name:  PD-grt-{arch}-{config}
     Contents:       5_1_grt.json
 
-Both workflows also upload a `PD-{flp,grt}-logs-{arch}-{config}` artifact
-(logs, reports, and build_params.json — the latter produced by a `bazel run
-... -- print-VAR` CI step, giving the exact bazel build arguments used, plus
-the PR number for pull_request runs).
+Both workflows also upload a `PD-{flp,grt}-logs-{arch}-{config}` artifact:
+logs, reports, the arguments of each stage (*.args.json, written by bazel-orfs)
+and build_params.json (written by a CI step: what the *.args.json lack, i.e. the
+clock period, and the PR number for pull_request runs).
 
 The script downloads all artifacts for each run using
 `gh run download` (which handles authentication and zip extraction),
@@ -81,10 +81,23 @@ MAX_CANDIDATE_HISTORY = 30
 
 # The tracked flows are defined by PD_FLOWS, after the metric extractors it refers to
 
-# Filename (written by the `Extract build parameters` CI step, via bazel-orfs'
-# `print-VAR` bazel run target) holding the bazel build arguments that most
-# affect PPA metrics. The floorplan workflow also writes the PR number in it
-# (PR_NUMBER key, empty outside pull_request runs), popped into the run record.
+# Build parameters shown on the dashboard, as ordered (key, display label) pairs:
+# the build arguments that most affect PPA metrics. The run records keep these keys.
+BUILD_PARAM_LABELS = [
+    ("CORE_UTILIZATION", "Core Utilization (%)"),
+    ("PLACE_DENSITY", "Place Density"),
+    ("ABC_CLOCK_PERIOD_IN_PS", "Target Clock Period (ps)"),
+    ("SYNTH_HIERARCHICAL", "Hierarchical Synthesis"),
+    ("SYNTH_MINIMUM_KEEP_SIZE", "Min Module Keep Size"),
+]
+
+# Their sources, in the logs artifact of a flow (merged in this order, later files winning):
+# - the arguments that bazel-orfs passes to each stage, one file per stage (1_synth, 2_floorplan...).
+#   Only the arguments set in BUILD.bazel, not the ORFS defaults
+STAGE_ARGS_GLOB = "*.args.json"
+# - the file written by the `Extract build parameters` CI step: what the stage arguments lack
+#   (ABC_CLOCK_PERIOD_IN_PS, from the SDC). The floorplan workflow also writes the PR number in
+#   it (PR_NUMBER key, empty outside pull_request runs), popped into the run record
 BUILD_PARAMS_FILENAME = "build_params.json"
 
 # Arch and config names go into file paths and into the dashboard page. They come
@@ -502,6 +515,28 @@ def download_run_artifacts(repo: str, run_id: int, dest_dir: Path, flow: dict,
     return found
 
 
+def read_build_params(artifact_dir: Path) -> dict:
+    """All the build parameters found in a logs artifact (see STAGE_ARGS_GLOB).
+
+    The stage files are merged in flow order, later stages winning as in bazel-orfs.
+    Raises OSError or ValueError on an unreadable file.
+    """
+    # Stage files sort in flow order: 1_synth, 2_floorplan, ..., 5_1_grt
+    paths = sorted(artifact_dir.rglob(STAGE_ARGS_GLOB), key=lambda path: path.name)
+    paths += sorted(artifact_dir.rglob(BUILD_PARAMS_FILENAME))
+    params = {}
+    for path in paths:
+        try:
+            with open(path) as f:
+                data = json.load(f)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"invalid JSON in {path.name}: {exc}") from exc
+        if not isinstance(data, dict):
+            raise ValueError(f"{path.name} holds a {type(data).__name__}, not an object")
+        params.update(data)
+    return params
+
+
 def download_and_zip_logs(
     repo: str,
     run_id: int,
@@ -516,9 +551,7 @@ def download_and_zip_logs(
 
     Returns (logs_map, build_params_map):
       logs_map:         {(arch, config): site_relative_zip_path}
-      build_params_map: {(arch, config): dict of bazel build params}, read from
-                         build_params.json (written by the `print-VAR` CI step)
-                         when present in the artifact.
+      build_params_map: {(arch, config): read_build_params() of the artifact}
     """
     if not any(n.startswith(logs_prefix) for n in artifact_names):
         return {}, {}
@@ -545,16 +578,12 @@ def download_and_zip_logs(
             continue
 
         # upload-artifact roots multi-path artifacts at the paths' common ancestor
-        # (bazel-bin/), so the file sits under logs/asap7/..., not at the root.
-        params_path = next(artifact_dir.rglob(BUILD_PARAMS_FILENAME), None)
-        if params_path is None:
-            annotate("warning", f"{BUILD_PARAMS_FILENAME} not found in artifact {artifact_dir.name} of run {run_id}")
-        else:
-            try:
-                with open(params_path) as f:
-                    build_params_map[(arch, config)] = json.load(f)
-            except (json.JSONDecodeError, IOError) as exc:
-                annotate("warning", f"Could not read {BUILD_PARAMS_FILENAME} of artifact {artifact_dir.name} of run {run_id}: {exc}")
+        # (bazel-bin/), so the files sit under logs/asap7/..., results/asap7/..., not at the root.
+        try:
+            build_params_map[(arch, config)] = read_build_params(artifact_dir)
+        except (OSError, ValueError) as exc:
+            annotate("warning", f"Could not read the build parameters of artifact {artifact_dir.name} "
+                                f"of run {run_id}: {exc}")
 
         zip_dest = run_raw_dir / f"{arch}_{config}_logs.zip"
         with zipfile.ZipFile(zip_dest, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -675,10 +704,19 @@ def process_ci_run(repo: str, run: dict, nand2_area: float, raw_dir: Path, flow:
             shutil.rmtree(final_raw_dir)
         shutil.move(run_raw_dir, final_raw_dir)
 
-    # Matrix jobs currently share identical bazel arguments; surface the first
-    # available set as a single run-level record for the dashboard.
-    build_params = next(iter(build_params_map.values()), {})
-    pr_number = pop_pr_number(run, build_params)
+    # Matrix jobs currently share identical bazel arguments; surface one set as a
+    # single run-level record for the dashboard, from a passed job when there is one.
+    passed = [key for key in build_params_map if jobs.get(key[1], {}).get("conclusion") == "success"]
+    all_params = dict(build_params_map.get(next(iter(passed or build_params_map), None), {}))
+    pr_number = pop_pr_number(run, all_params)
+    build_params = {key: all_params[key] for key, _ in BUILD_PARAM_LABELS if key in all_params}
+    missing = [key for key, _ in BUILD_PARAM_LABELS if key not in all_params]
+    if passed and missing:
+        # A failed job may stop before writing them; a passed one has them all, unless one is
+        # no longer set in BUILD.bazel (its ORFS default applies) or no longer where it is read
+        annotate("warning", f"Run {run['run_number']} (id={run_id}): build parameters "
+                            f"{', '.join(missing)} not found in the {STAGE_ARGS_GLOB} files nor in "
+                            f"{BUILD_PARAMS_FILENAME}: not shown on the dashboard")
 
     passed_flows = sum(1 for j in flows if j["conclusion"] == "success")
     run_dur     = duration_seconds(

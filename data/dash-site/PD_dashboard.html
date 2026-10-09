@@ -107,7 +107,7 @@
       <a class="nav-link active" href="PD_dashboard.html">⚡ PD Dashboard</a>
     </div>
     <span class="navbar-text text-muted" style="font-size:0.85rem">
-      Generated: 2026-10-09 13:36 CEST
+      Generated: 2026-10-09 16:42 CEST
     </span>
   </div>
 </nav>
@@ -3421,7 +3421,7 @@
         <button class="accordion-button " type="button"
                 data-bs-toggle="collapse" data-bs-target="#candidates-flp">
           OR-flow-floorplan
-          <span class="badge bg-secondary ms-2">17 runs</span>
+          <span class="badge bg-secondary ms-2">18 runs</span>
         </button>
       </h2>
       <div id="candidates-flp" class="accordion-collapse collapse show"
@@ -3429,6 +3429,347 @@
         <div class="accordion-body p-2">
           
           <div class="accordion" id="candidateRunsAccordion-flp">
+            
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed py-2" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#candidate-flp-37925294691"
+                        style="font-size:0.85rem">
+                  <span class="me-2">
+  
+    <span class="badge badge-skip">CANCELLED</span>
+  
+</span>
+                  <strong>PR #10</strong>
+                  &nbsp;&middot;&nbsp;
+                  
+                  
+                  
+                    <span style="font-weight: 600">Merging for testing new dashboard with separate Master &amp; PR sections</span>
+                  
+                  
+                  &nbsp;&middot;&nbsp; Run 41
+                  &nbsp;&middot;&nbsp; <code>71fd4d00</code>
+                  &nbsp;&middot; 3h 0m
+                  <span class="ms-auto text-muted" style="font-size:0.75rem">2026-10-09 13:41 CEST</span>
+                </button>
+              </h2>
+              <div id="candidate-flp-37925294691" class="accordion-collapse collapse"
+                   data-bs-parent="#candidateRunsAccordion-flp">
+                <div class="accordion-body p-2">
+                  <div class="mb-2" style="font-size:0.8rem">
+                    
+                    <div class="text-muted mb-1">Authored by: <strong>ffrancois-inria</strong></div>
+                    
+                    
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/pull/10" target="_blank" rel="noopener">Pull request #10</a>
+                    &middot;
+                    
+                    <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/37925294691" target="_blank" rel="noopener">View run on GitHub</a>
+                    &middot; Branch: <code>ffrancois-inria_ORflow-dashboard</code>
+                    &middot; Flows: 2/3 passed
+                    <div class="mt-1">
+                      Compared to:
+                      
+                        <a href="https://github.com/ffrancois-inria/cva6-fork/actions/runs/37312259499" target="_blank" rel="noopener">master run 31</a>
+                        (<code>e91e3189</code>)
+                      
+                    </div>
+                  </div>
+                  
+
+<div class="mb-2">
+  <div class="text-muted mb-1" style="font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.03em">Build parameters</div>
+  <div class="table-responsive">
+    <table class="table table-sm table-bordered mb-0" style="font-size:0.78rem">
+      <tbody>
+        <tr>
+          <th class="table-light fw-normal">Core Utilization (%)</th><th class="table-light fw-normal">Place Density</th><th class="table-light fw-normal">Target Clock Period (ps)</th><th class="table-light fw-normal">Hierarchical Synthesis</th><th class="table-light fw-normal">Min Module Keep Size</th>
+        </tr>
+        <tr>
+          <td><code style="font-size:0.78rem">55</code></td><td><code style="font-size:0.78rem">0.55</code></td><td><code style="font-size:0.78rem">4000</code></td><td><code style="font-size:0.78rem">1</code></td><td><code style="font-size:0.78rem">10000</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+                  
+                  
+<div class="table-responsive">
+  <table class="table table-sm table-hover flow-table mb-0">
+    <thead class="table-light">
+      <tr>
+        <th>Arch</th>
+        <th>Config</th>
+        <th>fmax (MHz)</th>
+        <th>Stdcell Area (Kgate)</th>
+        <th title="Standard cells + SRAM macros (flip-flop SRAMs, LEF at 70% utilization)">Total Area (µm²)</th>
+        <th>Worst Slack (ps)</th>
+        <th title="Total power estimated by OpenROAD report_power from the cells&#39; .lib power tables. The switching activity is fixed: every net toggles 0.1 times per clock period, clocks at their real rate. The metric thus moves with the design (cells, wire and clock tree capacitance, leakage), not with how often each part of the core really switches (see bazel/power-activity.tcl). The .lib of the dcache SRAM macros (generated by write_timing_model) holds timing only, so these macros count as 0 W: the SRAM power is not included.">Power (mW)<br><small class="fw-normal text-muted">10% activity, excl. dcache SRAMs</small></th>
+        <th>Status</th>
+        <th>Duration</th>
+        <th>Downloads</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      
+      <tr>
+        <td>RV32</td>
+        <td><code>cv32a65x</code></td>
+        
+<td>
+  
+    376.1
+    
+      <span style="color: #198754; font-size:0.78rem; font-weight:600"
+            title="vs master run 31 (e91e3189)">
+        (+2.98)
+      </span>
+    
+  
+</td>
+
+        
+<td>
+  
+    146.94
+    
+      <span style="color: #198754; font-size:0.78rem; font-weight:600"
+            title="vs master run 31 (e91e3189)">
+        (-23.94)
+      </span>
+    
+  
+</td>
+
+        
+<td>
+  
+    34 137
+    
+      <span style="color: #198754; font-size:0.78rem; font-weight:600"
+            title="vs master run 31 (e91e3189)">
+        (-5.78%)
+      </span>
+    
+  
+</td>
+
+        
+<td>
+  
+    1341.15
+    
+      <span style="color: #198754; font-size:0.78rem; font-weight:600"
+            title="vs master run 31 (e91e3189)">
+        (+21.25)
+      </span>
+    
+  
+</td>
+
+        
+<td>
+  
+    6.15
+    
+      <span style="color: #198754; font-size:0.78rem; font-weight:600"
+            title="vs master run 31 (e91e3189)">
+        (-16.75)
+      </span>
+    
+  
+</td>
+
+        <td>
+  
+    <span class="badge badge-pass">PASS</span>
+  
+</td>
+        <td>2h 14m</td>
+        <td>
+          <div class="d-flex gap-1 flex-wrap">
+            
+              <a href="./PD-data/raw/37925294691/RV32_cv32a65x.json"
+                class="btn btn-sm btn-outline-primary"
+                download="run41_flp_RV32-cv32a65x.json"
+                title="Download raw JSON metrics">
+                📥 JSON
+              </a>
+            
+            
+              <a href="./PD-data/raw/37925294691/RV32_cv32a65x_logs.zip"
+                class="btn btn-sm btn-outline-secondary"
+                download="run41_flp_RV32-cv32a65x-logs.zip"
+                title="Download stage logs & reports (.zip)">
+                📋 Logs & Reports
+              </a>
+            
+            
+          </div>
+        </td>
+      </tr>
+      
+      
+      <tr>
+        <td>RV64</td>
+        <td><code>cv64a6_imafdc_sv39_hpdcache_wb</code></td>
+        
+<td>
+  
+    368.41
+    
+      <span style="color: #198754; font-size:0.78rem; font-weight:600"
+            title="vs master run 31 (e91e3189)">
+        (+0.99)
+      </span>
+    
+  
+</td>
+
+        
+<td>
+  
+    467.66
+    
+      <span style="color: #198754; font-size:0.78rem; font-weight:600"
+            title="vs master run 31 (e91e3189)">
+        (-35.64)
+      </span>
+    
+  
+</td>
+
+        
+<td>
+  
+    407 337
+    
+      <span style="color: #198754; font-size:0.78rem; font-weight:600"
+            title="vs master run 31 (e91e3189)">
+        (-0.76%)
+      </span>
+    
+  
+</td>
+
+        
+<td>
+  
+    1285.65
+    
+      <span style="color: #198754; font-size:0.78rem; font-weight:600"
+            title="vs master run 31 (e91e3189)">
+        (+7.31)
+      </span>
+    
+  
+</td>
+
+        
+<td>
+  
+    19.81
+    
+      <span style="color: #198754; font-size:0.78rem; font-weight:600"
+            title="vs master run 31 (e91e3189)">
+        (-15.99)
+      </span>
+    
+  
+</td>
+
+        <td>
+  
+    <span class="badge badge-pass">PASS</span>
+  
+</td>
+        <td>2h 9m</td>
+        <td>
+          <div class="d-flex gap-1 flex-wrap">
+            
+              <a href="./PD-data/raw/37925294691/RV64_cv64a6_imafdc_sv39_hpdcache_wb.json"
+                class="btn btn-sm btn-outline-primary"
+                download="run41_flp_RV64-cv64a6_imafdc_sv39_hpdcache_wb.json"
+                title="Download raw JSON metrics">
+                📥 JSON
+              </a>
+            
+            
+              <a href="./PD-data/raw/37925294691/RV64_cv64a6_imafdc_sv39_hpdcache_wb_logs.zip"
+                class="btn btn-sm btn-outline-secondary"
+                download="run41_flp_RV64-cv64a6_imafdc_sv39_hpdcache_wb-logs.zip"
+                title="Download stage logs & reports (.zip)">
+                📋 Logs & Reports
+              </a>
+            
+            
+          </div>
+        </td>
+      </tr>
+      
+      
+      <tr>
+        <td>RV64</td>
+        <td><code>cv64a6_imafdc_sv39_hpdcache</code></td>
+        
+<td>
+  <span class="text-muted">N/A</span>
+</td>
+
+        
+<td>
+  <span class="text-muted">N/A</span>
+</td>
+
+        
+<td>
+  <span class="text-muted">N/A</span>
+</td>
+
+        
+<td>
+  <span class="text-muted">N/A</span>
+</td>
+
+        
+<td>
+  <span class="text-muted">N/A</span>
+</td>
+
+        <td>
+  
+    <span class="badge badge-skip">CANCELLED</span>
+  
+</td>
+        <td>3h 0m</td>
+        <td>
+          <div class="d-flex gap-1 flex-wrap">
+            
+            
+              <a href="./PD-data/raw/37925294691/RV64_cv64a6_imafdc_sv39_hpdcache_logs.zip"
+                class="btn btn-sm btn-outline-secondary"
+                download="run41_flp_RV64-cv64a6_imafdc_sv39_hpdcache-logs.zip"
+                title="Download stage logs & reports (.zip)">
+                📋 Logs & Reports
+              </a>
+            
+            
+          </div>
+        </td>
+      </tr>
+      
+    </tbody>
+  </table>
+</div>
+
+                  
+                </div>
+              </div>
+            </div>
             
             <div class="accordion-item">
               <h2 class="accordion-header">
@@ -12034,7 +12375,7 @@
       </div>
       <div class="col-md-6 text-md-end">
         <small class="text-light opacity-75">
-          Generated: 2026-10-09 13:36 CEST
+          Generated: 2026-10-09 16:42 CEST
           &middot; <a href="https://github.com/ffrancois-inria/cva6-fork" class="text-light" target="_blank" rel="noopener">Source</a>
         </small>
       </div>

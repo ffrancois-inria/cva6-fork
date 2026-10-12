@@ -83,15 +83,17 @@ jobs:
 
       - name: Save Bazel disk cache
         uses: actions/cache/save@v6
-        # if always() preserves partial cache even when the build fails
-        if: always()
+        # Only master saves: other branches restore the master caches, and the 10 GB
+        # cache quota of the repository is shared with the rest of the CI.
+        # always() preserves partial cache even when the build fails
+        if: always() && github.ref == 'refs/heads/master'
         with:
           path: ~/.cache/bazel-disk-cache
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
       - name: Save Bazel repository cache
         uses: actions/cache/save@v6
-        if: always()
+        if: always() && github.ref == 'refs/heads/master'
         with:
           path: ~/.cache/bazel-repo-cache
           key: ${{ steps.repo-cache-restore.outputs.cache-primary-key }}

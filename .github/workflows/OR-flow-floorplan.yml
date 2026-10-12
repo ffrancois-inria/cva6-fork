@@ -1,12 +1,8 @@
 name: OR-flow-floorplan
 
 on:
-  # Other branches go through pull_request (or workflow_dispatch): with push on every
-  # branch, a PR opened from a branch of this repository ran the flow twice per push
   push:
     branches:
-      # The default branch, whose runs are the PD dashboard's reference runs. Written out:
-      # a trigger filter cannot use github.event.repository.default_branch
       - master
     # Whatever changes the metrics, not only the RTL: otherwise a shift caused by e.g.
     # an ORFS bump is attributed to the next RTL commit
@@ -21,7 +17,24 @@ on:
       - 'bazel/**'
       - '.github/workflows/OR-flow-floorplan.yml'
   pull_request:
+    # Same list as push
+    paths:
+      - 'core/**'
+      - 'vendor/**'
+      - 'common/**'
+      - 'BUILD.bazel'
+      - 'MODULE.bazel'
+      - '.bazelrc'
+      - '.bazelversion'
+      - 'bazel/**'
+      - '.github/workflows/OR-flow-floorplan.yml'
   workflow_dispatch:
+
+# A new push to a PR cancels the PR run in progress. Other runs each get their own group,
+# so they are never cancelled nor queued: every master run is a PD dashboard reference point
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   design-flow:
@@ -108,15 +121,17 @@ jobs:
 
       - name: Save Bazel disk cache
         uses: actions/cache/save@v6
-        # if always() preserves partial cache even when the build fails
-        if: always()  
+        # Only master saves: PRs and other branches restore the master caches, and the 10 GB
+        # cache quota of the repository is shared with the rest of the CI.
+        # always() preserves partial cache even when the build fails
+        if: always() && github.ref == 'refs/heads/master'
         with:
           path: ~/.cache/bazel-disk-cache
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
       - name: Save Bazel repository cache
         uses: actions/cache/save@v6
-        if: always()
+        if: always() && github.ref == 'refs/heads/master'
         with:
           path: ~/.cache/bazel-repo-cache
           key: ${{ steps.repo-cache-restore.outputs.cache-primary-key }}

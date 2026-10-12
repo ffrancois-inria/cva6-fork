@@ -42,7 +42,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -55,7 +55,7 @@ jobs:
 
       - name: Restore Bazel disk cache
         id: cache-restore
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ~/.cache/bazel-disk-cache
           key: bazel-orfs-${{ runner.os }}-${{ matrix.config }}-${{ hashFiles('MODULE.bazel', 'BUILD.bazel', 'bazel/**') }}
@@ -68,7 +68,7 @@ jobs:
       # shared across all matrix configs; keyed on MODULE.bazel (defines all external deps)
       - name: Restore Bazel repository cache
         id: repo-cache-restore
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ~/.cache/bazel-repo-cache
           key: bazel-orfs-${{ runner.os }}-repo-${{ hashFiles('MODULE.bazel') }}
@@ -107,7 +107,7 @@ jobs:
           echo "$json" | tee bazel-bin/logs/asap7/cva6/base/build_params.json
 
       - name: Save Bazel disk cache
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         # if always() preserves partial cache even when the build fails
         if: always()  
         with:
@@ -115,7 +115,7 @@ jobs:
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
       - name: Save Bazel repository cache
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         if: always()
         with:
           path: ~/.cache/bazel-repo-cache

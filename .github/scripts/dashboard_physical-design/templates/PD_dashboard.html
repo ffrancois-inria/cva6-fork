@@ -124,13 +124,15 @@
 {# Hover text explaining what the total area covers #}
 {% set total_area_note = "Standard cells + SRAM macros (flip-flop SRAMs, LEF at 70% utilization)" %}
 
-{% macro status_badge(conclusion) %}
+{# reason (optional): why it failed, shown on hover #}
+{% macro status_badge(conclusion, reason=none) %}
   {% if conclusion == 'success' %}
     <span class="badge badge-pass">PASS</span>
-  {% elif conclusion == 'failure' %}
-    <span class="badge badge-fail">FAIL</span>
   {% else %}
-    <span class="badge badge-skip">{{ conclusion|upper }}</span>
+    <span class="badge {{ 'badge-fail' if conclusion == 'failure' else 'badge-skip' }}"
+          {% if reason %}title="{{ reason }}" style="cursor:help"{% endif %}>
+      {{ 'FAIL' if conclusion == 'failure' else conclusion|upper }}{% if reason %} &#9432;{% endif %}
+    </span>
   {% endif %}
 {% endmacro %}
 
@@ -152,7 +154,7 @@
 {% endmacro %}
 
 {# Flows of a run: metrics, with their delta when `deltas` (flow key -> flow_deltas entry) has one,
-   status, duration and downloads #}
+   status, duration and downloads. no_deltas: the entry of a flow without deltas #}
 {% macro flows_table(run, wf_key, deltas) %}
 <div class="table-responsive">
   <table class="table table-sm table-hover flow-table mb-0">
@@ -172,7 +174,7 @@
     </thead>
     <tbody>
       {% for flow in run.flows %}
-      {% set d = deltas.get(flow.arch ~ '_' ~ flow.config) or {} %}
+      {% set d = deltas.get(flow.arch ~ '_' ~ flow.config) or no_deltas %}
       <tr>
         <td>{{ flow.arch|upper }}</td>
         <td><code>{{ flow.config }}</code></td>
@@ -181,7 +183,7 @@
         {{ metric_cell(flow.metrics.total_instance_area_um2, d.total_instance_area_um2, d.baseline, false, '{:,.0f}', '%') }}
         {{ metric_cell(flow.metrics.worst_setup_slack_ps, d.worst_setup_slack_ps, d.baseline, true) }}
         {{ metric_cell(flow.metrics.power_mw, d.power_mw, d.baseline, false) }}
-        <td>{{ status_badge(flow.conclusion) }}</td>
+        <td>{{ status_badge(flow.conclusion, flow.error) }}</td>
         <td>{{ flow.duration_display }}</td>
         <td>
           <div class="d-flex gap-1 flex-wrap">
@@ -317,10 +319,14 @@
                 </thead>
                 <tbody>
                   {% for flow in wf.latest.flows %}
-                  {% set d = wf.latest.flow_deltas.get(flow.arch ~ '_' ~ flow.config) or {} %}
+                  {% set d = wf.latest.flow_deltas.get(flow.arch ~ '_' ~ flow.config) or no_deltas %}
                   <tr>
                     <td>{{ flow.arch|upper }}</td>
-                    <td><code style="font-size:0.78rem">{{ flow.config }}</code></td>
+                    <td>
+                      <code style="font-size:0.78rem">{{ flow.config }}</code>
+                      {# No status column here: a failed flow says why next to its name #}
+                      {% if flow.conclusion != 'success' %}{{ status_badge(flow.conclusion, flow.error) }}{% endif %}
+                    </td>
                     {{ metric_cell(flow.metrics.fmax_mhz, d.fmax_mhz, d.baseline, true) }}
                     {{ metric_cell(flow.metrics.stdcell_kgate, d.stdcell_kgate, d.baseline, false) }}
                     {{ metric_cell(flow.metrics.total_instance_area_um2, d.total_instance_area_um2, d.baseline, false, '{:,.0f}', '%') }}

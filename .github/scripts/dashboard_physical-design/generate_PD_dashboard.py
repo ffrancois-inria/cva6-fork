@@ -28,12 +28,12 @@ WORKFLOWS = [
     {
         "key":           "flp",
         "type":          "Floorplan",
-        "chart_metrics": ["fmax_mhz", "stdcell_kgate", "worst_setup_slack_ps", "power_mw", "timing_met"],
+        "chart_metrics": ["fmax_mhz", "stdcell_kgate", "worst_setup_slack_ps", "power_mw"],
     },
     {
         "key":           "grt",
         "type":          "GRT",
-        "chart_metrics": ["fmax_mhz", "stdcell_kgate", "worst_setup_slack_ps", "power_mw", "timing_met"],
+        "chart_metrics": ["fmax_mhz", "stdcell_kgate", "worst_setup_slack_ps", "power_mw"],
     },
 ]
 if {wf["key"] for wf in WORKFLOWS} != set(PD_FLOWS):
@@ -155,7 +155,7 @@ def flow_key_of(flow: dict) -> str:
 def build_chart_data(all_data: dict, default_branch: str) -> dict:
     """Build Chart.js data for trend charts."""
     chart_data = {}
-    
+
     for wf in WORKFLOWS:
         key          = wf["key"]
         chart_metrics = wf["chart_metrics"]
@@ -166,8 +166,6 @@ def build_chart_data(all_data: dict, default_branch: str) -> dict:
         trend_runs = list(reversed(runs[:TREND_COUNT]))
 
         labels = []
-        pass_rates = []
-        durations = []
 
         # Use defaultdict to avoid pre-initializing all possible flow keys.
         series = defaultdict(lambda: {m: [] for m in chart_metrics})
@@ -180,14 +178,7 @@ def build_chart_data(all_data: dict, default_branch: str) -> dict:
 
         # Process each run (second pass)
         for run in trend_runs:
-            # Accumulate run-level metrics (pass rate, duration)
             labels.append(str(run.get("run_number", "")))
-            total = run.get("total_flows", 0)
-            passed = run.get("passed_flows", 0)
-            rate = round(passed / total * 100, 1) if total > 0 else 0
-            pass_rates.append(rate)
-            dur_min = round(run.get("duration_seconds", 0) / 60, 1)
-            durations.append(dur_min)
 
             # Build O(1) lookup dict for flows in this run
             flow_dict = {}
@@ -209,8 +200,6 @@ def build_chart_data(all_data: dict, default_branch: str) -> dict:
         chart_data[key] = {
             "labels": labels,
             "series": dict(series),
-            "pass_rates": pass_rates,
-            "durations": durations,
         }
 
     return chart_data
@@ -409,13 +398,6 @@ def main():
     workflows = build_workflows_context(all_data, args.default_branch)
     chart_data = build_chart_data(all_data, args.default_branch)
 
-    default_matrix_wf = "flp"
-    if not all_data.get("flp"):
-        for wf in WORKFLOWS:
-            if all_data.get(wf["key"]):
-                default_matrix_wf = wf["key"]
-                break
-
     context = {
         "generated_at": format_datetime(now.isoformat()),
         "year": now.year,
@@ -423,7 +405,6 @@ def main():
         "default_branch": args.default_branch,
         "no_deltas": NO_DELTAS,
         "workflows": workflows,
-        "default_matrix_wf": default_matrix_wf,
         "chart_data": chart_data,
         "trend_count": TREND_COUNT
     }
@@ -446,7 +427,7 @@ def main():
     for wf in workflows:
         print(f"    - {wf['display_name']}: {len(wf['runs'])} {args.default_branch} runs, "
               f"{len(wf['candidate_runs'])} PR/branch runs")
-    
+
     return 0
 
 

@@ -18,7 +18,7 @@ E.g. for OR-flow-floorplan.yml:
 PD_FLOWS defines each tracked flow ("flp", "grt"): its workflow, artifact names,
 metrics file and runs file.
 
-Artifact layout expected from OR-flow-flp.yml:
+Artifact layout expected from OR-flow-floorplan.yml:
 
     Artifact name:  PD-flp-{arch}-{config}
     Contents:       2_1_floorplan.json
@@ -807,7 +807,7 @@ def main() -> None:
     data_dir = Path(args.data_dir)
     data_dir.mkdir(parents=True, exist_ok=True)
 
-    raw_dir = data_dir / "raw" # To store raw PD flow source files 
+    raw_dir = data_dir / "raw" # To store raw PD flow source files
     raw_dir.mkdir(parents=True, exist_ok=True)
 
     json_path = data_dir / flow["runs_file"]

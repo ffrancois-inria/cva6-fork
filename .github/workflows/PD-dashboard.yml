@@ -108,6 +108,14 @@ jobs:
           rm -rf /tmp/dash-site/PD-data
           cp -r /tmp/PD-data /tmp/dash-site/PD-data
 
+      - name: Check the PD dashboard download links
+        # The run records point to raw files of the site: dead links are reported as
+        # warnings, the dashboard is still deployed with all its runs
+        run: |
+          python3 .github/scripts/dashboard_physical-design/check_PD_site.py \
+            --data-dir /tmp/PD-data \
+            --site-dir /tmp/dash-site
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

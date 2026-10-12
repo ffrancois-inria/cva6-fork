@@ -476,7 +476,7 @@
                   </div>
                   {{ build_params_table(run) }}
                   {% if run.flows %}
-                  {{ flows_table(run, wf.key, {}) }}
+                  {{ flows_table(run, wf.key, run.flow_deltas) }}
                   {% else %}
                   <div class="text-muted">No flow data available.</div>
                   {% endif %}

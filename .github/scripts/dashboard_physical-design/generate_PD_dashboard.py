@@ -286,7 +286,7 @@ def metric_deltas(m: dict, prev: dict, baseline) -> dict:
     }
 
 
-# For flows shown without deltas (run history): every key of a metric_deltas() entry, all None
+# For a flow without a flow_deltas() entry: every key of a metric_deltas() entry, all None
 NO_DELTAS = metric_deltas({}, {}, None)
 
 
@@ -333,7 +333,9 @@ def build_workflows_context(all_data: dict, default_branch: str) -> list:
                 "html_url": "#",
             })
 
-        for run in [latest] + candidate_runs:
+        # Reference runs (latest run card, run history) are each compared to the
+        # previous reference run, candidate runs to the latest one before them
+        for run in (ref_runs or [latest]) + candidate_runs:
             run["flow_deltas"] = flow_deltas(run, ref_runs)
             # Distinct reference runs compared to, newest first (usually a single one)
             baselines = {d["baseline"]["id"]: d["baseline"]

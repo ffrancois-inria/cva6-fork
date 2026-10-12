@@ -1,5 +1,99 @@
 [
   {
+    "id": 38277157641,
+    "run_attempt": 1,
+    "run_number": 22,
+    "conclusion": "success",
+    "event": "workflow_dispatch",
+    "pr_number": null,
+    "display_title": "OR-flow-grt",
+    "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/38277157641",
+    "head_branch": "master",
+    "head_sha": "64773359",
+    "commit_subject": "ci/OR-flow: give the GRT flow its own disk cache",
+    "actor": "ffrancois-inria",
+    "created_at": "2026-10-12T16:24:20Z",
+    "duration_seconds": 6742,
+    "total_flows": 3,
+    "passed_flows": 3,
+    "failed_flows": 0,
+    "flows": [
+      {
+        "arch": "RV32",
+        "config": "cv32a65x",
+        "conclusion": "success",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/38277157641/job/114905329519",
+        "duration_seconds": 1205,
+        "raw_json_path": "./PD-data/raw/38277157641/RV32_cv32a65x.json",
+        "logs_zip_path": "./PD-data/raw/38277157641/RV32_cv32a65x_logs.zip",
+        "metrics": {
+          "stdcell_area_um2": 13247.1,
+          "macro_area_um2": 21294.6,
+          "total_instance_area_um2": 34541.7,
+          "core_area_um2": 61234,
+          "die_area_um2": 63340.3,
+          "stdcell_kgate": 151.5686,
+          "fmax_mhz": 316.56,
+          "worst_setup_slack_ps": 841.073,
+          "timing_met": true,
+          "power_mw": 12.961
+        },
+        "error": null
+      },
+      {
+        "arch": "RV64",
+        "config": "cv64a6_imafdc_sv39_hpdcache",
+        "conclusion": "success",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/38277157641/job/114905329442",
+        "duration_seconds": 6738,
+        "raw_json_path": "./PD-data/raw/38277157641/RV64_cv64a6_imafdc_sv39_hpdcache.json",
+        "logs_zip_path": "./PD-data/raw/38277157641/RV64_cv64a6_imafdc_sv39_hpdcache_logs.zip",
+        "metrics": {
+          "stdcell_area_um2": 43274.6,
+          "macro_area_um2": 366463,
+          "total_instance_area_um2": 409738,
+          "core_area_um2": 737890,
+          "die_area_um2": 745140,
+          "stdcell_kgate": 495.1327,
+          "fmax_mhz": 230.94,
+          "worst_setup_slack_ps": -330.136,
+          "timing_met": false,
+          "power_mw": 44.2
+        },
+        "error": null
+      },
+      {
+        "arch": "RV64",
+        "config": "cv64a6_imafdc_sv39_hpdcache_wb",
+        "conclusion": "success",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/38277157641/job/114905329057",
+        "duration_seconds": 6560,
+        "raw_json_path": "./PD-data/raw/38277157641/RV64_cv64a6_imafdc_sv39_hpdcache_wb.json",
+        "logs_zip_path": "./PD-data/raw/38277157641/RV64_cv64a6_imafdc_sv39_hpdcache_wb_logs.zip",
+        "metrics": {
+          "stdcell_area_um2": 43085.5,
+          "macro_area_um2": 366463,
+          "total_instance_area_um2": 409548,
+          "core_area_um2": 737890,
+          "die_area_um2": 745152,
+          "stdcell_kgate": 492.9691,
+          "fmax_mhz": 225.55,
+          "worst_setup_slack_ps": -433.65,
+          "timing_met": false,
+          "power_mw": 42.148
+        },
+        "error": null
+      }
+    ],
+    "build_params": {
+      "CORE_UTILIZATION": "55",
+      "PLACE_DENSITY": "0.55",
+      "ABC_CLOCK_PERIOD_IN_PS": "4000",
+      "SYNTH_HIERARCHICAL": "1",
+      "SYNTH_MINIMUM_KEEP_SIZE": "10000"
+    }
+  },
+  {
     "id": 38243460431,
     "run_attempt": 1,
     "run_number": 21,

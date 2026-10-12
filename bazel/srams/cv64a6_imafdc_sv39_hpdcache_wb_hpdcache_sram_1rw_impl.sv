@@ -24,7 +24,8 @@
  *  History       :
  */
 
- // 256 | 48 
+// cv64a6_imafdc_sv39_hpdcache_wb dcache directory SRAM: 256 rows x 48 bits
+// (must match the rows and width fields of TARGET_CFGS in BUILD.bazel)
 
 // ADDR_SIZE = 8,
 // DATA_SIZE = 48,

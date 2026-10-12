@@ -24,6 +24,9 @@
  *  History       :
  */
 
+// cv32a65x dcache directory SRAM: 64 rows x 28 bits
+// (must match the rows and width fields of TARGET_CFGS in BUILD.bazel)
+
 // ADDR_SIZE = 6,
 // DATA_SIZE = 28,
 // DEPTH = 2**ADDR_SIZE,

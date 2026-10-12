@@ -1,5 +1,8 @@
 load("@bazel-orfs//:openroad.bzl", "orfs_flow")
 
+# CVA6 configurations and the dcache SRAM macros of each one. The name, rows and width
+# fields are not read by the flow: they document the dimensions hardcoded in the
+# bazel/srams/{TARGET_CFG}_{sram}_impl.sv files (see bazel/bazel-orfs_CVA6_doc.md)
 TARGET_CFGS = {
     "cv32a65x": {
         "hpdcache_sram_1rw": {
@@ -132,8 +135,9 @@ CVA6_SOURCES = {
     "PRE_GLOBAL_ROUTE_TCL": [":bazel/power-activity.tcl"],
 }
 
-# CVA6 RTL, excerpt from Flist.cva6_synth. "{TARGET_CFG}" is replaced by the configuration
-# name, and each target appends the SRAM wrappers of its configuration (bazel/srams/).
+# CVA6 RTL, excerpt from core/Flist.cva6: keep in sync with it. "{TARGET_CFG}" is replaced by
+# the configuration name, and each target appends the SRAM wrappers of its configuration
+# (bazel/srams/), which replace the HPDcache behavioral SRAM models.
 CVA6_VERILOG_FILES = glob([
     "core/**/*.svh",
     "vendor/**/*.svh",
@@ -358,7 +362,6 @@ CVA6_VERILOG_FILES = glob([
     # CTS abstract avoids gross clock-skew pessimism when timing is propagated to the top level
     abstract_stage = "cts",
     arguments = SRAM_ARGS,
-    # mock_area = 0.2  # Reduce size of the .lef area compared to SRAM implemented as flip-flops
     sources = SRAM_SOURCES,
     top = name + "_impl",
     verilog_files = ["bazel/srams/{TARGET_CFG}_{name}_impl.sv".format(

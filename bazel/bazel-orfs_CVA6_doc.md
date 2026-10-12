@@ -8,26 +8,26 @@ Run CVA6 design flow with bazel-orfs:
 That's it. Bazel builds OpenROAD, OpenSTA, Yosys, ABC, GNU Make, and Qt from source, and manages all other dependencies (Python, toolchains) hermetically.
 
 > On macOS: brew install bazelisk.
-> 
+>
 > On Windows: winget install Bazel.Bazelisk, choco install bazelisk, or scoop install bazelisk.
-> 
+>
 > On Linux: download Bazelisk binary add it to your PATH manually
-> 
-> E.g. : 
+>
+> E.g. :
 > ``` bash
 > > curl -L -o bazelisk https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64
-> 
+>
 > > chmod +x bazelisk
 > > sudo mv bazelisk /usr/local/bin/bazel
->      
+>
 > # make sure you get the binary available in $PATH
 > > which bazel
 > bazel is /usr/local/bin/bazel
 > ```
 
-⚠️ **However, Bazel still relies on the host system compiler and standard Linux toolchain.** As a result, a reasonably recent Linux distribution is required. The flow has been tested on **Ubuntu 22.04**.
+⚠️ **However, Bazel still relies on the host system compiler and standard Linux toolchain.** As a result, a reasonably recent Linux distribution is required. The CI runs the flow on **Ubuntu 24.04**.
 
-Older distributions (e.g. Debian 11 Bullseye) may ship compiler or system libraries that are too old to build all Bazel dependencies successfully. In this case, the recommended solution is to run the flow inside a Docker or Apptainer container based on Ubuntu 22.04.
+Older distributions (e.g. Debian 11 Bullseye) may ship compiler or system libraries that are too old to build all Bazel dependencies successfully. In this case, the recommended solution is to run the flow inside a Docker or Apptainer container based on Ubuntu 24.04.
 
 Example Docker and Apptainer build files are provided under:
 
@@ -42,7 +42,7 @@ Simply build the container, mount your CVA6 repository inside it, and run the Ba
 
 ```git clone git@github.com:openhwfoundation/cva6.git```
 
-3) In your terminal, at the root of the cva6 fork:
+3) In your terminal, at the root of the repository:
 
 ``` bash
 > bazel --version
@@ -79,11 +79,10 @@ Only two Bazel files are important for the CVA6 synthesis flow.
 For this repository, it specifies the versions of:
 
 * `bazel-orfs`,
-* OpenROAD and its dependencies,
-* Python packages,
-* and other external repositories.
+* ORFS (OpenROAD-flow-scripts), OpenROAD and Yosys, built from source,
+* and other external repositories, with the overrides some of them need to build.
 
-In normal usage, this file should rarely need to be modified. It is only updated when changing dependency versions or adding new external packages.
+In normal usage, this file should rarely need to be modified. It is only updated when changing dependency versions (see [Updating ORFS, OpenROAD and bazel-orfs](#updating-orfs-openroad-and-bazel-orfs)) or adding new external packages.
 
 #### `BUILD.bazel`
 
@@ -142,22 +141,24 @@ The available stages are:
 * `route`
 * `final`
 
-By default, the targets defined in this repository run the complete flow (`final`). The stage can be changed by setting the corresponding `stage` attribute in the target definition.
+Each `orfs_flow` creates one target per stage, named `<name>_<stage>`. Building one of them runs every stage up to it, reusing the cached results of the stages that did not change.
 
 For example:
 
 ```bash
 # Run synthesis only
-bazel run //:cv32a65x_synth
+bazel build //:cv32a65x_synth
 
 # Run up to cts
-bazel run //:cv32a65x_cts
+bazel build //:cv32a65x_cts
 
 # Run the complete implementation flow of another config
-bazel run //:cv64a6_imafdc_sv39_hpdcache_final
+bazel build //:cv64a6_imafdc_sv39_hpdcache_final
 ```
 
-Currently, the repository provides flow targets for `cv32a65x`, `cv64a6_imafdc_sv39_hpdcache`, and `cv64a6_imafdc_sv39_hpdcache_wb`, each available for the supported OpenROAD stages. 
+`bazel run` on the same targets builds them too, then also copies the stage into `tmp/<target>/`, with a `make` wrapper to rerun it or open it (see [GUI](#gui)).
+
+Currently, the repository provides flow targets for `cv32a65x`, `cv64a6_imafdc_sv39_hpdcache`, and `cv64a6_imafdc_sv39_hpdcache_wb`, each available for the supported OpenROAD stages.
 Additional targets can easily be added by following the existing examples in `BUILD.bazel`.
 
 ### GUI
@@ -201,6 +202,13 @@ contains one log file and one JSON metrics file per stage. The JSON files gather
 * cell counts,
 * and many other QoR metrics.
 
+⚠️ **Build a single top-level target per `bazel build` command.** The output paths depend on the top-level module and the variant, not on the target: every CVA6 target (all configurations, full and fast variants) writes to `bazel-bin/{logs,reports,results}/asap7/cva6/base/`, and every SRAM macro target to `bazel-bin/*/asap7/hpdcache_sram_*_impl/base/`. As a consequence:
+
+* `bazel-bin` only holds the results of the last target built,
+* building two top-level targets in the same command (e.g. `bazel build //:cv32a65x_floorplan //:cv32a65x_fast_floorplan`) fails with `file ... is generated by these conflicting actions`.
+
+The CI builds one configuration per job, so it is not affected.
+
 ## Understanding and editing the `BUILD.bazel` file
 
 The synthesis flow is defined in the repository root `BUILD.bazel` file. It is organized in two parts:
@@ -239,7 +247,7 @@ Most modifications only require editing the shared settings or adding a new entr
 |---|---|---|
 | `CVA6_ARGS` | OpenROAD flow parameters (`arguments`) | top-level targets |
 | `CVA6_SOURCES` | SDC constraints, PDN script, Yosys canonicalize hook and power activity hook (`sources`) | top-level targets |
-| `CVA6_VERILOG_FILES` | CVA6 RTL file list, excerpt from `Flist.cva6_synth` (`verilog_files`) | top-level targets |
+| `CVA6_VERILOG_FILES` | CVA6 RTL file list, excerpt from `core/Flist.cva6` (`verilog_files`) | top-level targets |
 | `SRAM_ARGS` | OpenROAD flow parameters (`arguments`) | macro targets |
 | `SRAM_SOURCES` | SDC constraints, pin placement and PDN scripts (`sources`) | macro targets |
 
@@ -265,6 +273,19 @@ These flows are independent from the top-level design and are used only to gener
 The `abstract_stage` parameter specifies how far the macro implementation is run before generating its abstract view. It is set to `cts` for the full variant, which provides sufficiently realistic macro timing, and to `place` for the fast variant, which is much quicker and enough when the top level stops at floorplan.
 
 The macro flows use a dedicated PDN, `bazel/pdn-sram.tcl`, restricted to metal layers M1-M4 like the ASAP7 fakeram macros. The abstract LEF obstructs every layer holding a shape, so this leaves M5-M7 free for the top level to route over the macros. The top-level PDN, `bazel/pdn.tcl`, connects to their M4 power pins.
+
+In the top-level RTL, the `hpdcache_sram_1rw` and `hpdcache_sram_wbyteenable_1rw` modules come from `bazel/srams/` instead of the HPDcache behavioral models: they only instantiate the macro (`*_impl` module), and ignore their parameters. The macro dimensions are those hardcoded in the `bazel/srams/{TARGET_CFG}_*_impl.sv` files.
+
+### Known limitation: the icache is not synthesized
+
+Only the dcache (HPDcache) SRAMs are replaced by macros. The icache SRAMs (tag and data) are **removed from the synthesized netlist**, in every configuration:
+
+* the icache instantiates its SRAMs through `common/local/util/tc_sram_wrapper.sv` (cv64a6 configurations) or `tc_sram_wrapper_cache_techno.sv` (cv32a65x, `TechnoCut = 1`), which both wrap their `tc_sram` instance in `// synthesis translate_off`,
+* yosys-slang honors it without any warning: the SRAM read data is left undriven, and synthesis removes the logic that depends on it (e.g. the tag comparison).
+
+As a result, the area, timing, power and congestion reported by this flow, and shown on the PD dashboard, leave out the icache SRAMs (2 KiB of data for cv32a65x, 16 KiB for the cv64a6 configurations, plus the tags) and part of the icache logic. The metrics remain meaningful to track regressions from commit to commit, but they are not the PPA of the complete core.
+
+See [Improvement tracks](#improvement-tracks) for the fix.
 
 ### The flow parameters
 
@@ -303,7 +324,7 @@ This package is then picked automatically through the `{TARGET_CFG}` placeholder
 
 The SRAM names must also match the corresponding SRAM Verilog module names.
 
-At the time of writing, the `name`, `rows` and `width` fields are **informative only**. They are intended for future automatic SRAM generation but are not currently used by the flow.
+The `name`, `rows` and `width` fields are **not read by the flow**: they document each macro, with the hierarchical path of an instance and the dimensions hardcoded in its `_impl.sv` file.
 
 For a new configuration to work, the corresponding SRAM implementation files must be added manually under:
 
@@ -311,6 +332,66 @@ For a new configuration to work, the corresponding SRAM implementation files mus
 bazel/srams/
 ```
 
-These `_impl.sv` files must contain the hardcoded SRAM dimensions for the new configuration. The easiest approach is to copy one of the existing implementations and modify it accordingly.
+These `{TARGET_CFG}_{sram}_impl.sv` files must contain the hardcoded SRAM dimensions for the new configuration. The easiest approach is to copy one of the existing implementations and modify it accordingly.
 
-A future version will automatically generate these files from the `rows` and `width` fields defined in `TARGET_CFGS`, but this functionality has not yet been implemented.
+## Keeping the flow in sync with the CVA6 RTL
+
+Some parts of the flow duplicate information from the RTL. Nothing checks that they stay consistent, so RTL changes may require updating them:
+
+* **RTL file list**: `CVA6_VERILOG_FILES` in `BUILD.bazel` is a copy of part of `core/Flist.cva6`. A file added, renamed or removed in `core/Flist.cva6` must be reported there too, otherwise `OR-flow-floorplan` fails on the pull request (unknown module at elaboration).
+* **dcache SRAM dimensions**: changing the dcache geometry of a configuration (size, associativity, line width in its `*_config_pkg.sv`, or the HPDcache parameters) changes the dimensions of its SRAMs. The `bazel/srams/{TARGET_CFG}_*_impl.sv` files, and the `rows`/`width` fields of `TARGET_CFGS`, must then be updated by hand: the wrappers ignore their parameters, so the flow would otherwise keep the old macros.
+* **Top-level ports**: `bazel/canonicalize.tcl` fails the flow if the `rvfi_probes_o` port is renamed, and the SDC files fail it if the clock port (`clk_i`) is.
+
+## Updating ORFS, OpenROAD and bazel-orfs
+
+bazel-orfs provides a command that updates the bazel-orfs, ORFS and OpenROAD commits pinned in `MODULE.bazel` (including the OpenROAD submodule archives of its `patch_cmds`), then runs `bazel mod tidy`:
+
+```bash
+bazel run @bazel-orfs//:bump
+```
+
+After an update:
+
+* check that the flow still builds: the ORFS patch (`bazel/patches/fix_orfs_dev_deps.patch`) and the `single_version_override` workarounds of `MODULE.bazel` may need updating, or may no longer be needed (their comments say when they can be dropped),
+* every metric of the PD dashboard may shift: push the update in a pull request of its own, so that the step in the trends is attributed to it (`OR-flow-floorplan` runs on `MODULE.bazel` changes).
+
+## CI and PD dashboard
+
+### Workflows
+
+| Workflow | Trigger | What it does |
+|---|---|---|
+| `OR-flow-floorplan.yml` | Push to `master` and pull requests changing `core/`, `vendor/`, `common/` or the Bazel setup; manual | Builds `//:{TARGET_CFG}_fast_floorplan` for the 3 configurations |
+| `OR-flow-grt.yml` | Weekly (Sunday, 02:00 UTC); manual | Builds `//:{TARGET_CFG}_grt` for the 3 configurations. Fails on any global routing error (congestion), since bazel-orfs lets a congested GRT pass |
+| `PD-dashboard.yml` | After each run of the two workflows above; manual | Collects their metrics, generates the PD dashboard, deploys the GitHub Pages site and persists the dashboard data |
+
+Each OR-flow job uploads two artifacts: `PD-{flp,grt}-{arch}-{config}` with the metrics JSON of the last stage, and `PD-{flp,grt}-logs-{arch}-{config}` with the logs, reports and build parameters. The Bazel disk and repository caches are saved by `master` runs only; pull requests and other branches restore them.
+
+### PD dashboard
+
+The scripts are in `.github/scripts/dashboard_physical-design/`:
+
+* `extract_PD_metrics.py` fetches the latest runs of a flow through the GitHub API, downloads their artifacts and extracts the metrics. `PD_FLOWS` defines the tracked flows, and `extract_flp_metrics()`/`extract_grt_metrics()` the metrics read from the ORFS JSON files,
+* `generate_PD_dashboard.py` renders `templates/PD_dashboard.html`,
+* `check_PD_site.py` warns about dead download links.
+
+The `master` runs are the reference runs, shown in the trends and the run history. Pull request runs and runs of other branches are each compared to the latest `master` run started before them where the same flow passed.
+
+### Data branch and GitHub Pages
+
+The dashboard history is persisted on the `gh-pages-cva6-dashboard-data` branch, shared with the tier dashboard (`openhw-cva6-tier-dashboard.yml`):
+
+* `data/PD/`: the PD runs (`runs_PD_flp.json`, `runs_PD_grt.json`) and their raw files (`raw/<run id>/`: metrics JSON and zipped logs of each configuration),
+* `data/tier/`: the tier dashboard runs,
+* `data/dash-site/`: the last generated site. Each dashboard workflow deploys the whole site, so it needs the last page of the other dashboard.
+
+Each workflow only writes its own paths, and retries its push if the other workflow pushed in between.
+
+The site is deployed with `actions/deploy-pages`: in the repository settings, *Pages* > *Source* must be set to *GitHub Actions*. It holds a landing page (`index.html`), `PD_dashboard.html` and `tier_dashboard.html`.
+
+To rebuild the PD history from scratch (e.g. corrupted data), delete `data/PD/` on the data branch: the next update imports again the last 20 runs of each flow. Runs whose artifacts have expired (after 90 days by default) are then shown as failed, with no metrics.
+
+## Improvement tracks
+
+* **Synthesize the icache** (see [Known limitation: the icache is not synthesized](#known-limitation-the-icache-is-not-synthesized)): replace the icache SRAMs by macros, built like the dcache ones, instead of the `tc_sram` wrappers. Synthesizing them as flip-flops would be much larger. For reference, the `pd/synth` flow keeps them as black boxes (`set_dont_touch` in `pd/synth/cva6_synth.tcl`).
+* **Generate the SRAM implementation files**: a script could generate the `bazel/srams/{TARGET_CFG}_*_impl.sv` files from the `rows` and `width` fields of `TARGET_CFGS`, instead of maintaining hand-written copies. It would make adding a configuration, or changing a dcache geometry, a `BUILD.bazel` change only.

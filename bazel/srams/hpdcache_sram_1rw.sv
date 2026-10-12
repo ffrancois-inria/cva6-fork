@@ -20,9 +20,14 @@
 /*
  *  Authors       : Cesar Fuguet
  *  Creation Date : March, 2020
- *  Description   : SRAM behavioral model
+ *  Description   : PD flow (bazel/) replacement of the HPDcache SRAM model:
+ *                  instantiates the SRAM macro of the configuration
+ *                  (hpdcache_sram_1rw_impl, built by its own orfs_flow target).
+ *                  The parameters are ignored: the dimensions are those of
+ *                  bazel/srams/{TARGET_CFG}_hpdcache_sram_1rw_impl.sv
  *  History       :
  */
+
 module hpdcache_sram_1rw
 #(
     parameter int unsigned ADDR_SIZE = 0,

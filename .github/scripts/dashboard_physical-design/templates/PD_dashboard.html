@@ -11,7 +11,6 @@
       --pass-color: #198754;
       --fail-color: #dc3545;
       --skip-color: #6c757d;
-      --na-color: #e9ecef;
     }
     body { background: #f5f6fa; }
 
@@ -28,33 +27,6 @@
     .badge-pass { background-color: var(--pass-color); }
     .badge-fail { background-color: var(--fail-color); }
     .badge-skip { background-color: var(--skip-color); }
-
-    /* Test Matrix */
-    .matrix-table th.suite-header {
-      font-size: 0.72rem; writing-mode: vertical-lr; text-align: left;
-      padding: 8px 4px; white-space: nowrap;
-    }
-    .matrix-table td.matrix-td {
-      text-align: center; vertical-align: middle;
-      min-width: 42px; height: 42px; padding: 2px;
-    }
-    .matrix-icon {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 32px; height: 32px; border-radius: 6px;
-      font-size: 0.85rem; font-weight: 600;
-      text-decoration: none; color: inherit;
-    }
-    .matrix-icon.pass { background: #d1e7dd; color: #0a3622; }
-    .matrix-icon.fail { background: #f8d7da; color: #58151c; }
-    .matrix-icon.na   { background: var(--na-color); color: #adb5bd; }
-    .matrix-icon:hover { opacity: 0.8; }
-    a.matrix-icon:hover { text-decoration: none; }
-
-    /* Workflow selector */
-    .wf-selector .btn { font-size: 0.82rem; padding: 0.3rem 0.9rem; }
-    .wf-selector .btn-check:checked + .btn-outline-primary {
-      background-color: #0d6efd; color: #fff;
-    }
 
     /* Navbar page switcher */
     .navbar-pages-group {
@@ -82,11 +54,6 @@
     /* Run history */
     .flow-table { font-size: 0.85rem; }
     .flow-table td, .flow-table th { padding: 0.35rem 0.5rem; }
-
-    @media (max-width: 768px) {
-      .matrix-table th.suite-header { font-size: 0.6rem; }
-      .matrix-icon { width: 26px; height: 26px; font-size: 0.75rem; }
-    }
   </style>
 </head>
 <body>
@@ -248,7 +215,7 @@
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
               <h6 class="card-title mb-0">{{ wf.display_name }}</h6>
-              <small class="text-muted">{{ 'Push-triggered · Floorplan' if wf.key == 'flp' else 'Weekly · Full route (GRT)' }}</small>
+              <small class="text-muted">{{ 'Push-triggered · Floorplan' if wf.key == 'flp' else 'Weekly · Global route (GRT)' }}</small>
             </div>
             {{ status_badge(wf.latest.conclusion) }}
           </div>
@@ -476,7 +443,7 @@
                   </div>
                   {{ build_params_table(run) }}
                   {% if run.flows %}
-                  {{ flows_table(run, wf.key, {}) }}
+                  {{ flows_table(run, wf.key, run.flow_deltas) }}
                   {% else %}
                   <div class="text-muted">No flow data available.</div>
                   {% endif %}

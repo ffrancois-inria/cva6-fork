@@ -20,11 +20,13 @@
 /*
  *  Authors       : Cesar Fuguet
  *  Creation Date : March, 2020
- *  Description   : Behavioral model of a 1RW SRAM with write byte enable
+ *  Description   : PD flow (bazel/) replacement of the HPDcache SRAM model:
+ *                  instantiates the SRAM macro of the configuration
+ *                  (hpdcache_sram_wbyteenable_1rw_impl, built by its own orfs_flow target).
+ *                  The parameters are ignored: the dimensions are those of
+ *                  bazel/srams/{TARGET_CFG}_hpdcache_sram_wbyteenable_1rw_impl.sv
  *  History       :
  */
-
-// 128 |    64 
 
 module hpdcache_sram_wbyteenable_1rw
 #(

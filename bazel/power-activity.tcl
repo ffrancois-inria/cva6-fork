@@ -10,10 +10,8 @@
 # without annotated activities, OpenSTA seeds the inputs with this same 0.1 and
 # propagates it through the logic and across the flops, iterating until it
 # converges, for 50 passes at most. On CVA6 it never converges, and on some
-# netlists it diverges (pass-to-pass change up to 1e37). The power then depends
-# on where the iterations stop: removing the RVFI port on cv32a65x moved it
-# from 22.9 to 9.1 mW at floorplan (-60%), while the same two netlists differ
-# by -12% at a fixed activity (7.0 to 6.2 mW), in line with their area.
+# netlists it diverges. The power then depends on where the iterations stop,
+# and jumps between netlists far more than their difference in area and cells.
 #
 # What the metric tracks with a fixed activity:
 # a deterministic "switched capacitance" power that only moves with the design:

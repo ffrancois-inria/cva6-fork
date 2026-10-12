@@ -40,9 +40,14 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: ~/.cache/bazel-disk-cache
-          key: bazel-orfs-${{ runner.os }}-${{ matrix.config }}-${{ hashFiles('MODULE.bazel', 'BUILD.bazel', 'bazel/**') }}
-          # each level widens the match: same config → any config
+          # Own "grt-" prefix: OR-flow-floorplan saves the same config and flow files first,
+          # and a saved cache key cannot be overwritten, so a shared key would never hold the GRT results
+          key: bazel-orfs-${{ runner.os }}-grt-${{ matrix.config }}-${{ hashFiles('MODULE.bazel', 'BUILD.bazel', 'bazel/**') }}
+          # each level widens the match: floorplan cache of the same flow files (tools up to date)
+          # → GRT same config → floorplan same config → any config
           restore-keys: |
+            bazel-orfs-${{ runner.os }}-${{ matrix.config }}-${{ hashFiles('MODULE.bazel', 'BUILD.bazel', 'bazel/**') }}
+            bazel-orfs-${{ runner.os }}-grt-${{ matrix.config }}-
             bazel-orfs-${{ runner.os }}-${{ matrix.config }}-
             bazel-orfs-${{ runner.os }}-
 

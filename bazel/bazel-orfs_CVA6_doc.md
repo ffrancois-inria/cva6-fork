@@ -365,7 +365,7 @@ After an update:
 | `OR-flow-grt.yml` | Weekly (Sunday, 02:00 UTC); manual | Builds `//:{TARGET_CFG}_grt` for the 3 configurations. Fails on any global routing error (congestion), since bazel-orfs lets a congested GRT pass |
 | `PD-dashboard.yml` | After each run of the two workflows above; manual | Collects their metrics, generates the PD dashboard, deploys the GitHub Pages site and persists the dashboard data |
 
-Each OR-flow job uploads two artifacts: `PD-{flp,grt}-{arch}-{config}` with the metrics JSON of the last stage, and `PD-{flp,grt}-logs-{arch}-{config}` with the logs, reports and build parameters. The Bazel disk and repository caches are saved by `master` runs only; pull requests and other branches restore them.
+Each OR-flow job uploads two artifacts: `PD-{flp,grt}-{arch}-{config}` with the metrics JSON of the last stage, and `PD-{flp,grt}-logs-{arch}-{config}` with the logs, reports and build parameters. The Bazel disk and repository caches are saved by `master` runs only; pull requests and other branches restore them. Each workflow has its own disk cache per configuration: a GRT run without one starts from the floorplan cache, which already holds the tools built from source.
 
 ### PD dashboard
 

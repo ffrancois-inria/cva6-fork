@@ -113,7 +113,7 @@ jobs:
             echo "::warning::Clock period of bazel/constraints.sdc not found or not a number: '$value'"
           fi
           json=$(jq -n --arg v "$value" '{ABC_CLOCK_PERIOD_IN_PS: $v}')
-          
+
           # Not a build parameter: lets the PD dashboard name the PR, which the GitHub API
           # leaves out for fork PRs. Empty outside pull_request events
           json=$(echo "$json" | jq --arg v "$PR_NUMBER" '.PR_NUMBER = $v')

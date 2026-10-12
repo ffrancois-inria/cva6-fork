@@ -59,11 +59,7 @@ Bender.lock
 /verif/sim/verilator.fst.hier
 
 # bazel-orfs ignores
-bazel-bin
-bazel-cva6
-bazel-cva6-fork
-bazel-out
-bazel-testlogs
+/bazel-*
 MODULE.bazel.lock
 user.bazelrc
 tmp/

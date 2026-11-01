@@ -1,5 +1,62 @@
 [
   {
+    "id": 41290155902,
+    "run_attempt": 1,
+    "run_number": 25,
+    "conclusion": "failure",
+    "event": "schedule",
+    "pr_number": null,
+    "display_title": "OR-flow-grt",
+    "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/41290155902",
+    "head_branch": "master",
+    "head_sha": "64773359",
+    "commit_subject": "ci/OR-flow: give the GRT flow its own disk cache",
+    "actor": "ffrancois-inria",
+    "created_at": "2026-11-01T09:45:06Z",
+    "duration_seconds": 174,
+    "total_flows": 3,
+    "passed_flows": 0,
+    "failed_flows": 3,
+    "flows": [
+      {
+        "arch": "RV32",
+        "config": "cv32a65x",
+        "conclusion": "failure",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/41290155902/job/124799548649",
+        "duration_seconds": 144,
+        "raw_json_path": null,
+        "logs_zip_path": "./PD-data/raw/41290155902/RV32_cv32a65x_logs.zip",
+        "metrics": {},
+        "error": "no metrics artifact (job failed before upload)"
+      },
+      {
+        "arch": "RV64",
+        "config": "cv64a6_imafdc_sv39_hpdcache",
+        "conclusion": "failure",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/41290155902/job/124799548544",
+        "duration_seconds": 170,
+        "raw_json_path": null,
+        "logs_zip_path": "./PD-data/raw/41290155902/RV64_cv64a6_imafdc_sv39_hpdcache_logs.zip",
+        "metrics": {},
+        "error": "no metrics artifact (job failed before upload)"
+      },
+      {
+        "arch": "RV64",
+        "config": "cv64a6_imafdc_sv39_hpdcache_wb",
+        "conclusion": "failure",
+        "html_url": "https://github.com/ffrancois-inria/cva6-fork/actions/runs/41290155902/job/124799548473",
+        "duration_seconds": 164,
+        "raw_json_path": null,
+        "logs_zip_path": "./PD-data/raw/41290155902/RV64_cv64a6_imafdc_sv39_hpdcache_wb_logs.zip",
+        "metrics": {},
+        "error": "no metrics artifact (job failed before upload)"
+      }
+    ],
+    "build_params": {
+      "ABC_CLOCK_PERIOD_IN_PS": "4000"
+    }
+  },
+  {
     "id": 40172239278,
     "run_attempt": 1,
     "run_number": 24,
